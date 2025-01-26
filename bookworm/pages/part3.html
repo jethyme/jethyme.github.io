@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Часть III: «Приёмная дочь герцога»</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center; /* Центрируем блок по горизонтали */
+            align-items: flex-start; /* Выравниваем по верхнему краю */
+            min-height: 100vh; /* Минимальная высота на весь экран */
+            margin: 0; /* Убираем отступы по умолчанию */
+            background-color: white; /* Цвет фона */
+            overflow-x: hidden; /* Скрывает прокрутку */
+        }
+		.board_text {
+			margin-block-start: 0em;
+			font-family: FARSH_MARSH;
+			font-weight: normal; 
+			font-size: 2em;
+			color: black; 
+		}
+		.info-block p {
+			color: black;
+			}
+        .container {
+            width: 100%;
+			display: flex; /* Используем Flexbox для контейнера */
+			flex-direction: column; /* Размещаем элементы вертикально */
+			align-items: center; /* Центрируем элементы по горизонтали */
+            background-color: white; /* Цвет фона для контейнера */
+            box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1); /* Тень для контейнера */
+            border-radius: 0px; /* Закругленные углы */
+        }
+        main {
+            width: 100%;
+			display: flex;
+			flex-direction: column; /* Размещаем элементы вертикально */
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+        header {
+			width: 800px; /* Фиксированная ширина для контента */
+            display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+            background-color: white; /* Цвет фона заголовка */
+            color: black; /* Цвет текста заголовка */
+            font-family: Revard;
+        }
+		.footer_container {
+            font-family: Revard;
+		}
+        @font-face {
+            font-family: 'Ogelios21';
+            src: url('fonts/Ogelios 21.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'PassionsConflictRUS-Regular';
+            src: url('fonts/PassionsConflictRUS-Regular.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Books';
+            src: url('fonts/morana.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Revard';
+            src: url('fonts/Revard.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* Стили для ссылок */
+        a {
+			color: black;
+            text-decoration: none; /* Убираем стандартное подчеркивание */
+            transition: font-size 0.3s ease; /* Плавный переход для изменения размера шрифта */
+        }
+
+        /* Эффект при наведении */
+        .linka:hover text {
+            font-size: 24px; /* Увеличиваем размер шрифта при наведении */
+        }
+        /* Эффект при наведении */
+        .blood:hover text {
+            font-size: 90px; /* Увеличиваем размер шрифта при наведении */
+        }
+
+		
+		.chalkboard {
+			width: 400px; /* Ширина доски */
+			height: 200px; /* Высота доски */
+			background-color: #333; /* Цвет фона доски */
+			color: #fff; /* Цвет текста */
+			font-family: FARSH_MARSH; /* Шрифт */
+			font-size: 32px; /* Размер шрифта */
+			text-align: center; /* Выравнивание текста по центру */
+			position: relative; /* Позиционирование относительно контейнера */
+			overflow: hidden; /* Скрываем содержимое, выходящее за пределы */
+			border: 15px solid #000; /* Рамка доски */
+			border-color: white;
+			box-shadow: 0 0 0px rgba(0, 0, 0, 0.5); /* Тень доски */
+			transform: rotate(-5deg); /* Угол наклона, измените значение по желанию */
+			margin-top: 40px; /* Отступ сверху */
+		}
+		.chalkboard p {
+			position: absolute;
+			top: 50%;
+			left: 10%;
+			transform: translate(-5%, -50%);
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+			transition: opacity 0.3s ease;
+		}
+		@font-face {
+            font-family: 'Coats Regular';
+            src: url('fonts/Coats Regular.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Coats Italic';
+            src: url('fonts/Coats Italic.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'FARSH_MARSH';
+            src: url('fonts/FARSH_MARSH.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'base_font';
+            src: url('fonts/Coats Regular.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Handwritten_Institute';
+            src: url('fonts/Handwritten_Institute.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		
+        .info-block {
+			width: 540px;
+			background-color: white;
+			margin: 0 20px 0 60px;
+			padding: 25px;
+        }
+        .lpart {
+			width: 540px;
+			background-color: #f4f4f4;
+			margin: 0 20px 0 20px;
+			padding: 25px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+		
+        .rpart {
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+			flex-direction: column; /* Размещаем элементы вертикально */
+        }
+		.board {
+			width: 100%;
+			margin: 20px 0;
+			background-color: white;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.unboard {
+			width: 1000px;
+			margin: 20px 0;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		
+		.undet {
+			width: 1000px;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.details {
+			width: 100%;
+			margin: 20px 0;
+			background-color: #white;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+			
+			box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+		}
+		.lead {
+			width: 618px;
+			background-color: #f4f4f4;
+			margin: 20px 0;
+			padding: 25px;
+			border-radius: 0px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.fall { animation: fall 1s forwards; }
+          @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(100px) rotate(360deg); }
+          }
+		  body {
+			font-family: base_font;
+			font-size: 1.2em;
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4;
+		}
+		.life {
+			margin-right: 20px;
+			margin-block-start: 0.em;
+			margin-block-end: 0.em;
+		}
+		.title {
+			font-size: 3.1em;
+			font-weight: normal; 
+			animation: fadeIn 1s ease-in-out;
+			
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+		}
+		
+		.title-absolute {
+			position: absolute;
+			margin-left: 74%;
+			margin-top: -45px;
+		}
+        .title-container {
+            display: flex;
+            flex-direction: column; /* Размещаем заголовок и автора вертикально */
+        }
+        .title-hor {
+            display: flex;
+            align-items: baseline; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+		
+		.blocks_lead {
+			width: 618px;
+			margin: 20px 0;
+			padding: 25px;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+        .blocks_container {
+            text-align: center;
+        }
+		.blocks {
+            position: relative;
+            width: 300px; /* Ширина блока */
+            height: 400px; /* Высота блока */
+        }
+        .block {
+            width: 100%;
+            height: 100%;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+            transition: transform 0.5s ease;
+            padding: 50px 50px;
+			text-align: left;
+        }
+		.prev-block {
+            position: relative;
+            width: 500px; 
+            height: 500px; 
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            position: absolute;
+            transition: transform 0.5s ease;
+            padding: 20px 20px;
+        }
+		#block7 {
+			text-align: center;
+		}
+		
+        .prod {
+                margin-block-start: 1em;
+				margin-block-end: 0em;
+        }
+		
+        .typing {
+			height: 150px;
+            font-size: 36px;
+            white-space: pre-wrap; /* Позволяет использовать перенос строк */
+            overflow: hidden; /* Скрывает текст, который выходит за пределы */
+            position: relative; /* Для позиционирования курсора */
+            line-height: 1.2; /* Высота строки */
+        }
+
+        .cursor {
+            display: inline-block; /* Чтобы курсор занимал место */
+            width: 2px; /* Ширина курсора */
+            height: 36px; /* Высота курсора */
+            background-color: black; /* Цвет курсора */
+            animation: blink 0.7s step-end infinite; /* Анимация мигания курсора */
+            vertical-align: bottom; /* Выравнивание курсора по нижнему краю */
+        }
+
+        @keyframes blink {
+            50% {
+                background-color: transparent; /* Прозрачный курсор */
+            }
+        }
+		
+		.wave-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 15vh; /* Высота контейнера */
+			margin-top: -5%;
+            white-space: nowrap; /* Не переносить текст */
+        }
+        .letter {
+            font-size: 3em; /* Размер шрифта */
+            animation: wave-animation 1s infinite; /* Анимация */
+            opacity: 0.8; /* Прозрачность текста */
+            display: inline-block; /* Позволяет применять transform */
+        }
+        /* Анимация волн */
+        @keyframes wave-animation {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px); /* Поднимаем текст вверх */
+            }
+        }
+		
+		.wave-block:hover {
+            animation: wave 2.5s infinite; /* Анимация при наведении */
+        }
+        /* Определение анимации волны */
+        @keyframes wave {
+            0% {
+                transform: translateY(0);
+            }
+            10% {
+                transform: translateY(-5px); /* Поднимаем блок */
+            }
+            20% {
+                transform: translateY(0); /* Возвращаем на место */
+            }
+            30% {
+                transform: translateY(5px); /* Опускаем блок */
+            }
+            40% {
+                transform: translateY(0); /* Возвращаем на место */
+            }
+            50% {
+                transform: translateY(-5px); /* Поднимаем блок */
+            }
+            60% {
+                transform: translateY(0); /* Возвращаем на место */
+            }
+            70% {
+                transform: translateY(5px); /* Опускаем блок */
+            }
+            80% {
+                transform: translateY(0); /* Возвращаем на место */
+            }
+            90% {
+                transform: translateY(-5px); /* Поднимаем блок */
+            }
+            100% {
+                transform: translateY(0); /* Завершаем анимацию */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+			<div class="title-container">
+			<div class="title-absolute">
+			<svg
+                width="200px"
+                height="165px"
+                viewBox="0 0 150 124"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
+                <g transform="translate(20 118) rotate(-90)" font-size="20" font-family="Books" text-anchor="left">
+                    <!-- Ссылки на части -->
+                    <a href="part1.html" class="linka">
+                        <text transform="rotate(20)" fill="#9b59b6">ЧАСТЬ I</text>
+                    </a>
+                    <a href="part2.html" class="linka">
+                        <text transform="translate(0 47)" fill="#3498db">ЧАСТЬ II</text>
+                    </a>
+                    <a href="part3.html" class="linka">
+                        <text transform="translate(0 72)" fill="#e74c3c">ЧАСТЬ III</text>
+                    </a>
+                    <a href="part4.html" class="linka">
+                        <text transform="translate(0 97)" fill="#2ecc71">ЧАСТЬ IV</text>
+                    </a>
+                    <a href="part5.html" class="linka">
+                        <text transform="translate(0 122)" fill="#f1c40f">ЧАСТЬ V</text>
+					</a>
+				</g>
+			</svg>
+			</div>
+			<a href="../index.html">
+                <h3 class="author">Власть книжного червя</h3>
+			</a>
+			<div >
+			<div>
+				<h1 class="title">Часть&nbsp;III: «Приёмная&nbsp;дочь&nbsp;герцога»</h1>
+			</div>
+			</div>
+            </div>
+		
+    </header>
+    <main>
+        <section class="lead">
+            <p>Капля крови на&nbsp;амулете оказалась подтверждением договора об&nbsp;удочерении. Майн была повторно крещена под именем <b>Розмайн</b> как дочь высшего дворянина Карстеда, и&nbsp;её&nbsp;сразу&nbsp;же удочерил герцог, тем самым сделав полиграфию отраслью всего Эренфеста.
+			</p>
+		</section>
+		
+				
+		<section class="blocks_lead">
+			<div class="blocks_container">
+				<div class="blocks">
+					<div class="block" id="block1" style="z-index: 1;">
+						<p>
+							Сейчас самое главное для Розмайн&nbsp;&mdash; это приспособиться к&nbsp;благородному обществу и&nbsp;приготовить лекарство, которое исцелит её&nbsp;тело. Однако она вместо всего этого вымогала деньги у&nbsp;своих опекунов, используя свои рецепты, собирала деньги на&nbsp;благотворительном концерте, а&nbsp;также зарабатывала кучу денег, продавая товары на&nbsp;этом концерте. 
+						</p>
+					</div>
+					<div class="block" id="block2" style="z-index: 2;">
+						<p>
+							Розмайн занята обязанностями приёмной дочери герцога, центральной фигуры в&nbsp;развитии полиграфической отрасли, главы храма и&nbsp;директора приюта, но&nbsp;она сильно скучает по&nbsp;своей семье из&nbsp;нижнего города. Тем не&nbsp;менее, она ищет возможности хоть как‑то увидеться с&nbsp;ними, следя за&nbsp;тем, чтобы не&nbsp;нарушить магический договор.
+						</p>
+					</div>
+					<div class="block" id="block3" style="z-index: 3;">
+						<p>
+							И, наконец, благодаря полученной власти и&nbsp;авторитету, Розмайн неуклонно продвигает полиграфию. Иоганну и&nbsp;Заку было поручено создать машины для изготовления вощёных трафаретов, причем Зак стал первым человеком, который действительно желал стать Гутенбергом. И&nbsp;теперь все они упорно трудятся для развития печати.
+						</p>
+					</div>
+					<div class="block" id="block4" style="z-index: 4;">
+						<p>
+							Поскольку печатный станок мало чем отличался от&nbsp;обычного пресса, было решено его улучшить, чтобы печатать стало проще. Это привело к&nbsp;тому, что потребовался обмен мнениями между ремесленниками нижнего города, что было для них в&nbsp;новинку, а&nbsp;также к&nbsp;тому, что Розмайн купила чертежи. Бенно и&nbsp;Лутцу всё это тоже доставило трудности.
+						</p>
+					</div>
+					<div class="block" id="block5" style="z-index: 5;">
+						<p>
+							Новый печатный станок был наконец-то завершён, и&nbsp;Розмайн впервые за&nbsp;долгое время переоделась в&nbsp;свой старый наряд ученицы компании &laquo;Гилберта&raquo;, чтобы прокрасться в&nbsp;мастерскую и&nbsp;набрать текст из&nbsp;подвижных литер.
+						</p>
+					</div>
+					<div class="block" id="block7" style="z-index: 7;"><h2 class="prod">Продвижение полиграфии</h2><br>Напечатать следующий лист</div>
+					<div class="prev-block" id="block8" style="z-index: 8; opacity: 1%;"></div>
+				</div>
+		</section>
+		<script>
+			let currentBlock = 1;
+			const next_block = document.getElementById('block7');
+			// Показываем кнопку "Следующий лист" только для первого блока
+			document.getElementById('block1').style.transform = 'translateX(-10%)';
+			document.getElementById('block2').style.transform = 'rotate(5deg) translateX(90%)';
+			document.getElementById('block3').style.transform = 'rotate(5deg) translateX(90%)';
+			document.getElementById('block4').style.transform = 'rotate(5deg) translateX(90%)';
+			document.getElementById('block5').style.transform = 'rotate(5deg) translateX(90%)';
+			document.getElementById('block8').style.transform = 'rotate(-5deg) translateX(-110%)';
+			document.getElementById('block8').style.display = 'none';
+			next_block.style.display = 'block';
+			next_block.style.transform = 'rotate(5deg) translateX(90%)';
+			next_block.addEventListener('click', function() {
+				if (currentBlock < 5) {
+					const block1 = document.getElementById('block' + currentBlock);
+					const block2 = document.getElementById('block' + (currentBlock + 1));
+
+					// Поворачиваем и сдвигаем текущий блок
+					block1.style.transform = 'rotate(-5deg) translateX(-110%)';
+					// Перемещаем следующий блок на место
+					block2.style.transform = 'translateX(-10%)';
+
+					currentBlock++;
+
+					// Показать кнопку "Предыдущий лист"
+					document.getElementById('block8').style.display = 'block';
+
+					// Скрыть кнопку "Следующий лист", если больше нет листов
+					if (currentBlock === 5) {
+						next_block.style.display = 'none';
+					}
+				}
+			});
+
+			document.getElementById('block8').addEventListener('click', function() {
+				if (currentBlock > 1) {
+					const block1 = document.getElementById('block' + currentBlock);
+					const block2 = document.getElementById('block' + (currentBlock - 1));
+
+					// Поворачиваем и сдвигаем текущий блок
+					block1.style.transform = 'rotate(5deg) translateX(90%)';
+					// Перемещаем предыдущий блок на место
+					block2.style.transform = 'translateX(-10%)';
+
+					currentBlock--;
+
+					// Скрыть кнопку "Предыдущий лист", если вернулись к первому блоку
+					if (currentBlock === 1) {
+						document.getElementById('block8').style.display = 'none';
+					}
+
+					// Показать кнопку "Следующий лист", если есть следующий блок
+					if (currentBlock < 5) {
+						document.getElementById('block7').style.display = 'block';
+					}
+				}
+			});
+
+		</script>	
+		<section class="lead" style="opacity: 0%;">
+            <p>
+			Я&nbsp;бы порекомендовала всем, кому это интересно
+			</p>
+		</section>
+		
+		
+		
+		<div class="typing" id="typingText"></div>
+	<script>
+        const texts = [
+            "Выстраивать металлические литеры\nна наборной верстатке оказалось\nочень весело.",
+            "Если вам представится возможность,\nобязательно попробуйте сами\nи почувствуйте себя Гутенбергом."
+        ];
+
+        let currentTextIndex = 0;
+        let currentCharIndex = 0;
+        let typingSpeed = 100; // Скорость набора текста
+        let erasingSpeed = 50; // Скорость стирания текста
+        let pauseBetweenTexts = 1000; // Пауза между текстами
+
+        function type() {
+            const text = texts[currentTextIndex];
+            if (currentCharIndex < text.length) {
+                document.getElementById('typingText').textContent += text.charAt(currentCharIndex);
+                currentCharIndex++;
+                setTimeout(type, typingSpeed);
+            } else {
+                setTimeout(erase, pauseBetweenTexts);
+            }
+            updateCursor();
+        }
+
+        function erase() {
+            const text = texts[currentTextIndex];
+            if (currentCharIndex > 0) {
+                document.getElementById('typingText').textContent = text.substring(0, currentCharIndex - 1);
+                currentCharIndex--;
+                setTimeout(erase, erasingSpeed);
+            } else {
+                currentTextIndex = (currentTextIndex + 1) % texts.length; // Переход к следующему тексту
+                setTimeout(type, typingSpeed + 500); // Пауза перед началом набора нового текста
+            }
+            updateCursor();
+        }
+
+        function updateCursor() {
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            const typingText = document.getElementById('typingText');
+            typingText.appendChild(cursor);
+            setTimeout(() => {
+                typingText.removeChild(cursor);
+            }, typingSpeed);
+        }
+
+        // Начинаем с первого текста
+        type();
+    </script>
+		
+		<section style="text-align: center; margin: 20px;">
+			<h2 style="font-size: 5em;
+			font-family: PassionsConflictRUS-Regular;
+			margin: 7%">Дворянские дела</h1>
+
+			<div style="width: 520px; 
+			background-color: #f4f4f4;
+			padding: 15px 35px 22px 35px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			transform: rotate(-1deg)  translate(-120px, -20px);
+			display: inline-block;
+			text-align: left;
+			font-family: Coats Italic;">
+				<p>Фердинанд наконец-то вернулся в&nbsp;благородное общество, а&nbsp;это значит, что Экхарт и&nbsp;Юстокс теперь могут свободно посещать храм. В&nbsp;то&nbsp;время как у&nbsp;Розмайн постепенно менялось окружение, мы&nbsp;стали свидетелями прибытия Георгины. 
+				</p>
+			</div>
+			<div style="width: 390px; 
+			background-color: #f4f4f4;
+			margin: -45px 30% 0 50%;
+			padding: 15px 35px 22px 35px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			transform: rotate(5deg); display: inline-block;
+			text-align: left;
+			font-family: Coats Italic;">
+				<p>Георгина&nbsp;&mdash; женщина, которую растили как будущего ауба Эренфеста. Многие до&nbsp;сих пор верны&nbsp;ей, и&nbsp;на&nbsp;что они могут пойти, чтобы поддержать её&nbsp;амбиции? Их&nbsp;взоры устремлены на&nbsp;Вильфрида, и&nbsp;кто знает, какая судьба уготована остальным...
+				</p>
+			</div>
+			<div style="width: 442px; 
+			background-color: #f4f4f4;
+			padding: 15px 35px 22px 35px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			transform: rotate(-4deg) translate(-220px, -150px); 
+			display: inline-block;
+			text-align: left;
+			font-family: Coats Italic;">
+				<p>Благодаря поддержке Карстеда и&nbsp;Фердинанда сбор рюэля прошёл успешно. Таким образом, Розмайн получила все ингредиенты, необходимые для создания юрэве. Но&nbsp;ей&nbsp;не&nbsp;удалось долго радоваться, что она наконец-то выздоровеет.
+				</p>
+			</div>
+
+			<div style="width: 442px; 
+			background-color: #f4f4f4;
+			margin: -165px 30% 0 47%;
+			padding: 15px 35px 22px 35px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			transform: rotate(2deg) translate(0px, -20px);
+			display: inline-block;
+			text-align: left;
+			font-family: Coats Italic;">
+				<p>Вильфрид попадает в&nbsp;ловушку, расставленную дворянами во&nbsp;время охотничьего турнира, проводящегося в&nbsp;то&nbsp;самое время, когда Розмайн отсутствует на&nbsp;празднике урожая. Ей&nbsp;приходится поломать голову, пытаясь найти способ спасти его.
+				</p>
+			</div>
+			
+			<a href="part4.html">
+			<div class="wave-block" style="width: 442px; 
+			background-color: #f4f4f4;
+			margin: 70px 0% 0 0%;
+			padding: 15px 35px 22px 35px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+			transform: rotate(0deg); display: inline-block;
+			text-align: left;
+			font-family: Coats Regular;">
+				<p>В&nbsp;это&nbsp;же время впервые появляется младшая сестра Вильфрида&nbsp;&mdash; Шарлотта. Розмайн, не&nbsp;жалея сил, пытается показать себя с&nbsp;наилучшей стороны перед своей первой младшей сестрой, вот только в&nbsp;итоге подвергается нападению, в&nbsp;результате чтобы выжить ей&nbsp;приходится погрузиться в&nbsp;<b>юрэве</b>.
+				</p>
+			</div>
+			</a>
+		</section>
+
+    </main>
+	
+	<a href="part4.html">
+		<div class="wave-container" id="wave-container" style="font-family:Coats Italic;"></div>
+	</a>
+
+    <script>
+        const word = "юрэве";
+        const container = document.getElementById('wave-container');
+
+        // Создаем отдельные элементы для каждой буквы
+        word.split('').forEach((letter, index) => {
+            const span = document.createElement('span');
+            span.className = 'letter';
+            span.textContent = letter;
+
+            // Задаем задержку анимации для создания эффекта волны
+            span.style.animationDelay = `${index * 0.1}s`;
+            container.appendChild(span);
+        });
+
+        // Добавляем дополнительные слова
+        for (let i = 0; i < 10; i++) {
+            word.split('').forEach((letter, index) => {
+                const span = document.createElement('span');
+                span.className = 'letter';
+                span.textContent = letter;
+                span.style.animationDelay = `${index * 0.1 + (i * word.length * 0.1)}s`;
+                container.appendChild(span);
+            });
+        }
+    </script>
+    <footer>
+			<div>
+				<a href="../index.html">
+					<h3 class="footer_container" >На главную</h3>
+				</a>
+			</div>
+    </footer>
+	
+</body>
+</html>
+

@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Часть IV: «Основательница некоего библиотечного комитета дворянской академии»</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center; /* Центрируем блок по горизонтали */
+            align-items: flex-start; /* Выравниваем по верхнему краю */
+            min-height: 100vh; /* Минимальная высота на весь экран */
+            margin: 0; /* Убираем отступы по умолчанию */
+            background-color: white; /* Цвет фона */
+            overflow-x: hidden; /* Скрывает прокрутку */
+        }
+		.board_text {
+			margin-block-start: 0em;
+			font-family: FARSH_MARSH;
+			font-weight: normal; 
+			font-size: 2em;
+			color: black; 
+		}
+		.info-block p {
+			color: black;
+			}
+        .container {
+            width: 100%;
+			display: flex; /* Используем Flexbox для контейнера */
+			flex-direction: column; /* Размещаем элементы вертикально */
+			align-items: center; /* Центрируем элементы по горизонтали */
+            background-color: white; /* Цвет фона для контейнера */
+            box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1); /* Тень для контейнера */
+            border-radius: 0px; /* Закругленные углы */
+        }
+        main {
+            width: 100%;
+			display: flex;
+			flex-direction: column; /* Размещаем элементы вертикально */
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+        header {
+			width: 800px; /* Фиксированная ширина для контента */
+            display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+            background-color: white; /* Цвет фона заголовка */
+            color: black; /* Цвет текста заголовка */
+            font-family: Revard;
+        }
+		.footer_container {
+            font-family: Revard;
+		}
+        @font-face {
+            font-family: 'Ogelios21';
+            src: url('fonts/Ogelios 21.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Books';
+            src: url('fonts/morana.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Revard';
+            src: url('fonts/Revard.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* Стили для ссылок */
+        a {
+			color: black;
+            text-decoration: none; /* Убираем стандартное подчеркивание */
+            transition: font-size 0.3s ease; /* Плавный переход для изменения размера шрифта */
+        }
+
+        /* Эффект при наведении */
+        .linka:hover text {
+            font-size: 24px; /* Увеличиваем размер шрифта при наведении */
+        }
+        /* Эффект при наведении */
+        .blood:hover text {
+            font-size: 90px; /* Увеличиваем размер шрифта при наведении */
+        }
+
+		
+		.chalkboard {
+			width: 400px; /* Ширина доски */
+			height: 200px; /* Высота доски */
+			background-color: #333; /* Цвет фона доски */
+			color: #fff; /* Цвет текста */
+			font-family: FARSH_MARSH; /* Шрифт */
+			font-size: 32px; /* Размер шрифта */
+			text-align: center; /* Выравнивание текста по центру */
+			position: relative; /* Позиционирование относительно контейнера */
+			overflow: hidden; /* Скрываем содержимое, выходящее за пределы */
+			border: 15px solid #000; /* Рамка доски */
+			border-color: white;
+			box-shadow: 0 0 0px rgba(0, 0, 0, 0.5); /* Тень доски */
+			transform: rotate(-5deg); /* Угол наклона, измените значение по желанию */
+			margin-top: 40px; /* Отступ сверху */
+		}
+		.chalkboard p {
+			position: absolute;
+			top: 50%;
+			left: 10%;
+			transform: translate(-5%, -50%);
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+			transition: opacity 0.3s ease;
+		}
+		@font-face {
+            font-family: 'Coats Regular';
+            src: url('fonts/Coats Regular.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'FARSH_MARSH';
+            src: url('fonts/FARSH_MARSH.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'base_font';
+            src: url('fonts/Coats Regular.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Handwritten_Institute';
+            src: url('fonts/Handwritten_Institute.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		
+        .info-block {
+			width: 540px;
+			background-color: white;
+			margin: 0 20px 0 60px;
+			padding: 25px;
+        }
+        .lpart {
+			width: 540px;
+			background-color: #f4f4f4;
+			margin: 0 20px 0 20px;
+			padding: 25px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+		
+        .rpart {
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+			flex-direction: column; /* Размещаем элементы вертикально */
+        }
+		.board {
+			width: 100%;
+			margin: 20px 0;
+			background-color: white;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.unboard {
+			width: 1000px;
+			margin: 20px 0;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		
+		.undet {
+			width: 1000px;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.details {
+			width: 100%;
+			margin: 20px 0;
+			background-color: #white;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+			
+			box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+		}
+		.lead {
+			width: 618px;
+			background-color: #f4f4f4;
+			margin: 20px 0;
+			padding: 25px;
+			border-radius: 0px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.fall { animation: fall 1s forwards; }
+          @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(100px) rotate(360deg); }
+          }
+		  body {
+			font-family: base_font;
+			font-size: 1.2em;
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4;
+		}
+		.life {
+			margin-right: 20px;
+			margin-block-start: 0.em;
+			margin-block-end: 0.em;
+		}
+		.title {
+			font-size: 3.1em;
+			font-weight: normal; 
+			animation: fadeIn 1s ease-in-out;
+			
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+		}
+		
+		.title-absolute {
+			position: absolute;
+			margin-left: 74%;
+			margin-top: -45px;
+		}
+        .title-container {
+            display: flex;
+            flex-direction: column; /* Размещаем заголовок и автора вертикально */
+        }
+        .title-hor {
+            display: flex;
+            align-items: baseline; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+		
+		.star{
+		width: 500px;
+			margin: 20px 0;
+			padding: 25px;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.hidden {
+            max-height: 0; /* Скрыть блок */
+            overflow: hidden; /* Скрыть содержимое */
+            transition: max-height 0.5s ease-out; /* Плавный переход */
+			margin-top: -100px;
+        }
+        .visible {
+            max-height: 200px; /* Задаем максимальную высоту для видимого блока */
+            transition: max-height 0.5s ease-in; /* Плавный переход */
+        }
+        .toggle-button {
+            cursor: pointer; /* Указатель при наведении */
+            color: maroon; /* Цвет текста */
+            text-decoration: none; /* Подчеркивание текста */
+        }
+		
+		
+		
+        .question {
+            position: relative;
+            width: 200px; /* Ширина блока вопроса */
+            border-radius: 55px; /* Скругление углов */
+            padding: 30px;
+            text-align: center; /* Центрирование текста */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень */
+			z-index:1;
+			margin-top:-55px;
+        }
+		.question:hover {
+		scale: 1.2;
+		}
+        .question1 {
+            animation: moveAround1 10s linear infinite; /* Анимация для первого вопроса */
+        }
+
+        .question2 {
+            animation: moveAround2 12s linear infinite; /* Анимация для второго вопроса */
+        }
+
+        .question3 {
+            animation: moveAround3 14s linear infinite; /* Анимация для третьего вопроса */
+        }
+
+        .question4 {
+            animation: moveAround4 16s linear infinite; /* Анимация для четвертого вопроса */
+        }
+
+        .question5 {
+            animation: moveAround5 18s linear infinite; /* Анимация для пятого вопроса */
+        }
+
+        .question6 {
+            animation: moveAround6 20s linear infinite; /* Анимация для шестого вопроса */
+        }
+
+        @keyframes moveAround1 {
+            0% { transform: translate(300px, 0); }
+            25% { transform: translate(0, 50px); }
+            50% { transform: translate(-300px, 0); }
+            75% { transform: translate(0, -50px); }
+            100% { transform: translate(300px, 0); }
+        }
+
+        @keyframes moveAround2 {
+            0% { transform: translate(300px, 0px); }
+            25% { transform: translate(-300px, 50px); }
+            50% { transform: translate(300px, -50px); }
+            75% { transform: translate(-300px, -50px); }
+            100% { transform: translate(300px, 0px); }
+        }
+
+        @keyframes moveAround3 {
+            0% { transform: translate(0, 50px); }
+            25% { transform: translate(300px, -50px); }
+            50% { transform: translate(0px, 0); }
+            75% { transform: translate(-300px, -50px); }
+            100% { transform: translate(0, 50px); }
+        }
+
+        @keyframes moveAround4 {
+            0% { transform: translate(-400px, 0); }
+            25% { transform: translate(0, 50px); }
+            50% { transform: translate(300px, 0); }
+            75% { transform: translate(0, -50px); }
+            100% { transform: translate(-400px, 0); }
+        }
+
+        @keyframes moveAround5 {
+            0% { transform: translate(-300px, 50px); }
+            25% { transform: translate(400px, 0px); }
+            50% { transform: translate(-400px, -50px); }
+            75% { transform: translate(400px, -0px); }
+            100% { transform: translate(-300px, 50px); }
+        }
+
+        @keyframes moveAround6 {
+            0% { transform: translate(-400px, 50px); }
+            25% { transform: translate(300px, -50px); }
+            50% { transform: translate(-300px, 0); }
+            75% { transform: translate(300px, -50px); }
+            100% { transform: translate(-400px, 50px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+			<div class="title-container">
+			<div class="title-absolute">
+			<svg
+                width="200px"
+                height="165px"
+                viewBox="0 0 150 124"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
+                <g transform="translate(20 118) rotate(-90)" font-size="20" font-family="Books" text-anchor="left">
+                    <!-- Ссылки на части -->
+                    <a href="part1.html" class="linka">
+                        <text transform="rotate(20)" fill="#9b59b6">ЧАСТЬ I</text>
+                    </a>
+                    <a href="part2.html" class="linka">
+                        <text transform="translate(0 47)" fill="#3498db">ЧАСТЬ II</text>
+                    </a>
+                    <a href="part3.html" class="linka">
+                        <text transform="translate(0 72)" fill="#e74c3c">ЧАСТЬ III</text>
+                    </a>
+                    <a href="part4.html" class="linka">
+                        <text transform="translate(0 97)" fill="#2ecc71">ЧАСТЬ IV</text>
+                    </a>
+                    <a href="part5.html" class="linka">
+                        <text transform="translate(0 122)" fill="#f1c40f">ЧАСТЬ V</text>
+					</a>
+				</g>
+			</svg>
+			</div>
+			<a href="../index.html">
+                <h3 class="author">Власть книжного червя</h3>
+			</a>
+			<div >
+			<div>
+				<h1 class="title">Часть&nbsp;IV:<br>«Основательница некоего библиотечного комитета дворянской академии»</h1>
+			</div>
+			</div>
+            </div>
+		
+    </header>
+    <main>
+        <section class="lead" style="z-index:2;">
+			<p>Розмайн проспала два года и&nbsp;почувствовала себя, как <b class="toggle-button">Урасима Таро<sup>*</sup></b>. Несмотря на&nbsp;то, что у&nbsp;неё было много причин для беспокойства, она приложила все силы, чтобы попасть в&nbsp;библиотеку дворянской академии.</p>
+		</section>
+		<section class="star hidden" id="hidden-block" style="z-index:1;">
+			<p><sup>*</sup>Урасима Таро&nbsp;&mdash; главный герой японской сказки о&nbsp;молодом рыбаке, спасшем черепаху. Она оказалась прекрасной дочерью повелителя морей Рюдзина по&nbsp;имени Отохимэ, которая лишь временно приняла образ животного. Отохимэ пригласила Таро в&nbsp;подводный дворец Рюгу‑дзё, где тот провёл несколько дней, однако затем попросил разрешения вернуться на&nbsp;берег. Возвратившись в&nbsp;свою деревню, Таро обнаружил, что <b>за&nbsp;время его отсутствия прошло несколько столетий</b>.</p>
+		</section>
+
+		<script>
+			// Получаем элементы
+			const toggleButton = document.querySelector('.toggle-button');
+			const hiddenBlock = document.getElementById('hidden-block');
+			// Добавляем обработчик события клика
+			toggleButton.addEventListener('click', () => {
+				// Переключаем классы для показа/скрытия блока
+				hiddenBlock.classList.toggle('hidden');
+				hiddenBlock.classList.toggle('visible');
+			});
+		</script>
+		
+		<section class="details" style="margin-top: 120px;">
+			<div class="math-background" 
+			style="position: relative;
+			background-color:#4db6ac;
+            width: 100%;
+            height: 1000px; /* Высота блока */
+            overflow: hidden; /* Обрезка содержимого, выходящего за границы */
+            display: flex;
+            align-items: center;
+            justify-content: center;">
+			<div class="math-texture"
+				style="position: absolute;
+				top: -70%;
+				left: -50%;
+				width: 200%;
+				height: 200%;
+				color: rgba(0, 0, 0, 0.1);
+				font-size: 6.5em;
+				white-space: pre-wrap; /* Позволяет переносить текст */
+				transform: rotate(-30deg);
+				pointer-events: none; 
+				font-family: 'Handwritten_Institute'">
+          1 + 1 = 2   2 * 2 = 4   3 - 1 = 2   5 / 5 = 1   6 + 3 = 9   7 - 4 = 3   8 * 2 = 16   9 / 3 = 3   10 + 10 = 20   1 + 1 = 2   2 * 2 = 4   3 - 1 = 2   5 / 5 = 1   6 + 3 = 9   7 - 4 = 3   8 * 2 = 16   11 - 5 = 6      12 / 4 = 3   13 + 7 = 20   14 * 1 = 14   15 - 10 = 5   16 / 2 = 8   17 + 3 = 20   18 - 9 = 9   1 + 1 = 2   2 * 2 = 4   3 - 1 = 2   5 / 5 = 1   6 + 3 = 9   7 - 4 = 3   8 * 2 = 16       19 * 1 = 19   20 / 5 = 4   21 + 9 = 30   22 - 2 = 20   23 * 2 = 46   24 / 6 = 4   25 + 5 = 30   26 - 6 = 20   1 + 1 = 2   2 * 2 = 4   3 - 1 = 2   5 / 5 = 1   6 + 3 = 9   7 - 4 = 3   8 * 2 = 16   27 * 3 = 81   28 / 4 = 7   29 + 1 = 30   30 - 15 = 15  11 - 5 = 6   12 / 4 = 3   13 + 7 = 20   14 * 1 = 14   1 + 1 = 2   2 * 2 = 4   3 - 1 = 2   5 / 5 = 1   6 + 3 = 9   7 - 4 = 3   8 * 2 = 16
+			</div>
+			<div class="undet" style="z-index:1">
+				<div class="lpart" style="padding: 5%;">
+				<h2 class="life2">Дворянская академия</h2>
+				<p>
+					Дворянская академия&nbsp;&mdash; это своего рода школа для дворянских детей, где весьма примечательные учителя обучают детей тому, как управлять магической силой, делать магические инструменты, а&nbsp;кандидатов в&nbsp;аубы ещё и&nbsp;магии, необходимой для управления герцогством. Дети из&nbsp;разных герцогств растут бок о&nbsp;бок, чтобы стать дворянами Юргеншмидта.</p>
+				</p>
+				<p>
+					Поскольку история разворачивается с&nbsp;точки зрения Розмайн, которая стремится поскорее попасть в&nbsp;библиотеку, пока ещё трудно понять, что академия должна быть местом, где юные дворяне заводят друзей, устанавливают связи с&nbsp;другими герцогствами и&nbsp;ищут себе избранников.
+				</p>
+				<p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">
+					Все мысли Розмайн лишь о&nbsp;том, чтобы поскорее попасть в&nbsp;библиотеку.
+				</p>
+				<p>
+					У&nbsp;некоторых людей возникают проблемы со&nbsp;столь необычным кандидатом в&nbsp;аубы, но&nbsp;её&nbsp;опекуны списывают всё на&nbsp;то, что она ещё не&nbsp;полностью оправилась после сна, и&nbsp;ей&nbsp;пока не&nbsp;хватает здравого смысла дворян. Они просто надеются, что Розмайн не&nbsp;будет создавать больших проблем. Правда, все их&nbsp;надежды тщетны, и&nbsp;вскоре на&nbsp;них обрушаться новые проблемы.
+				</p>
+			</div>
+			<div class="rpart">
+				
+			</div>
+			</div>
+		</section>
+			
+		<section class="lead">
+            <p>
+				Розмайн была без ума от&nbsp;того, что наконец-то смогла посещать библиотеку, однако её&nbsp;поведение нельзя назвать подобающим кандидату в&nbsp;аубы, за&nbsp;что её&nbsp;в&nbsp;итоге отругала Рихарда. Делая&nbsp;то, что нравится, никогда нельзя забывать, что рядом есть другие люди. В&nbsp;противном случае можно получить приказ вернуться домой, как это было с&nbsp;Розмайн.
+			</p>
+		</section>
+		
+		<section class="details">
+			<div class="math-background" 
+			style="position: relative;
+			background-color:#ffccbc;
+            width: 100%;
+            height: 1020px; /* Высота блока */
+            overflow: hidden; /* Обрезка содержимого, выходящего за границы */
+            display: flex;
+            align-items: center;
+            justify-content: center;">
+			<div class="math-texture"
+				style="position: absolute;
+				top: -70%;
+				left: -65%;
+				width: 200%;
+				height: 200%;
+				color: rgba(0, 0, 0, 0.1);
+				font-size: 5em;
+				white-space: pre-wrap; /* Позволяет переносить текст */
+				transform: rotate(30deg);
+				pointer-events: none; 
+				font-family: 'Revard'">
+Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля Магическийй ездовой зверь
+Диттер Шмиллы Божественная воля Магическийй ездовой зверь Фешпиль Штап Ордоннант
+Магическийй ездовой зверь Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля
+Центр Дункельфельгер Блюмефельд Коринздаум Классенбург Древанхель Александрия
+Хаухлетце Эренфест Гауссбюттел Глессенмейер Киршнерайт Йосбреннер Иммердинк
+Лембрук Лорцинг Бершман Фрёбельтак Лосренгер Нойехаузен Линденталь Аусвальд Квандтреб	
+Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля Магическийй ездовой зверь
+Диттер Шмиллы Божественная воля Магическийй ездовой зверь Фешпиль Штап Ордоннант
+Магическийй ездовой зверь Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля
+Центр Дункельфельгер Блюмефельд Коринздаум Классенбург Древанхель Александрия
+Хаухлетце Эренфест Гауссбюттел Глессенмейер Киршнерайт Йосбреннер Иммердинк
+Лембрук Лорцинг Бершман Фрёбельтак Лосренгер Нойехаузен Линденталь Аусвальд Квандтреб	
+Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля Магическийй ездовой зверь
+Диттер Шмиллы Божественная воля Магическийй ездовой зверь Фешпиль Штап Ордоннант
+Магическийй ездовой зверь Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля
+Центр Дункельфельгер Блюмефельд Коринздаум Классенбург Древанхель Александрия
+Хаухлетце Эренфест Гауссбюттел Глессенмейер Киршнерайт Йосбреннер Иммердинк
+Лембрук Лорцинг Бершман Фрёбельтак Лосренгер Нойехаузен Линденталь Аусвальд Квандтреб	
+Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля Магическийй ездовой зверь
+Диттер Шмиллы Божественная воля Магическийй ездовой зверь Фешпиль Штап Ордоннант
+Магическийй ездовой зверь Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля
+Центр Дункельфельгер Блюмефельд Коринздаум Классенбург Древанхель Александрия
+Хаухлетце Эренфест Гауссбюттел Глессенмейер Киршнерайт Йосбреннер Иммердинк
+Лембрук Лорцинг Бершман Фрёбельтак Лосренгер Нойехаузен Линденталь Аусвальд Квандтреб	
+Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля Магическийй ездовой зверь
+Диттер Шмиллы Божественная воля Магическийй ездовой зверь Фешпиль Штап Ордоннант
+Магическийй ездовой зверь Фешпиль Штап Ордоннант Диттер Шмиллы Божественная воля
+Центр Дункельфельгер Блюмефельд Коринздаум Классенбург Древанхель Александрия
+Хаухлетце Эренфест Гауссбюттел Глессенмейер Киршнерайт Йосбреннер Иммердинк
+Лембрук Лорцинг Бершман Фрёбельтак Лосренгер Нойехаузен Линденталь Аусвальд Квандтреб	
+			</div>
+			<div class="undet" style="z-index:1">
+				<div class="lpart" style="padding: 5%; margin:0 0 0 35%;">
+				<h2 class="life2">Студенческая жизнь</h2>
+				<p>
+				Снятие мерок, которое так ждали Лизелетта с&nbsp;девочками, было успешно завершено. Вот только из-за того, что Розмайн вывела Шварца и&nbsp;Вайса из&nbsp;библиотеки, они столкнулись с&nbsp;засадой студентов из&nbsp;других герцогств под предводительством Лестилаута. А&nbsp;в&nbsp;конечном счёте это вылилось в&nbsp;диттер против Дункельфельгера.
+				</p><p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">
+				Многим читателям диттер по&nbsp;краже сокровищ напоминает квиддич из&nbsp;Гарри Поттера.
+				</p><p>
+				Розмайн ухитрилась подружиться с&nbsp;Эглантиной из&nbsp;большого герцогства&nbsp;и, хотя и&nbsp;не&nbsp;стремилась к&nbsp;тому, даже с&nbsp;самим принцем. В&nbsp;результате её&nbsp;опекуны, читая отчёты, чуть&nbsp;ли не&nbsp;каждый день вынуждены хвататься за&nbsp;голову. Всё оказывается настолько ужасно, что Розмайн приказывают вернуться в&nbsp;Эренфест. 
+				</p><p>
+				По&nbsp;возвращении Розмайн ожидает важный разговор, во&nbsp;время которого выясняется, что распространение тенденций в&nbsp;дворянской академии неизбежно повлечёт увеличение количества торговых сделок с&nbsp;другими герцогствами. К&nbsp;сожалению, существующие магические договоры являются препятствием для этого. Как&nbsp;бы Розмайн ни&nbsp;хотела сохранить эту слабую связь с&nbsp;нижним городом, она не&nbsp;может.
+				</p>
+			</div>
+			<div class="rpart">
+			</div>
+			</div>
+		</section>
+		
+		<section class="lead">
+            <p>
+				Розмайн впервые за&nbsp;долгое время хочет насладиться неспешным чтением, но&nbsp;выкроить время оказывается не&nbsp;так просто. На&nbsp;Розмайн наваливается много забот, вроде объявления о&nbsp;помолвке на&nbsp;празднике весны, проведения религиозных ритуалов и&nbsp;церемоний впервые за&nbsp;два года, изготовления одежды для Шварца и&nbsp;Вайса.
+			</p>
+		</section>
+		
+		
+		<section class="details">
+			<div class="math-background" 
+			style="position: relative;
+			background-color:#2c3e50;
+            width: 100%;
+            height: 1060px; /* Высота блока */
+            overflow: hidden; /* Обрезка содержимого, выходящего за границы */
+            display: flex;
+            align-items: center;
+            justify-content: center;">
+			<div class="math-texture"
+				style="position: absolute;
+				top: -70%;
+				left: -50%;
+				width: 200%;
+				height: 200%;
+				color: rgba(0, 0, 0, 0.1);
+				font-size: 3.5em;
+				white-space: pre-wrap; /* Позволяет переносить текст */
+				transform: rotate(0deg);
+				pointer-events: none; ">
+Розмайн Чтение Время Заботы Помолвка Праздник Религиозные ритуалы Церемонии Одежда Шварц Вайс Смешивание Чернила Хальдензеле Молебен Ритуал Энтви́кельн Вашен Магия Сильвестр Флоренция Герцоги Замковый лес Грюны Нападение Брак Лампрехт Полиграфическая промышленность Грешеле Конкурс Окрашивание Ткань Библиотека Зима Дворянская академия Опекуны Проблемы Священные инструменты Водяной пистолет Руфен Рыцари Хильдебранд Хиршура Родерих Ингредиенты Танисбефален Расследование Инцидент Священные тексты Герцогства Ауб Дункельфельгер Хайсхица Террористы Фердинанд Командующий Раоблут Мельхиор Вероника Приёмная дочь Шарлотта Вильфрид Игрушки Книжки Священные тексты Последователи Рыба Дедушка Собрание герцогов Женитьба Королевский приказ Георгина Дети Контакт Северное здание Новости Ситуация Процесс Храм Учеба Прощание Амулеты Радужные магические камни Региши Храм Служители Писание герцогства Нижний город Аренсбах
+Розмайн Чтение Время Заботы Помолвка Праздник Религиозные ритуалы Церемонии Одежда Шварц Вайс Смешивание Чернила Хальдензеле Молебен Ритуал Энтви́кельн Вашен Магия Сильвестр Флоренция Герцоги Замковый лес Грюны Нападение Брак Лампрехт Полиграфическая промышленность Грешеле Конкурс Окрашивание Ткань Библиотека Зима Дворянская академия Опекуны Проблемы Священные инструменты Водяной пистолет Руфен Рыцари Хильдебранд Хиршура Родерих Ингредиенты Танисбефален Расследование Инцидент Священные тексты Герцогства Ауб Дункельфельгер Хайсхица Террористы Фердинанд Командующий Раоблут Мельхиор Вероника Приёмная дочь Шарлотта Вильфрид Игрушки Книжки Священные тексты Последователи Рыба Дедушка Собрание герцогов Женитьба Королевский приказ Георгина Дети Контакт Северное здание Новости Ситуация Процесс Храм Учеба Прощание Амулеты Радужные магические камни Региши Храм Служители Писание герцогства Нижний город Аренсбах
+			</div>
+			<div class="undet" style="z-index:1;">
+				<div class="lpart" style="padding: 5%;;">
+				<h2 class="life2">Второй год в&nbsp;дворянской&nbsp;академии</h2>
+				<p>
+				Как и&nbsp;в&nbsp;прошлом году, Розмайн создаёт проблемы... впрочем, в&nbsp;этом году проблем от&nbsp;неё даже больше. На&nbsp;занятиях она создаёт священные инструменты, а&nbsp;улучшив водяной пистолет&nbsp;&mdash; дырявит балдахин и&nbsp;прочее, и&nbsp;прочее. В&nbsp;то&nbsp;же время нельзя сказать, что только Розмайн несёт ответственность за&nbsp;все возникающие проблемы.
+				</p><p>
+				Так Руфен настойчиво предлагает ей&nbsp;пройти курс рыцарей, Шварц и&nbsp;Вайс просят снабдить магической силой статую богини, принц Хильдебранд снова и&nbsp;снова появляется в&nbsp;библиотеке, учеником Хиршуры оказывается студент из&nbsp;Аренсбаха, а&nbsp;когда Родерих отправляется за&nbsp;ингредиентами, на&nbsp;месте сбора появляется танисбефален.
+				</p><p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">
+				В&nbsp;общем, у&nbsp;Розмайн было полно того, с&nbsp;чем ей&nbsp;приходилось разбираться. 
+				</p><p>
+				Расследование инцидента с&nbsp;танисбефаленом вылилось во&nbsp;встречу по&nbsp;проверке священных текстов; во&nbsp;время её&nbsp;первого состязания герцогств ауб Дункельфельгер бросил ей&nbsp;вызов, в&nbsp;результате чего она стала сокровищем в&nbsp;диттере против Хайсхица. Кроме того, обнаружилось, что между Фердинандом и&nbsp;командующим рыцарским орденом Центра Раоблутом есть какие-то неясные трения.
+				</p>
+			</div>
+			<div class="rpart">
+			</div>
+			</div>
+		</section>
+		
+		
+		<div style="width: 618px;
+			background-color: #f4f4f4;
+			margin: 20px 0;
+			padding: 25px;
+			border-radius: 0px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+		transform: rotate(0deg); display: inline-block;
+		
+		font-family: Coats Regular;">
+			<p>
+				Закончив второй год обучения в&nbsp;дворянской академии, Розмайн вернулась к&nbsp;привычной жизни в&nbsp;Эренфесте. Вот только эти радостные дни омрачило известие о&nbsp;женитьбе Фердинанда. К&nbsp;тому&nbsp;же королевский приказ&nbsp;&mdash; это не&nbsp;то, против чего можно выступить.
+				</p><p style="text-align: center;  font-size: 1.4em;">
+				Всё это вызвало много <b>вопросов</b>.
+			</p>
+		</div>
+		<a href="part5.html">
+		<div class="question question1">Почему ауб Аренсбах стремился заключить брак?</div>
+		<div class="question question2">Почему такое решение поддержали другие герцогства?</div>
+		<div class="question question3">Что планирует сам Фердинанд?</div>
+		
+		<div class="question question4">Почему Фердинанд не&nbsp;посоветовался с&nbsp;герцогом?</div>
+		<div class="question question5">Что замышляет Георгина?</div>
+		<div class="question question6">Какие интересы преследует Центр?</div>
+		</a>
+
+    </main>
+    <footer style="margin-top: 60px">
+			<div>
+				<a href="../index.html">
+					<h3 class="footer_container" >На главную</h3>
+				</a>
+			</div>
+    </footer>
+	
+</body>
+</html>
+

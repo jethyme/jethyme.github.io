@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Часть I: «Дочь солдата»</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center; /* Центрируем блок по горизонтали */
+            align-items: flex-start; /* Выравниваем по верхнему краю */
+            min-height: 100vh; /* Минимальная высота на весь экран */
+            margin: 0; /* Убираем отступы по умолчанию */
+            background-color: white; /* Цвет фона */
+            overflow-x: hidden; /* Скрывает прокрутку */
+        }
+
+        .container {
+            width: 100%;
+			display: flex; /* Используем Flexbox для контейнера */
+			flex-direction: column; /* Размещаем элементы вертикально */
+			align-items: center; /* Центрируем элементы по горизонтали */
+            background-color: white; /* Цвет фона для контейнера */
+            box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1); /* Тень для контейнера */
+            border-radius: 0px; /* Закругленные углы */
+        }
+        main {
+            width: 100%;
+			display: flex;
+			flex-direction: column; /* Размещаем элементы вертикально */
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+        header {
+			width: 800px; /* Фиксированная ширина для контента */
+            display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+            background-color: white; /* Цвет фона заголовка */
+            color: black; /* Цвет текста заголовка */
+            font-family: Revard;
+        }
+		.footer_container {
+            font-family: Revard;
+		}
+        @font-face {
+            font-family: 'Ogelios21';
+            src: url('fonts/Ogelios 21.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Books';
+            src: url('fonts/morana.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Revard';
+            src: url('fonts/Revard.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		.board_text {
+			margin-block-start: 0em;
+			font-family: FARSH_MARSH;
+			font-weight: normal; 
+			font-size: 2em;
+			color: white; 
+		}
+		.info-block p {
+			color: white;
+			}
+        /* Стили для ссылок */
+        a {
+			color: black;
+            text-decoration: none; /* Убираем стандартное подчеркивание */
+            transition: font-size 0.3s ease; /* Плавный переход для изменения размера шрифта */
+        }
+
+        /* Эффект при наведении */
+        .linka:hover text {
+            font-size: 24px; /* Увеличиваем размер шрифта при наведении */
+        }
+		
+
+		
+		.chalkboard {
+			width: 400px; /* Ширина доски */
+			height: 200px; /* Высота доски */
+			background-color: #333; /* Цвет фона доски */
+			color: #fff; /* Цвет текста */
+			font-family: FARSH_MARSH; /* Шрифт */
+			font-size: 32px; /* Размер шрифта */
+			text-align: center; /* Выравнивание текста по центру */
+			position: relative; /* Позиционирование относительно контейнера */
+			overflow: hidden; /* Скрываем содержимое, выходящее за пределы */
+			border: 15px solid #000; /* Рамка доски */
+			border-color: white;
+			box-shadow: 0 0 0px rgba(0, 0, 0, 0.5); /* Тень доски */
+			transform: rotate(-5deg); /* Угол наклона, измените значение по желанию */
+			margin-top: 40px; /* Отступ сверху */
+		}
+		.chalkboard p {
+			position: absolute;
+			top: 50%;
+			left: 10%;
+			transform: translate(-5%, -50%);
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+			transition: opacity 0.3s ease;
+		}
+		@font-face {
+            font-family: 'Coats Regular';
+            src: url('fonts/Coats Regular.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'FARSH_MARSH';
+            src: url('fonts/FARSH_MARSH.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'base_font';
+            src: url('fonts/rose m by geevara_0.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		@font-face {
+            font-family: 'Handwritten_Institute';
+            src: url('fonts/Handwritten_Institute.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		
+        .info-block {
+			width: 540px;
+			background-color: #333;
+			margin: 0 20px 0 60px;
+			padding: 25px;
+        }
+        .lpart {
+			width: 540px;
+			background-color: #f4f4f4;
+			margin: 0 20px 0 60px;
+			padding: 25px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+		
+        .rpart {
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+			flex-direction: column; /* Размещаем элементы вертикально */
+        }
+		.board {
+			width: 100%;
+			margin: 20px 0;
+			background-color: #333;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.unboard {
+			width: 1000px;
+			margin: 20px 0;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		
+		.undet {
+			width: 1000px;
+			display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+            padding: 20px; /* Отступы для заголовка */
+		}
+		.details {
+			width: 100%;
+			margin: 20px 0;
+			background-color: #white;
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+			
+			box-shadow: 0 0px 0px rgba(0, 0, 0, 0.1);
+		}
+		.lead {
+			width: 618px;
+			background-color: #f4f4f4;
+			margin: 20px 0;
+			padding: 25px;
+			border-radius: 0px;
+			box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; /* Отступы для заголовка */
+            font-family: Coats Regular;
+		}
+		.fall { animation: fall 1s forwards; }
+          @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(100px) rotate(360deg); }
+          }
+		  body {
+			font-family: base_font;
+			font-size: 1.2em;
+			margin: 0;
+			padding: 0;
+			background-color: #f4f4f4;
+		}
+		
+		.title {
+			font-size: 3.1em;
+			font-weight: normal; 
+			animation: fadeIn 1s ease-in-out;
+			
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+		}
+		.title-absolute {
+			position: absolute;
+			margin-left: 159%;
+			margin-top: -45px;
+		}
+        .title-container {
+            display: flex;
+            flex-direction: column; /* Размещаем заголовок и автора вертикально */
+        }
+        .title-hor {
+            display: flex;
+            align-items: baseline; /* Центрируем элементы по вертикали */
+            justify-content: space-between; /* Размещаем элементы по краям */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+			<div class="title-container">
+			<div class="title-absolute">
+			<svg
+                width="200px"
+                height="165px"
+                viewBox="0 0 150 124"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
+                <g transform="translate(20 118) rotate(-90)" font-size="20" font-family="Books" text-anchor="left">
+                    <!-- Ссылки на части -->
+                    <a href="part1.html" class="linka">
+                        <text transform="rotate(20)" fill="#9b59b6">ЧАСТЬ I</text>
+                    </a>
+                    <a href="part2.html" class="linka">
+                        <text transform="translate(0 47)" fill="#3498db">ЧАСТЬ II</text>
+                    </a>
+                    <a href="part3.html" class="linka">
+                        <text transform="translate(0 72)" fill="#e74c3c">ЧАСТЬ III</text>
+                    </a>
+                    <a href="part4.html" class="linka">
+                        <text transform="translate(0 97)" fill="#2ecc71">ЧАСТЬ IV</text>
+                    </a>
+                    <a href="part5.html" class="linka">
+                        <text transform="translate(0 122)" fill="#f1c40f">ЧАСТЬ V</text>
+					</a>
+				</g>
+			</svg>
+			</div>
+			<a href="../index.html">
+                <h3 class="author">Власть книжного червя</h3>
+			</a>
+			<div >
+			<div>
+				<h1 class="title">Часть&nbsp;I:<br>«Дочь&nbsp;солдата»</h1>
+			</div>
+			</div>
+            </div>
+		
+    </header>
+    <main>
+        <section class="lead">
+            <p><b>Майн</b>&nbsp;&mdash; слабая и&nbsp;больная девочка из&nbsp;простолюдинов, оказавшаяся в&nbsp;незнакомом мире. Она мечтает жить в&nbsp;окружении книг, но&nbsp;вскоре понимает, что в&nbsp;этой реальности только дворяне могут позволить себе иметь книги, которые переписываются от&nbsp;руки на&nbsp;дорогом пергаменте.
+			</p>
+        </section>
+		
+		<section class="board" >
+			<div class="unboard">
+				<div class="chalkboard">
+					<p id="text">Грифельная дощечка, слова с&nbsp;которой легко стираются</p>
+				</div>
+				<div class="info-block">
+				<text class="board_text">Обучение грамоте</text>
+					<p>В&nbsp;надежде найти книги она в&nbsp;сопровождении мамы отправилась на&nbsp;рынок. Однако реальность оказалась суровой&nbsp;&mdash; она не&nbsp;встретила ни&nbsp;единственного написанного слова вокруг.  С&nbsp;цифрами ей&nbsp;повезло больше&nbsp;&mdash; на&nbsp;прилавках рынка были выставлены ценники, и&nbsp;хоть символы и&nbsp;отличались, система оказалась десятичной, поэтому она быстро в&nbsp;ней освоилась.</p>
+					<p>На&nbsp;её&nbsp;счастье, ей&nbsp;повстречался грамотный простолюдин&nbsp;&mdash; Отто, коллега её&nbsp;отца, стражника на&nbsp;воротах города. Отто с&nbsp;радостью обучал её&nbsp;алфавиту, взамен на&nbsp;то&nbsp;что Майн помогала ему с&nbsp;расчётами, и&nbsp;в&nbsp;знак благодарности он&nbsp;подарил ей&nbsp;<b>грифельную дощечку.</b></p>
+					<p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">Письменность этого мира была похожа на&nbsp;английский алфавит. Сами буквы определяли звучание и&nbsp;значение слов.
+					</p>
+					<p>Однако, несмотря на&nbsp;то&nbsp;что это был ценный подарок, на&nbsp;дощечке нельзя было сохранять информацию&nbsp;&mdash; её&nbsp;записи исчезали, как только она стирала&nbsp;их. Тем не&nbsp;менее, для Майн это был первый шаг к&nbsp;её&nbsp;мечте жить в&nbsp;окружении книг, и&nbsp;она была полна решимости продолжать свои попытки.</p>
+				</div>
+			</div>
+			
+		</section>
+            
+		<section class="details">
+			<div class="undet">
+			<div class="lpart">
+				<text class="glina_text">Создание аналогов</text>
+				<p>Хоть дорогие книги дворян, написанные от&nbsp;руки на&nbsp;пергаменте оказались ей&nbsp;недоступны, Майн решила, что не&nbsp;будет сидеть сложа руки, и&nbsp;попыталась создать аналог книг. Она начала с&nbsp;плетения египетского папируса, но&nbsp;вскоре осознала, что не&nbsp;в&nbsp;силах повторить сложный метод производства. Разочарование охватило&nbsp;её, но&nbsp;она не&nbsp;собиралась сдаваться.</p>
+				<p>Тело Майн было настолько слабо, что даже простой поход до&nbsp;колодца мог закончиться для неё лихорадкой. Но, вдохновлённая желанием делать книги, Майн преодолела себя и&nbsp;добилась того, чтобы родители смогли отпустить её&nbsp;с&nbsp;другими детьми в&nbsp;лес. Там она планировала создать <b>глиняные таблички</b>, которые могли&nbsp;бы стать её&nbsp;первыми книгами.</p>
+				<p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">Когда она попыталась обжечь глину в&nbsp;печи, таблички просто взорвались, оставив её&nbsp;в&nbsp;полном недоумении. 
+				</p>
+				<p>Не&nbsp;желая отступать, она попробовала сделать тонкие перевязанные дощечки, на&nbsp;которых можно было писать. Но, к&nbsp;её&nbsp;ужасу, мама приняла их&nbsp;за&nbsp;дрова и&nbsp;просто сожгла их&nbsp;в&nbsp;печи. Майн впала в&nbsp;отчаяние, чувствуя, что её&nbsp;мечта ускользает от&nbsp;неё, как песок сквозь пальцы.</p>
+			</div>
+			<div class="rpart">
+			<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 27.0.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+		<svg
+		   version="1.1"
+		   id="svg2"
+		   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+		   sodipodi:docname="glina2.svg"
+		   width="300px"
+		   height="420px"
+		   viewBox="0 0 595 841"
+		   style="enable-background:new 0 0 595 841;" xml:space="preserve">
+		   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+		   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+		   xmlns="http://www.w3.org/2000/svg"
+		   xmlns:svg="http://www.w3.org/2000/svg"><defs
+		   id="defs100" /><sodipodi:namedview
+		   id="namedview100"
+		   pagecolor="#ffffff"
+		   bordercolor="#000000"
+		   borderopacity="0.25"
+		   inkscape:showpageshadow="2"
+		   inkscape:pageopacity="0.0"
+		   inkscape:pagecheckerboard="0"
+		   inkscape:deskcolor="#d1d1d1"
+		   inkscape:zoom="0.4485034"
+		   inkscape:cx="274.24541"
+		   inkscape:cy="483.83134"
+		   inkscape:window-width="1280"
+		   inkscape:window-height="778"
+		   inkscape:window-x="-6"
+		   inkscape:window-y="-6"
+		   inkscape:window-maximized="1"
+		   inkscape:current-layer="layer1" />
+						<style
+		   type="text/css"
+		   id="style1">
+							.st0{fill:#564B4B;}
+							.st1{fill:#201B1B;}
+							.st2{font-family:'Handwritten_Institute';}
+							.st3{font-size:90.8816px;}
+							.st4{fill:none;stroke:#201B1B;stroke-width:3.8844;stroke-miterlimit:11.3386;}
+							.st5{font-size:90.6996px;}
+							.st6{fill:none;stroke:#201B1B;stroke-width:3.0256;stroke-miterlimit:11.3386;}
+							.st7{font-size:90.6993px;}
+						</style>
+						<g
+		   id="layer1"
+		   inkscape:groupmode="layer"
+		   inkscape:label="РЎР»РѕР№ 1">
+							<path
+		   id="path2"
+		   sodipodi:nodetypes="csssc"
+		   class="st0"
+		   d="M38.9,603C54.4,281.2,72.8,47.2,221.3,48.9       c149.7,1.7,330.4,5.2,339,139.4c8.6,134,53.3,617.8-129.1,612.6C248.9,795.7,25.1,828.4,38.9,603z" />
+							<text
+		   class="st1 st2 st3"
+		   id="text1"
+		   x="723.68317"
+		   y="159.46631"
+		   transform="rotate(60)">Ч</text>
+							<text
+		   class="st4 st2 st3"
+		   id="text2"
+		   x="723.68317"
+		   y="159.46631"
+		   transform="rotate(60)">Ч</text>
+							<text
+		   class="st1 st2 st5"
+		   id="text3"
+		   x="27.19858"
+		   y="806.88904"
+		   transform="rotate(-20)">т</text>
+							<text
+		   class="st6 st2 st5"
+		   id="text4"
+		   x="27.19858"
+		   y="806.88904"
+		   transform="rotate(-20)">т</text>
+							<text
+		   class="st1 st2 st5"
+		   id="text5"
+		   x="55.914391"
+		   y="808.80707"
+		   transform="rotate(-20)">о</text>
+							<text
+		   class="st6 st2 st5"
+		   id="text6"
+		   x="55.914391"
+		   y="808.80707"
+		   transform="rotate(-20)">о</text>
+							<text
+		   class="st1 st2 st5"
+		   id="text7"
+		   x="71.570831"
+		   y="852.34058"
+		   transform="rotate(-20)">б</text>
+							<text
+		   class="st6 st2 st5"
+		   id="text8"
+		   x="71.570831"
+		   y="852.34058"
+		   transform="rotate(-20)">б</text>
+							<text
+		   class="st1 st2 st5"
+		   id="text9"
+		   x="763.56873"
+		   y="316.85107"
+		   transform="rotate(40)">ы</text>
+							<text
+		   class="st6 st2 st5"
+		   id="text10"
+		   x="763.56873"
+		   y="316.85107"
+		   transform="rotate(40)">ы</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text11"
+		   x="138.29434"
+		   y="777.64648">с</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text12"
+		   x="138.29434"
+		   y="777.64648">с</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text13"
+		   x="169.78754"
+		   y="779.3681">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text14"
+		   x="169.78754"
+		   y="779.3681">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text15"
+		   x="205.46724"
+		   y="779.3681">х</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text16"
+		   x="205.46724"
+		   y="779.3681">х</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text17"
+		   x="368.82199"
+		   y="776.2149">р</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text18"
+		   x="368.82199"
+		   y="776.2149">р</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text19"
+		   x="407.18619"
+		   y="776.2149">а</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text20"
+		   x="407.18619"
+		   y="776.2149">а</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text21"
+		   x="432.94794"
+		   y="798.45483">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text22"
+		   x="432.94794"
+		   y="798.45483">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text23"
+		   x="463.53482"
+		   y="796.05829">и</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text24"
+		   x="463.53482"
+		   y="796.05829">и</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text25"
+		   x="720.40704"
+		   y="582.79041"
+		   transform="rotate(20)">т</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text26"
+		   x="720.40704"
+		   y="582.79041"
+		   transform="rotate(20)">т</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text27"
+		   x="754.17169"
+		   y="582.79041"
+		   transform="rotate(20)">ь</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text28"
+		   x="754.17169"
+		   y="582.79041"
+		   transform="rotate(20)">ь</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text29"
+		   x="-262.61063"
+		   y="790.68634"
+		   transform="rotate(-20)">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text30"
+		   x="-262.61063"
+		   y="790.68634"
+		   transform="rotate(-20)">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text31"
+		   x="-227.02859"
+		   y="791.30255"
+		   transform="rotate(-20)">а</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text32"
+		   x="-227.02859"
+		   y="791.30255"
+		   transform="rotate(-20)">а</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text33"
+		   x="-190.6058"
+		   y="790.68634"
+		   transform="rotate(-20)">п</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text34"
+		   x="-190.6058"
+		   y="790.68634"
+		   transform="rotate(-20)">п</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text35"
+		   x="214.85518"
+		   y="776.32959">и</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text36"
+		   x="214.85518"
+		   y="776.32959">и</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text37"
+		   x="250.18918"
+		   y="774.47998">с</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text38"
+		   x="250.18918"
+		   y="774.47998">с</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text39"
+		   x="285.86789"
+		   y="773.86377">а</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text40"
+		   x="285.86789"
+		   y="773.86377">а</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text41"
+		   x="321.18716"
+		   y="775.09619">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text42"
+		   x="321.18716"
+		   y="775.09619">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text43"
+		   x="675.2417"
+		   y="617.909"
+		   transform="rotate(20)">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text44"
+		   x="675.2417"
+		   y="617.909"
+		   transform="rotate(20)">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text45"
+		   x="706.5083"
+		   y="618.52521"
+		   transform="rotate(20)">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text46"
+		   x="706.5083"
+		   y="618.52521"
+		   transform="rotate(20)">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text47"
+		   x="740.41748"
+		   y="617.909"
+		   transform="rotate(20)">е</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text48"
+		   x="740.41748"
+		   y="617.909"
+		   transform="rotate(20)">е</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text49"
+		   x="121.98129"
+		   y="814.37585">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text50"
+		   x="121.98129"
+		   y="814.37585">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text51"
+		   x="159.0136"
+		   y="815.50275">а</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text52"
+		   x="159.0136"
+		   y="815.50275">а</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text53"
+		   x="187.08008"
+		   y="811.38684">г</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text54"
+		   x="187.08008"
+		   y="811.38684">г</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text55"
+		   x="205.93358"
+		   y="809.20715">л</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text56"
+		   x="205.93358"
+		   y="809.20715">л</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text57"
+		   x="233.21967"
+		   y="810.51575">и</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text58"
+		   x="233.21967"
+		   y="810.51575">и</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text59"
+		   x="263.31989"
+		   y="796.32544">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text60"
+		   x="263.31989"
+		   y="796.32544">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text61"
+		   x="298.02008"
+		   y="795.45435">е</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text62"
+		   x="298.02008"
+		   y="795.45435">е</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text63"
+		   x="335.05518"
+		   y="794.58221">,</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text64"
+		   x="335.05518"
+		   y="794.58221">,</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text65"
+		   x="487.76147"
+		   y="845.90527">е</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text66"
+		   x="487.76147"
+		   y="845.90527">е</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text67"
+		   x="526.99786"
+		   y="845.90527">ё</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text68"
+		   x="526.99786"
+		   y="845.90527">ё</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text69"
+		   x="-817.15576"
+		   y="238.75598"
+		   transform="rotate(-80)">н</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text70"
+		   x="-817.15576"
+		   y="238.75598"
+		   transform="rotate(-80)">н</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text71"
+		   x="95.050507"
+		   y="843.33008">е</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text72"
+		   x="95.050507"
+		   y="843.33008">е</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text73"
+		   x="133.03984"
+		   y="841.83521">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text74"
+		   x="133.03984"
+		   y="841.83521">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text75"
+		   x="830.16443"
+		   y="-14.693774"
+		   transform="rotate(80)">б</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text76"
+		   x="830.16443"
+		   y="-14.693774"
+		   transform="rotate(80)">б</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text77"
+		   x="197.85625"
+		   y="830.68707">х</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text78"
+		   x="197.85625"
+		   y="830.68707">х</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text79"
+		   x="236.40707"
+		   y="820.53607">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text80"
+		   x="236.40707"
+		   y="820.53607">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text81"
+		   x="311.55777"
+		   y="803.9314">д</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text82"
+		   x="311.55777"
+		   y="803.9314">д</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text83"
+		   x="357.24631"
+		   y="814.46338">и</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text84"
+		   x="357.24631"
+		   y="814.46338">и</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text85"
+		   x="385.31082"
+		   y="814.46338">м</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text86"
+		   x="385.31082"
+		   y="814.46338">м</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text87"
+		   x="428.25903"
+		   y="845.37903">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text88"
+		   x="428.25903"
+		   y="845.37903">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text89"
+		   x="383.0545"
+		   y="778.96997"
+		   transform="rotate(12)">о</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text90"
+		   x="383.0545"
+		   y="778.96997"
+		   transform="rotate(12)">о</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text91"
+		   x="699.41162"
+		   y="503.91269"
+		   transform="rotate(38)">б</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text92"
+		   x="699.41162"
+		   y="503.91269"
+		   transform="rotate(38)">б</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text93"
+		   x="459.72916"
+		   y="759.52179"
+		   transform="rotate(12)">ж</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text94"
+		   x="459.72916"
+		   y="759.52179"
+		   transform="rotate(12)">ж</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text95"
+		   x="-2.435472"
+		   y="913.1546"
+		   transform="rotate(-22)">е</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text96"
+		   x="-2.435472"
+		   y="913.1546"
+		   transform="rotate(-22)">е</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text97"
+		   x="871.01343"
+		   y="192.46033"
+		   transform="rotate(54)">ч</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text98"
+		   x="871.01343"
+		   y="192.46033"
+		   transform="rotate(54)">ч</text>
+							<text
+		   class="st1 st2 st7"
+		   id="text99"
+		   x="557.98779"
+		   y="740.10858"
+		   transform="rotate(12)">ь</text>
+							<text
+		   class="st6 st2 st7"
+		   id="text100"
+		   x="557.98779"
+		   y="740.10858"
+		   transform="rotate(12)">ь</text>
+						<text
+   xml:space="preserve"
+   style="font-style:normal;
+   font-variant:normal;
+   font-weight:bold;
+   font-stretch:semi-condensed;
+   font-size:62.8685px;
+   font-family:base_font;
+   -inkscape-font-specification:'Andy, Bold Semi-Condensed';
+   font-variant-ligatures:normal;
+   font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;writing-mode:lr-tb;direction:ltr;
+   text-anchor:middle;fill:#000000;
+stroke-width:5.37414"
+   x="297.86868"
+   y="259.34616"
+   id="text101"><tspan
+     sodipodi:role="line"
+     id="tspan100"
+     x="297.86868"
+     y="280.34616"
+     style="stroke-width:5.37414">К сожалению,</tspan><tspan
+     sodipodi:role="line"
+     x="297.86868"
+     y="350.93179"
+     id="tspan1"
+     style="stroke-width:5.37414">глина взорвалась</tspan><tspan
+     sodipodi:role="line"
+     x="297.86868"
+     y="420.5174"
+     id="tspan2"
+     style="stroke-width:5.37414">из-за примесей</tspan><tspan
+     sodipodi:role="line"
+     x="297.86868"
+     y="490.10303"
+     id="tspan3"
+     style="stroke-width:5.37414">в составе</tspan></text>
+	 </g>
+					</svg>
+
+			<svg version="1.1"
+					 id="svg1" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" inkscape:version="1.4 (86a8ad7, 2024-10-11)" sodipodi:docname="glina.svg"
+					 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+					width="300px"
+					height="420px"
+					viewBox="0 0 595 841"
+					 style="enable-background:new 0 0 595 841;" xml:space="preserve">
+				<style type="text/css">
+					.st0{fill:#864B4B;}
+					.st1{fill:#201B1B;}
+					.st2{font-family:'Handwritten_Institute';}
+					.st3{font-size:90.8816px;}
+					.st4{fill:none;stroke:#201B1B;stroke-width:3.8844;stroke-miterlimit:11.3386;}
+					.st5{font-size:90.6996px;}
+					.st6{fill:none;stroke:#201B1B;stroke-width:3.0256;stroke-miterlimit:11.3386;}
+					.st7{font-size:90.6993px;}
+				</style>
+				<g id="layer1" inkscape:groupmode="layer" inkscape:label="РЎР»РѕР№ 1">
+					<path id="path1" sodipodi:nodetypes="csssc" class="st0" d="M38.9,603C54.4,281.2,72.8,47.2,221.3,48.9
+						c149.7,1.7,330.4,5.2,339,139.4c8.6,134,53.3,617.8-129.1,612.6C248.9,795.7,25.1,828.4,38.9,603z"/>
+					<text transform="matrix(1 0 0 1 207.2588 220.1693)" class="st1 st2 st3">Ч</text>
+					<text transform="matrix(1 0 0 1 207.2588 220.1693)" class="st4 st2 st3">Ч</text>
+					<text transform="matrix(1 0 0 1 259.543 217.722)" class="st1 st2 st5">т</text>
+					<text transform="matrix(1 0 0 1 259.543 217.722)" class="st6 st2 st5">т</text>
+					<text transform="matrix(1 0 0 1 288.2588 219.64)" class="st1 st2 st5">о</text>
+					<text transform="matrix(1 0 0 1 288.2588 219.64)" class="st6 st2 st5">о</text>
+					<text transform="matrix(1 0 0 1 318.4873 219.1302)" class="st1 st2 st5">б</text>
+					<text transform="matrix(1 0 0 1 318.4873 219.1302)" class="st6 st2 st5">б</text>
+					<text transform="matrix(1 0 0 1 349.6475 219.3412)" class="st1 st2 st5">ы</text>
+					<text transform="matrix(1 0 0 1 349.6475 219.3412)" class="st6 st2 st5">ы</text>
+					<text transform="matrix(1 0 0 1 147.7539 295.2094)" class="st1 st2 st7">с</text>
+					<text transform="matrix(1 0 0 1 147.7539 295.2094)" class="st6 st2 st7">с</text>
+					<text transform="matrix(1 0 0 1 179.2471 296.931)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 179.2471 296.931)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 214.9268 296.931)" class="st1 st2 st7">х</text>
+					<text transform="matrix(1 0 0 1 214.9268 296.931)" class="st6 st2 st7">х</text>
+					<text transform="matrix(1 0 0 1 249.001 296.931)" class="st1 st2 st7">р</text>
+					<text transform="matrix(1 0 0 1 249.001 296.931)" class="st6 st2 st7">р</text>
+					<text transform="matrix(1 0 0 1 287.3652 296.931)" class="st1 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 287.3652 296.931)" class="st6 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 324.1631 298.6752)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 324.1631 298.6752)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 360.75 296.2787)" class="st1 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 360.75 296.2787)" class="st6 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 392.958 296.931)" class="st1 st2 st7">т</text>
+					<text transform="matrix(1 0 0 1 392.958 296.931)" class="st6 st2 st7">т</text>
+					<text transform="matrix(1 0 0 1 426.7227 296.931)" class="st1 st2 st7">ь</text>
+					<text transform="matrix(1 0 0 1 426.7227 296.931)" class="st6 st2 st7">ь</text>
+					<text transform="matrix(1 0 0 1 127.9473 381.9086)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 127.9473 381.9086)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 163.5293 382.5248)" class="st1 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 163.5293 382.5248)" class="st6 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 199.9521 381.9086)" class="st1 st2 st7">п</text>
+					<text transform="matrix(1 0 0 1 199.9521 381.9086)" class="st6 st2 st7">п</text>
+					<text transform="matrix(1 0 0 1 235.6211 383.7582)" class="st1 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 235.6211 383.7582)" class="st6 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 265.9551 381.9086)" class="st1 st2 st7">с</text>
+					<text transform="matrix(1 0 0 1 265.9551 381.9086)" class="st6 st2 st7">с</text>
+					<text transform="matrix(1 0 0 1 301.6338 381.2924)" class="st1 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 301.6338 381.2924)" class="st6 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 336.9531 382.5248)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 336.9531 382.5248)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 370.8633 381.9086)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 370.8633 381.9086)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 402.1299 382.5248)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 402.1299 382.5248)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 436.0391 381.9086)" class="st1 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 436.0391 381.9086)" class="st6 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 118.8281 475.4086)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 118.8281 475.4086)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 155.8604 476.5355)" class="st1 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 155.8604 476.5355)" class="st6 st2 st7">а</text>
+					<text transform="matrix(1 0 0 1 220.1885 478.726)" class="st1 st2 st7">г</text>
+					<text transform="matrix(1 0 0 1 220.1885 478.726)" class="st6 st2 st7">г</text>
+					<text transform="matrix(1 0 0 1 239.042 476.5463)" class="st1 st2 st7">л</text>
+					<text transform="matrix(1 0 0 1 239.042 476.5463)" class="st6 st2 st7">л</text>
+					<text transform="matrix(1 0 0 1 266.3281 477.8549)" class="st1 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 266.3281 477.8549)" class="st6 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 298.0049 477.8539)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 298.0049 477.8539)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 332.7051 476.9828)" class="st1 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 332.7051 476.9828)" class="st6 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 369.7402 476.1107)" class="st1 st2 st7">,</text>
+					<text transform="matrix(1 0 0 1 369.7402 476.1107)" class="st6 st2 st7">,</text>
+					<text transform="matrix(1 0 0 1 404.2021 476.9828)" class="st1 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 404.2021 476.9828)" class="st6 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 443.4385 476.9828)" class="st1 st2 st7">ё</text>
+					<text transform="matrix(1 0 0 1 443.4385 476.9828)" class="st6 st2 st7">ё</text>
+					<text transform="matrix(1 0 0 1 129.2861 575.5385)" class="st1 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 129.2861 575.5385)" class="st6 st2 st7">н</text>
+					<text transform="matrix(1 0 0 1 162.4014 574.9213)" class="st1 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 162.4014 574.9213)" class="st6 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 198.1611 576.7709)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 198.1611 576.7709)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 226.3857 576.7709)" class="st1 st2 st7">б</text>
+					<text transform="matrix(1 0 0 1 226.3857 576.7709)" class="st6 st2 st7">б</text>
+					<text transform="matrix(1 0 0 1 258.9775 576.7709)" class="st1 st2 st7">х</text>
+					<text transform="matrix(1 0 0 1 258.9775 576.7709)" class="st6 st2 st7">х</text>
+					<text transform="matrix(1 0 0 1 293.7246 575.5385)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 293.7246 575.5385)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 323.627 576.7709)" class="st1 st2 st7">д</text>
+					<text transform="matrix(1 0 0 1 323.627 576.7709)" class="st6 st2 st7">д</text>
+					<text transform="matrix(1 0 0 1 363.2822 576.1547)" class="st1 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 363.2822 576.1547)" class="st6 st2 st7">и</text>
+					<text transform="matrix(1 0 0 1 391.3467 576.1547)" class="st1 st2 st7">м</text>
+					<text transform="matrix(1 0 0 1 391.3467 576.1547)" class="st6 st2 st7">м</text>
+					<text transform="matrix(1 0 0 1 434.2949 575.5385)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 434.2949 575.5385)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 192.4004 683.432)" class="st1 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 192.4004 683.432)" class="st6 st2 st7">о</text>
+					<text transform="matrix(1 0 0 1 223.0908 683.432)" class="st1 st2 st7">б</text>
+					<text transform="matrix(1 0 0 1 223.0908 683.432)" class="st6 st2 st7">б</text>
+					<text transform="matrix(1 0 0 1 255.1045 684.0492)" class="st1 st2 st7">ж</text>
+					<text transform="matrix(1 0 0 1 255.1045 684.0492)" class="st6 st2 st7">ж</text>
+					<text transform="matrix(1 0 0 1 299.0615 682.8158)" class="st1 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 299.0615 682.8158)" class="st6 st2 st7">е</text>
+					<text transform="matrix(1 0 0 1 335.7988 682.8158)" class="st1 st2 st7">ч</text>
+					<text transform="matrix(1 0 0 1 335.7988 682.8158)" class="st6 st2 st7">ч</text>
+					<text transform="matrix(1 0 0 1 372.1748 683.432)" class="st1 st2 st7">ь</text>
+					<text transform="matrix(1 0 0 1 372.1748 683.432)" class="st6 st2 st7">ь</text>
+				</g>
+			</svg>
+		<text id="textm">Нажмите на глину, чтобы обжечь её</text>
+			</div>
+			</div>
+		</section>
+		<script>
+		  const svg1 = document.getElementById('svg1');
+		  const svg2 = document.getElementById('svg2');
+		  const path = document.getElementById('path1');
+		  const textm = document.getElementById('textm');
+		  const path2 = document.getElementById('path2');
+		  const texts = document.querySelectorAll('.st2');
+		  let clickCount = 0;
+			if (clickCount == 0) {
+			  svg2.style.display = 'none'; // Скрыть svg1
+			  svg1.style.display = 'block'; // Показать svg2
+			  }
+		  svg1.addEventListener('click', () => {
+			clickCount++;
+
+			// Изменение цвета path
+			let redValue = 134+clickCount * 15;
+			let blueValue = 75+clickCount * 15;
+			path.style.fill = `rgb(${redValue}, ${blueValue}, 0)`;
+
+			// Проверка количества нажатий
+			if (clickCount >= 3) {
+
+			  // Скрыть svg1 и показать svg2
+			  svg1.style.display = 'none'; // Скрыть svg1
+			  textm.style.display = 'none'; // Скрыть textm
+			  path2.style.display = 'none'; // Скрыть path2
+			  svg2.style.display = 'block'; // Показать svg2
+			}
+		  });
+		</script>
+		
+		<section class="details">
+		
+			<div class="undet">
+			<div class="rpart"><a href="part2.html" class="wooda">
+				<svg width="380" height="280" xmlns="http://www.w3.org/2000/svg">
+				<g class="wood">
+					<defs>
+						<pattern id="woodTexture" patternUnits="userSpaceOnUse" width="40" height="20">
+							<rect width="40" height="20" fill="#deb887" />
+							<line x1="0" y1="0" x2="40" y2="20" stroke="#5B4513" stroke-width=".05" />
+							<line x1="0" y2="20" x2="40" y1="0" stroke="#5B4513" stroke-width=".05" />
+						</pattern>
+					</defs>
+					<rect x="10" y="30" width="380" height="240" rx="0" ry="0" fill="url(#woodTexture)" stroke="#5C3A1A" stroke-width="0"/>
+					<text x="50%" y="45%" font-family="Ogelios21" font-size="2em" font-weight="bolder" fill="#000" text-anchor="middle" alignment-baseline="middle">Приглашение из храма</text>
+					<text x="50%" y="65%" font-family="Ogelios21" font-size="2em" font-weight="bolder" fill="#000" text-anchor="middle" alignment-baseline="middle">Нажмите для принятия</text>
+				
+				</g>
+				</svg>
+				</a>
+			</div>
+			<div class="lpart">
+            <text class="hram" >Создание растительной бумаги</text>
+			<p>Понимая, что у&nbsp;неё не&nbsp;хватает сил, чтобы изготавливать бумагу самостоятельно, Майн обратилась за&nbsp;помощью к&nbsp;соседскому мальчику Лутцу, который мечтал стать странствующим торговцем. Благодаря Отто, она познакомила Лутца с&nbsp;торговцем Бенно, который увидел в&nbsp;них потенциал и&nbsp;обеспечил стартовым капиталом для их&nbsp;начинаний.</p>
+			<p>Вскоре им&nbsp;удалось создать растительную бумагу, которой не&nbsp;существовало в&nbsp;этом мире. Это было невероятное достижение, но&nbsp;радость от&nbsp;успеха была омрачена болезнью, которая мучила Майна и&nbsp;оказалась неизлечимой.</p>
+			<p style="padding-left: 10%; padding-right: 10%; font-size: 1.4em;">Теперь она стояла перед сложным выбором: стать игрушкой дворян, но&nbsp;выжить, или остаться с&nbsp;семьёй в&nbsp;ожидании смерти.
+			</p>
+			<p>Ранее её&nbsp;интересовали только книги, но&nbsp;теперь она понимала, что семья важнее всего. Однако, во&nbsp;время церемонии крещения, она столкнулась со&nbsp;священниками храма и&nbsp;узнала о&nbsp;существовании третьего пути&nbsp;&mdash; пути, который мог&nbsp;бы изменить её&nbsp;судьбу.</p>
+        </div></div>
+		</section>
+    </main>
+    <footer>
+			<div>
+				<a href="../index.html">
+					<h3 class="footer_container" >На главную</h3>
+				</a>
+			</div>
+    </footer>
+	
+<script>
+const chalkboard = document.querySelector('.chalkboard');
+const text = document.getElementById('text');
+
+chalkboard.addEventListener('mousemove', (e) => {
+    const rect = chalkboard.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Угол наклона доски в радианах
+    const angle = -5 * (Math.PI / 180);
+
+    // Преобразуем координаты с учетом угла наклона
+    const adjustedX = x -30;
+    const adjustedY = y -30;
+
+    // Создаем "стирающий" элемент
+    const erase = document.createElement('span');
+    erase.style.position = 'absolute';
+    erase.style.width = '40px'; // Ширина "стирания"
+    erase.style.height = '40px'; // Высота "стирания"
+    erase.style.borderRadius = '30%';
+    erase.style.backgroundColor = '#333'; // Цвет грифельной доски
+    erase.style.pointerEvents = 'none';
+    erase.style.left = `${adjustedX}px`;
+    erase.style.top = `${adjustedY}px`;
+    erase.style.pointerEvents = 'none';
+
+    chalkboard.appendChild(erase);
+
+    // Стираем текст под "стирающим" элементом
+    const textContent = text.textContent;
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    // Удаляем часть текста
+    if (selection.rangeCount > 0) {
+        range.setStart(text.firstChild, 0);
+        range.setEnd(text.firstChild, textContent.length);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('insertText', false, '');
+    }
+});
+</script>
+</body>
+</html>
+

@@ -1,0 +1,68 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+    font-family: 'Revard', sans-serif; /* Убедитесь, что шрифт загружен */
+}
+
+.container {
+    position: relative; /* Устанавливаем относительное позиционирование для контейнера */
+    text-align: justify; /* Выравнивание текста по ширине */
+    padding: 0 5px; /* Уменьшаем отступы по бокам */
+    min-width: 455px; /* Уменьшаем максимальную ширину контейнера */
+}
+
+.text {
+    font-size: 1.5em; /* Размер шрифта */
+    opacity: 0; /* Начальное состояние текста скрыто */
+    transition: opacity 1s ease-in-out;
+    position: absolute; /* Позволяет текстам накладываться друг на друга */
+    top: 50%; /* Центрируем текст по вертикали */
+    left: 50%; /* Центрируем текст по горизонтали */
+    transform: translate(-50%, -50%); /* Сдвигаем текст на половину его ширины и высоты */
+    width: 100%; /* Ширина текста */
+    hyphens: auto;
+    word-break: break-all;
+}
+
+.text.hidden {
+    opacity: 0; /* Скрытый текст */
+}
+
+.text.visible {
+    opacity: 1; /* Видимый текст */
+}
+
+.initial {
+    font-family: 'TDVolshebstvo', sans-serif; /* Убедитесь, что шрифт загружен */
+    display: inline-block; /* Обтекание текста */
+    width: 60px; /* Ширина квадрата */
+    height: 60px; /* Высота квадрата */
+    background-color: #f4f4f4; /* Цвет фона квадрата */
+    color: maroon; /* Цвет текста */
+    font-size: 3em; /* Размер шрифта для буквы */
+    text-align: center; /* Центрирование буквы в квадрате */
+    line-height: 60px; /* Вертикальное центрирование буквы */
+    margin-right: 10px; /* Отступ справа от квадрата */
+    float: left; /* Обтекание текста */
+    clear: left; /* Убираем обтекание при переходе на новую строку */
+}
+.scroll-message {
+    position: fixed; /* Используем fixed для привязки к низу окна */
+    bottom: 20px; /* Расположение от нижней части окна */
+    left: 50%; /* Центрирование по горизонтали */
+    transform: translateX(-50%); /* Центрирование по горизонтали */
+    font-family: 'Revard', sans-serif; /* Используем шрифт */
+    font-size: 24px; /* Размер шрифта */
+    color: #000; /* Цвет текста */
+    opacity: 0; /* Изначально скрыто */
+    transition: opacity 0.5s; /* Плавный переход */
+}
+
+.scroll-message.visible {
+    opacity: 1; /* Показать текст */
+}
