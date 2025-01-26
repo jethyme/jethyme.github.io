@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История Урано</title>
+    <link rel="stylesheet" href="styles0.css">
+	<style>
+	        @font-face {
+            font-family: 'Revard';
+            src: url('fonts/Revard.ttf') format('truetype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		
+	        @font-face {
+            font-family: 'TDVolshebstvo';
+            src: url('fonts/TDVolshebstvo.otf') format('opentype'); 
+            font-weight: normal;
+            font-style: normal;
+        }
+		/* Стили для ссылок */
+        a {
+			color: black;
+            text-decoration: none; /* Убираем стандартное подчеркивание */
+            transition: font-size 0.3s ease; /* Плавный переход для изменения размера шрифта */
+        }
+
+        /* Эффект при наведении */
+        a:hover text {
+            font-size: 24px; /* Увеличиваем размер шрифта при наведении */
+        }
+	</style>
+</head>
+<body>
+    <div class="container">
+        <div class="text" id="text1">
+            <div class="initial">Ж</div>
+            <span>изнь Урано, в которой она, окруженная книгами, посвящала всё время чтению, была полностью перевернута с ног на голову, когда, будучи погребённой под лавиной книг в библиотеке, она просыпается в другом мире пятилетней девочкой.
+			</div>
+        <div class="text hidden" id="text2" >
+            <span>Эта история о Майн, дочери солдата, которая стремится выжить в мире, где книги для неё недоступны, а неизвестная лихорадка может убить её в любой момент.</span>
+        </div>
+    </div>
+    <a href="part1.html">
+		<div class="scroll-message" id="scrollMessage">Листай дальше</div>
+	</a>
+    <script src="script0.js"></script>
+</body>
+</html>
