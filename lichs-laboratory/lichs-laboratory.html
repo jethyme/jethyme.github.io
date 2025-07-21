@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Врата Лаборатории</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      user-select: none;
+    }
+
+    #puzzle-container {
+      position: relative;
+      width: 90vw; /* Увеличено */
+      height: 800px;
+    }
+
+    .ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+	  width: 60%;
+	  height: 60%;
+	  max-width: 600px;
+	  max-height: 600px;
+      transform: translate(-50%, -50%) rotate(0deg);
+      transition: transform 0.5s ease;
+      pointer-events: none;
+    }
+
+    .ring img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .button {
+      position: absolute;
+      background: none;
+      border: none;
+      cursor: pointer;
+	  width: 15%;
+	  height: auto;
+	  max-width: 179px;
+    }
+
+    .button img {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+	#input-container {
+	  position: absolute;
+	  top: 53%;
+	  left: 50%;
+	  transform: translate(-50%, -50%);
+	  z-index: 10;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: center;
+	  gap: 8px;
+	}
+
+
+    #input-container input {
+	  width: 100px;
+      padding: 8px;
+      font-size: 18px;
+      border-radius: 4px;
+      border: none;
+      background: #222;
+      color: #eee;
+    }
+
+    #input-container button {
+      padding: 8px 12px;
+      font-size: 18px;
+      border-radius: 4px;
+      border: none;
+      background: #333;
+      color: #eee;
+      cursor: pointer;
+    }
+	.button-wrapper {
+	  display: flex;
+	  justify-content: center;
+	  width: 100%;
+	}
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: white;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="puzzle-container">
+
+    <!-- Кольца -->
+    <div class="ring" id="ring1"><img src="ring1.png"></div>
+    <div class="ring" id="ring2"><img src="ring2.png"></div>
+    <div class="ring" id="ring3"><img src="ring3.png"></div>
+    <div class="ring" id="ring4"><img src="ring4.png"></div>
+    <div class="ring" id="ring5"><img src="ring5.png"></div>
+    <div class="ring" id="ring6"><img src="ring6.png"></div>
+
+    <!-- Кнопки управления -->
+	<button class="button" id="btn1" style="top: 10%; left: 25%; transform: translate(-50%, -50%);"><img src="btn1.png"></button>
+	<button class="button" id="btn2" style="top: 10%; left: 75%; transform: translate(-50%, -50%);"><img src="btn2.png"></button>
+	<button class="button" id="btn3" style="top: 90%; left: 25%; transform: translate(-50%, -50%);"><img src="btn3.png"></button>
+	<button class="button" id="btn4" style="top: 90%; left: 75%; transform: translate(-50%, -50%);"><img src="btn4.png"></button>
+
+    <!-- Скрытые кнопки -->
+	<button class="button hidden" id="btn5" style="top: 50%; left: 10%; transform: translate(-50%, -50%);"><img src="btn5.png"></button>
+	<button class="button hidden" id="btn6" style="top: 50%; left: 90%; transform: translate(-50%, -50%);"><img src="btn6.png"></button>
+
+    <!-- Поле ввода -->
+	<div id="input-container">
+	  <input type="text" id="password" placeholder="энергия">
+	  <div class="button-wrapper">
+		<button id="submit">влить</button>
+	  </div>
+	</div>
+
+    <div id="message">Проход открыт</div>
+  </div>
+
+  <script>
+    const rings = [1, 2, 3, 4, 5, 6].map(i => {
+      const ring = {
+        el: document.getElementById("ring" + i),
+        angle: 0
+      };
+      // начальное положение для 1,2,5,6
+      if ([1, 2, 5, 6].includes(i)) {
+        ring.angle = 180;
+        ring.el.style.transform = `translate(-50%, -50%) rotate(180deg)`;
+      }
+      return ring;
+    });
+
+    const rotateRing = (index) => {
+      const r = rings[index - 1];
+      r.angle = (r.angle + 180) % 360;
+      r.el.style.transform = `translate(-50%, -50%) rotate(${r.angle}deg)`;
+    };
+
+	const checkSolved = () => {
+	  const isSolved = rings.every(r => r.angle % 360 === 0);
+	  if (!isSolved) return;
+
+	  // Отключаем все кнопки
+	  const allButtons = document.querySelectorAll(".button");
+	  allButtons.forEach(btn => btn.disabled = true);
+
+	  // Подождать 2 секунды — чтобы последнее вращение визуально завершилось
+	  setTimeout(() => {
+		// Увеличим длительность анимации и вращение до нескольких оборотов
+		rings.forEach(r => {
+		  const extraTurns = 2 + Math.floor(Math.random() * 4); // от 2 до 5 оборотов
+		  const randomAngle = r.angle + 360 * extraTurns + Math.floor(Math.random() * 90);
+		  r.el.style.transition = "transform 2.5s ease-in-out";
+		  r.el.style.transform = `translate(-50%, -50%) rotate(${randomAngle}deg)`;
+		});
+
+		// Через 2.5 секунды — скрываем кольца и показываем надпись
+		setTimeout(() => {
+		  rings.forEach(r => r.el.style.display = "none");
+		  document.getElementById("message").style.display = "block";
+		}, 2500);
+	  }, 2000);
+	};
+
+
+    const buttons = {
+      btn1: () => { rotateRing(2); rotateRing(4); },
+      btn2: () => { rotateRing(1); rotateRing(3); },
+      btn3: () => { rotateRing(2); rotateRing(6); },
+      btn4: () => { rotateRing(1); },
+      btn5: () => { rotateRing(6); },
+      btn6: () => { rotateRing(5); rotateRing(3); }
+    };
+
+    for (let id in buttons) {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener("click", () => {
+          buttons[id]();
+          checkSolved();
+        });
+      }
+    }
+
+    const input = document.getElementById("password");
+    const submit = document.getElementById("submit");
+
+    const checkPassword = () => {
+      if ((input.value.trim().toLowerCase() === "тьма")
+	  ||(input.value.trim().toLowerCase() === "пустота")
+	  ||(input.value.trim().toLowerCase() === "негативная")
+	  ||(input.value.trim().toLowerCase() === "пустоты")
+	  ||(input.value.trim().toLowerCase() === "dark")
+	  ||(input.value.trim().toLowerCase() === "darkside")
+	  ||(input.value.trim().toLowerCase() === "dark side")
+	  ||(input.value.trim().toLowerCase() === "void")
+	  ||(input.value.trim().toLowerCase() === "negative"))	  {
+        document.getElementById("btn5").classList.remove("hidden");
+        document.getElementById("btn6").classList.remove("hidden");
+        document.getElementById("input-container").remove();
+      } else {
+        input.value = "";
+      }
+    };
+
+    submit.addEventListener("click", checkPassword);
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") checkPassword();
+    });
+  </script>
+</body>
+</html>
