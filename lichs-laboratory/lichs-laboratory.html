@@ -70,7 +70,7 @@
 
 	#input-container {
 	  position: absolute;
-	  top: 50%;
+	  top: 53%;
 	  left: 50%;
 	  transform: translate(-50%, -50%);
 	  z-index: 10;
@@ -82,10 +82,10 @@
 
 
     #input-container input {
-	  width: 100px;
-      padding: 8px;
-      font-size: 18px;
-      border-radius: 4px;
+	  width: min(22vw, 22vh);
+      padding: min(2vw, 2vh);
+      font-size: min(4vw, 4vh);
+      border-radius: min(1vw, 1vh);
       border: none;
       background: #222;
       color: #eee;
@@ -93,9 +93,9 @@
     }
 
     #input-container button {
-      padding: 8px 12px;
-      font-size: 18px;
-      border-radius: 4px;
+      padding: min(2vw, 2vh) min(3vw, 3vh);
+      font-size: min(4vw, 4vh);
+      border-radius: min(2vw, 2vh);
       border: none;
       background: #333;
       color: #eee;
@@ -112,7 +112,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 32px;
+	  font-size: min(6vw, 6vh);
       color: white;
       display: none;
     }
