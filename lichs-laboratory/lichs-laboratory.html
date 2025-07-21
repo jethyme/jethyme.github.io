@@ -13,31 +13,28 @@
       display: flex;
       align-items: center;
       justify-content: center;
-	  font-family: "Revard", sans-serif;
+      font-family: "Revard", sans-serif;
       user-select: none;
     }
 
-	@font-face {
-	  font-family: "Revard";
-	  src: url("Revard.ttf") format("truetype");
-	  font-weight: normal;
-	  font-style: normal;
-	}
-
-    #puzzle-container {
-	  position: relative;
-	  width: 90vw;
-	  height: 90vh; /* 90% от высоты окна */
-	  max-width: 1400px;
-	  max-height: 90vh;
+    @font-face {
+      font-family: "Revard";
+      src: url("Revard.ttf") format("truetype");
     }
+
+	#puzzle-container {
+	  position: relative;
+	  width: 100vw;
+	  height: 100vh;
+	  overflow: hidden;
+	}
 
     .ring {
       position: absolute;
       top: 50%;
       left: 50%;
-	  width: 100%;
-	  height: 100%;
+      width: 100%;
+      height: 100%;
       transform: translate(-50%, -50%) rotate(0deg);
       transition: transform 0.5s ease;
       pointer-events: none;
@@ -54,9 +51,9 @@
       background: none;
       border: none;
       cursor: pointer;
-	  width: 15%;
-	  height: auto;
-	  max-width: 179px;
+      width: 15%;
+      height: auto;
+      max-width: 179px;
     }
 
     .button img {
@@ -68,28 +65,27 @@
       display: none;
     }
 
-	#input-container {
-	  position: absolute;
-	  top: 53%;
-	  left: 50%;
-	  transform: translate(-50%, -50%);
-	  z-index: 10;
-	  display: flex;
-	  flex-direction: column;
-	  align-items: center;
-	  gap: 8px;
-	}
-
+    #input-container {
+      position: absolute;
+      top: 52%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
 
     #input-container input {
-	  width: min(22vw, 22vh);
+      width: min(26vw, 26vh);
       padding: min(2vw, 2vh);
       font-size: min(4vw, 4vh);
       border-radius: min(1vw, 1vh);
       border: none;
       background: #222;
       color: #eee;
-	  font-family: "Revard", sans-serif;
+      font-family: "Revard", sans-serif;
     }
 
     #input-container button {
@@ -100,36 +96,87 @@
       background: #333;
       color: #eee;
       cursor: pointer;
-	  font-family: "Revard", sans-serif;
+      font-family: "Revard", sans-serif;
     }
-	.button-wrapper {
-	  display: flex;
-	  justify-content: center;
-	  width: 100%;
-	}
+
+    .button-wrapper {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    #portal-aura {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(80vw, 80vh);
+      height: min(80vw, 80vh);
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      display: none;
+      pointer-events: none;
+    }
+
+    #portal-aura svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 0 15px #0f0);
+    }
+
+    .spiral-path {
+      fill: none;
+      stroke: #00ff88;
+      stroke-width: 7;
+      stroke-opacity: 0.07;
+      stroke-linecap: round;
+	  filter: url(#glow);
+    }
+
     #message {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-	  font-size: min(6vw, 6vh);
+      font-size: min(6vw, 6vh);
       color: white;
       display: none;
+      text-shadow: 0 0 10px #0f0;
+      z-index: 5;
     }
-	@media (orientation: portrait) {
-	  #btn5 {
-		top: 90% !important;
-		left: 50% !important;
-		transform: translate(-50%, -50%) !important;
-	  }
 
-	  #btn6 {
-		top: 10% !important;
-		left: 50% !important;
-		transform: translate(-50%, -50%) !important;
-	  }
+    @media (orientation: portrait) {
+      #btn5 {
+        top: 95% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+      }
+
+      #btn6 {
+        top: 5% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+      }
+    }
+	.ring {
+	  z-index: 1;
 	}
 
+	.button {
+	  z-index: 2;
+	}
+
+	#input-container {
+	  z-index: 3;
+	}
+
+	#portal-aura {
+	  z-index: 0;
+	}
+
+	#message {
+	  z-index: 4;
+	}
   </style>
 </head>
 <body>
@@ -143,34 +190,82 @@
     <div class="ring" id="ring5"><img src="ring5.png"></div>
     <div class="ring" id="ring6"><img src="ring6.png"></div>
 
-    <!-- Кнопки управления -->
-	<button class="button" id="btn1" style="top: 20%; left: 25%; transform: translate(-50%, -50%);"><img src="btn1.png"></button>
-	<button class="button" id="btn2" style="top: 20%; left: 75%; transform: translate(-50%, -50%);"><img src="btn2.png"></button>
-	<button class="button" id="btn3" style="top: 80%; left: 25%; transform: translate(-50%, -50%);"><img src="btn3.png"></button>
-	<button class="button" id="btn4" style="top: 80%; left: 75%; transform: translate(-50%, -50%);"><img src="btn4.png"></button>
+    <!-- Кнопки -->
+    <button class="button" id="btn1" style="top: 15%; left: 25%; transform: translate(-50%, -50%);"><img src="btn1.png"></button>
+    <button class="button" id="btn2" style="top: 15%; left: 75%; transform: translate(-50%, -50%);"><img src="btn2.png"></button>
+    <button class="button" id="btn3" style="top: 85%; left: 25%; transform: translate(-50%, -50%);"><img src="btn3.png"></button>
+    <button class="button" id="btn4" style="top: 85%; left: 75%; transform: translate(-50%, -50%);"><img src="btn4.png"></button>
 
-    <!-- Скрытые кнопки -->
-	<button class="button hidden" id="btn5" style="top: 50%; left: 10%; transform: translate(-50%, -50%);"><img src="btn5.png"></button>
-	<button class="button hidden" id="btn6" style="top: 50%; left: 90%; transform: translate(-50%, -50%);"><img src="btn6.png"></button>
+    <button class="button hidden" id="btn5" style="top: 50%; left: 10%; transform: translate(-50%, -50%);"><img src="btn5.png"></button>
+    <button class="button hidden" id="btn6" style="top: 50%; left: 90%; transform: translate(-50%, -50%);"><img src="btn6.png"></button>
 
     <!-- Поле ввода -->
-	<div id="input-container">
-	  <input type="text" id="password" placeholder="энергия">
-	  <div class="button-wrapper">
-		<button id="submit">влить</button>
-	  </div>
-	</div>
+    <div id="input-container">
+      <input type="text" id="password" placeholder="энергия">
+      <div class="button-wrapper">
+        <button id="submit">влить</button>
+      </div>
+    </div>
 
+    <!-- Энергия -->
+    <div id="portal-aura">
+	<svg viewBox="-120 -120 240 240">
+	  <defs>
+		<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+		  <feDropShadow dx="0" dy="0" stdDeviation="15" flood-color="#00ff88" flood-opacity="0.8"/>
+		</filter>
+	  </defs>
+	</svg>
+
+    </div>
+
+    <!-- Сообщение -->
     <div id="message">Проход открыт</div>
+
   </div>
 
   <script>
+    const svg = document.querySelector("#portal-aura svg");
+
+    function createSpiralPath(turns = 7, density = 1000, arms = 4) {
+      for (let j = 0; j < arms; j++) {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.classList.add("spiral-path");
+
+        let d = "";
+        for (let i = 0; i < density; i++) {
+          const t = i / density;
+          const angle = t * turns * 2 * Math.PI + (j * 2 * Math.PI / arms);
+          const radius = t * 100 * (1 + 0.1 * Math.sin(t * 20));
+          const x = radius * Math.cos(angle);
+          const y = radius * Math.sin(angle);
+          d += (i === 0 ? "M" : "L") + x.toFixed(2) + "," + y.toFixed(2) + " ";
+        }
+
+        path.setAttribute("d", d);
+        svg.appendChild(path);
+      }
+    }
+
+    function showPortal() {
+      document.getElementById("portal-aura").style.display = "block";
+      animate();
+    }
+
+    createSpiralPath(8, 1000, 3);
+
+    let angle = 0;
+    function animate() {
+      angle += 0.25;
+      svg.style.transform = `rotate(${angle}deg)`;
+      requestAnimationFrame(animate);
+    }
+
     const rings = [1, 2, 3, 4, 5, 6].map(i => {
       const ring = {
         el: document.getElementById("ring" + i),
         angle: 0
       };
-      // начальное положение для 1,2,5,6
       if ([1, 2, 5, 6].includes(i)) {
         ring.angle = 180;
         ring.el.style.transform = `translate(-50%, -50%) rotate(180deg)`;
@@ -184,32 +279,28 @@
       r.el.style.transform = `translate(-50%, -50%) rotate(${r.angle}deg)`;
     };
 
-	const checkSolved = () => {
-	  const isSolved = rings.every(r => r.angle % 360 === 0);
-	  if (!isSolved) return;
+    const checkSolved = () => {
+      const isSolved = rings.every(r => r.angle % 360 === 0);
+      if (!isSolved) return;
 
-	  // Отключаем все кнопки
-	  const allButtons = document.querySelectorAll(".button");
-	  allButtons.forEach(btn => btn.disabled = true);
+      const allButtons = document.querySelectorAll(".button");
+      allButtons.forEach(btn => btn.disabled = true);
 
-	  // Подождать 2 секунды — чтобы последнее вращение визуально завершилось
-	  setTimeout(() => {
-		// Увеличим длительность анимации и вращение до нескольких оборотов
-		rings.forEach(r => {
-		  const extraTurns = 2 + Math.floor(Math.random() * 4); // от 2 до 5 оборотов
-		  const randomAngle = r.angle + 360 * extraTurns + Math.floor(Math.random() * 90);
-		  r.el.style.transition = "transform 2.5s ease-in-out";
-		  r.el.style.transform = `translate(-50%, -50%) rotate(${randomAngle}deg)`;
-		});
+      setTimeout(() => {
+        rings.forEach(r => {
+          const extraTurns = 2 + Math.floor(Math.random() * 4);
+          const randomAngle = r.angle + 360 * extraTurns + Math.floor(Math.random() * 90);
+          r.el.style.transition = "transform 2.5s ease-in-out";
+          r.el.style.transform = `translate(-50%, -50%) rotate(${randomAngle}deg)`;
+        });
 
-		// Через 2.5 секунды — скрываем кольца и показываем надпись
-		setTimeout(() => {
-		  rings.forEach(r => r.el.style.display = "none");
-		  document.getElementById("message").style.display = "block";
-		}, 2500);
-	  }, 2000);
-	};
-
+        setTimeout(() => {
+          rings.forEach(r => r.el.style.display = "none");
+          showPortal();
+          document.getElementById("message").style.display = "block";
+        }, 2500);
+      }, 2000);
+    };
 
     const buttons = {
       btn1: () => { rotateRing(2); rotateRing(4); },
@@ -222,30 +313,18 @@
 
     for (let id in buttons) {
       const btn = document.getElementById(id);
-      if (btn) {
-        btn.addEventListener("click", () => {
-          buttons[id]();
-          checkSolved();
-        });
-      }
+      btn?.addEventListener("click", () => {
+        buttons[id]();
+        checkSolved();
+      });
     }
 
     const input = document.getElementById("password");
     const submit = document.getElementById("submit");
 
     const checkPassword = () => {
-      if ((input.value.trim().toLowerCase() === "тьма")
-	  ||(input.value.trim().toLowerCase() === "пустота")
-	  ||(input.value.trim().toLowerCase() === "негативная")
-	  ||(input.value.trim().toLowerCase() === "нечистая")
-	  ||(input.value.trim().toLowerCase() === "пустоты")
-	  ||(input.value.trim().toLowerCase() === "смерть")
-	  ||(input.value.trim().toLowerCase() === "смерти")
-	  ||(input.value.trim().toLowerCase() === "dark")
-	  ||(input.value.trim().toLowerCase() === "darkside")
-	  ||(input.value.trim().toLowerCase() === "dark side")
-	  ||(input.value.trim().toLowerCase() === "void")
-	  ||(input.value.trim().toLowerCase() === "negative"))	  {
+      const val = input.value.trim().toLowerCase();
+      if (["тьма", "пустота", "негативная", "нечистая", "пустоты", "смерть", "смерти", "dark", "darkside", "dark side", "void", "negative"].includes(val)) {
         document.getElementById("btn5").classList.remove("hidden");
         document.getElementById("btn6").classList.remove("hidden");
         document.getElementById("input-container").remove();
