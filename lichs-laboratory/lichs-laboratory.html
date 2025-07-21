@@ -18,9 +18,11 @@
     }
 
     #puzzle-container {
-      position: relative;
-      width: 90vw; /* Увеличено */
-      height: 800px;
+	  position: relative;
+	  width: 90vw;
+	  height: 90vh; /* 90% от высоты окна */
+	  max-width: 1400px;
+	  max-height: 90vh;
     }
 
     .ring {
@@ -121,10 +123,10 @@
     <div class="ring" id="ring6"><img src="ring6.png"></div>
 
     <!-- Кнопки управления -->
-	<button class="button" id="btn1" style="top: 10%; left: 25%; transform: translate(-50%, -50%);"><img src="btn1.png"></button>
-	<button class="button" id="btn2" style="top: 10%; left: 75%; transform: translate(-50%, -50%);"><img src="btn2.png"></button>
-	<button class="button" id="btn3" style="top: 90%; left: 25%; transform: translate(-50%, -50%);"><img src="btn3.png"></button>
-	<button class="button" id="btn4" style="top: 90%; left: 75%; transform: translate(-50%, -50%);"><img src="btn4.png"></button>
+	<button class="button" id="btn1" style="top: 20%; left: 25%; transform: translate(-50%, -50%);"><img src="btn1.png"></button>
+	<button class="button" id="btn2" style="top: 20%; left: 75%; transform: translate(-50%, -50%);"><img src="btn2.png"></button>
+	<button class="button" id="btn3" style="top: 80%; left: 25%; transform: translate(-50%, -50%);"><img src="btn3.png"></button>
+	<button class="button" id="btn4" style="top: 80%; left: 75%; transform: translate(-50%, -50%);"><img src="btn4.png"></button>
 
     <!-- Скрытые кнопки -->
 	<button class="button hidden" id="btn5" style="top: 50%; left: 10%; transform: translate(-50%, -50%);"><img src="btn5.png"></button>
