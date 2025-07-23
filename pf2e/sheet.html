@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Персонаж PF2e</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 1rem; }
+    h1 { margin-bottom: 0; }
+    .section { margin-top: 1.5rem; }
+    .label { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="root">Загрузка...</div>
+
+  <script>
+    const name = decodeURIComponent(location.hash.slice(1)); // #Элия
+    const endpoint = 'https://script.google.com/macros/s/ТВОЙ_ID/exec?name=' + name;
+
+    fetch(endpoint)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return document.getElementById('root').innerHTML = 'Персонаж не найден';
+
+        document.getElementById('root').innerHTML = `
+          <h1>${data.name}</h1>
+          <div class="section"><span class="label">Раса:</span> ${data.race}</div>
+          <div class="section"><span class="label">Класс:</span> ${data.class}</div>
+          <div class="section"><span class="label">Уровень:</span> ${data.level}</div>
+          <div class="section"><span class="label">AC:</span> ${data.ac} | <span class="label">HP:</span> ${data.hp}</div>
+          <div class="section"><span class="label">Восприятие:</span> ${data.perception} | <span class="label">Скорость:</span> ${data.speed} фт</div>
+          <div class="section"><span class="label">Зрение:</span> ${data.vision}</div>
+          <div class="section"><span class="label">Золото:</span> ${data.gold} зм</div>
+          <div class="section"><span class="label">Заметки:</span><pre>${data.notes}</pre></div>
+        `;
+      });
+  </script>
+</body>
+</html>
