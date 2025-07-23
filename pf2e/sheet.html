@@ -15,7 +15,7 @@
 
   <script>
     const name = decodeURIComponent(location.hash.slice(1)); // #Элия
-    const endpoint = 'https://script.google.com/macros/s/ТВОЙ_ID/exec?name=' + name;
+    const endpoint = 'https://script.google.com/macros/s/AKfycbzZmnDAJyYvgzXidTxPttnqwOExlxA43Y8InESWCRWYHgy3qPIWHNl1Du3VFc1kVd5-/exec' + name;
 
     fetch(endpoint)
       .then(r => r.json())
