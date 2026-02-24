@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Быки и Коровы</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    text-align: center;
+    margin-top: 40px;
+}
+.container {
+    background: white;
+    width: 450px;
+    margin: auto;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+input, select {
+    padding: 8px;
+    font-size: 16px;
+    margin: 5px 0;
+}
+button {
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 5px;
+}
+.history {
+    margin-top: 20px;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.win {
+    color: green;
+    font-weight: bold;
+    margin-top: 15px;
+}
+.hidden {
+    display: none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🐂 Быки и Коровы 🐄</h2>
+
+    <div id="modeSelection">
+        <p>Выберите режим:</p>
+        <button onclick="startRandomGame()">🎲 Случайное слово</button>
+        <button onclick="showCustomInput()">✍ Ввести своё слово</button>
+    </div>
+
+    <div id="customWordDiv" class="hidden">
+        <input type="text" id="customWordInput" placeholder="Введите слово из словаря">
+        <button onclick="startCustomGame()">Начать игру</button>
+    </div>
+
+    <p id="info"></p>
+
+    <div id="gameArea" class="hidden">
+        <input type="text" id="guessInput" placeholder="Введите слово">
+        <button onclick="checkGuess()">Проверить</button>
+        <button onclick="restartGame()">Новая игра</button>
+
+        <div class="history" id="history"></div>
+        <div class="win" id="winMessage"></div>
+    </div>
+</div>
+
+<script>
+let dictionary = [];
+let secretWord = "";
+let wordLength = 0;
+
+async function loadDictionary() {
+    const response = await fetch("words.txt");
+    const text = await response.text();
+
+    dictionary = text
+        .split("\n")
+        .map(word => word.trim().toLowerCase())
+        .filter(word => word.length > 0);
+}
+
+function showCustomInput() {
+    document.getElementById("customWordDiv").classList.remove("hidden");
+}
+
+function startRandomGame() {
+    secretWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+    setupGame();
+}
+
+function startCustomGame() {
+    const input = document.getElementById("customWordInput");
+    const word = input.value.toLowerCase().trim();
+
+    if (!dictionary.includes(word)) {
+        alert("Такого слова нет в словаре!");
+        return;
+    }
+
+    secretWord = word;
+    setupGame();
+}
+
+function setupGame() {
+    wordLength = secretWord.length;
+
+    document.getElementById("modeSelection").classList.add("hidden");
+    document.getElementById("customWordDiv").classList.add("hidden");
+    document.getElementById("gameArea").classList.remove("hidden");
+
+    document.getElementById("info").innerText =
+        "Слово из " + wordLength + " букв.";
+
+    document.getElementById("history").innerHTML = "";
+    document.getElementById("winMessage").innerText = "";
+    document.getElementById("guessInput").value = "";
+}
+
+function countBullsAndCows(secret, guess) {
+    let bulls = 0;
+    let secretRemaining = [];
+    let guessRemaining = [];
+
+    for (let i = 0; i < secret.length; i++) {
+        if (secret[i] === guess[i]) {
+            bulls++;
+        } else {
+            secretRemaining.push(secret[i]);
+            guessRemaining.push(guess[i]);
+        }
+    }
+
+    let cows = 0;
+    let letterCount = {};
+
+    secretRemaining.forEach(char => {
+        letterCount[char] = (letterCount[char] || 0) + 1;
+    });
+
+    guessRemaining.forEach(char => {
+        if (letterCount[char] > 0) {
+            cows++;
+            letterCount[char]--;
+        }
+    });
+
+    return { bulls, cows };
+}
+
+function checkGuess() {
+    const input = document.getElementById("guessInput");
+    const guess = input.value.toLowerCase().trim();
+
+    if (!dictionary.includes(guess)) {
+        alert("Этого слова нет в словаре!");
+        return;
+    }
+
+    if (guess.length !== wordLength) {
+        alert("Слово должно быть из " + wordLength + " букв.");
+        return;
+    }
+
+    const result = countBullsAndCows(secretWord, guess);
+
+    const historyDiv = document.getElementById("history");
+    historyDiv.innerHTML +=
+        "<div>" + guess + " → 🐂 " + result.bulls +
+        " | 🐄 " + result.cows + "</div>";
+
+    input.value = "";
+
+    if (result.bulls === wordLength) {
+        document.getElementById("winMessage").innerText =
+            "🎉 Слово угадано: " + secretWord;
+    }
+}
+
+function restartGame() {
+    document.getElementById("modeSelection").classList.remove("hidden");
+    document.getElementById("gameArea").classList.add("hidden");
+    document.getElementById("info").innerText = "";
+}
+
+loadDictionary();
+</script>
+
+</body>
+</html>
