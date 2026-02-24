@@ -1,27 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-	<title>Так надо</title>
+    <meta charset="UTF-8">
+    <title>Так надо</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 40px;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .link-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .link-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        a:hover::after {
+            transform: translateX(5px);
+        }
+    </style>
 </head>
 <body>
-	<div>
-		<p>"Hello World!"</p>
-	</div>
-	<div>
-    		<a href="bookworm/index.html">
-				<p>"Bookworm"</p>
-			</a>
-	</div>
-	<div>
-    		<a href="cows/cows.html">
-				<p>"Быки и коровы"</p>
-			</a>
-	</div>
-	<div>
-    		<a href="lichs-laboratory/lichs-laboratory.html">
-				<p>"Головоломка-дверь"</p>
-			</a>
-	</div>
-</body>
+    <div class="container">
+        <h1>Так надо</h1>
 
+        <div class="link-box">
+            <p>"Hello World!"</p>
+        </div>
+
+        <div class="link-box">
+            <a href="bookworm/index.html">
+                <p>"Bookworm"</p>
+            </a>
+        </div>
+
+        <div class="link-box">
+            <a href="cows/cows.html">
+                <p>"Быки и коровы"</p>
+            </a>
+        </div>
+
+        <div class="link-box">
+            <a href="lichs-laboratory/lichs-laboratory.html">
+                <p>"Головоломка-дверь"</p>
+            </a>
+        </div>
+    </div>
+</body>
 </html>
