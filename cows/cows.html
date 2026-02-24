@@ -12,13 +12,13 @@ body {
 }
 .container {
     background: white;
-    width: 450px;
+    width: 480px;
     margin: auto;
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 0 15px rgba(0,0,0,0.1);
 }
-input, select {
+input[type="text"] {
     padding: 8px;
     font-size: 16px;
     margin: 5px 0;
@@ -43,6 +43,9 @@ button {
 .hidden {
     display: none;
 }
+.slider-container {
+    margin: 10px 0;
+}
 </style>
 </head>
 <body>
@@ -52,8 +55,16 @@ button {
 
     <div id="modeSelection">
         <p>Выберите режим:</p>
-        <button onclick="startRandomGame()">🎲 Случайное слово</button>
+        <button onclick="showRandomOptions()">🎲 Случайное слово</button>
         <button onclick="showCustomInput()">✍ Ввести своё слово</button>
+    </div>
+
+    <div id="randomOptions" class="hidden">
+        <div class="slider-container">
+            <label>Длина слова: <span id="lengthValue"></span></label><br>
+            <input type="range" id="lengthSlider">
+        </div>
+        <button onclick="startRandomGame()">Начать игру</button>
     </div>
 
     <div id="customWordDiv" class="hidden">
@@ -77,6 +88,8 @@ button {
 let dictionary = [];
 let secretWord = "";
 let wordLength = 0;
+let minLength = 0;
+let maxLength = 0;
 
 async function loadDictionary() {
     const response = await fetch("words.txt");
@@ -86,14 +99,48 @@ async function loadDictionary() {
         .split("\n")
         .map(word => word.trim().toLowerCase())
         .filter(word => word.length > 0);
+
+    calculateLengthBounds();
+}
+
+function calculateLengthBounds() {
+    const lengths = dictionary.map(w => w.length);
+    minLength = Math.min(...lengths);
+    maxLength = Math.max(...lengths);
+
+    const slider = document.getElementById("lengthSlider");
+    slider.min = minLength;
+    slider.max = maxLength;
+    slider.value = minLength;
+
+    document.getElementById("lengthValue").innerText = minLength;
+
+    slider.oninput = function() {
+        document.getElementById("lengthValue").innerText = this.value;
+    };
+}
+
+function showRandomOptions() {
+    document.getElementById("randomOptions").classList.remove("hidden");
+    document.getElementById("customWordDiv").classList.add("hidden");
 }
 
 function showCustomInput() {
     document.getElementById("customWordDiv").classList.remove("hidden");
+    document.getElementById("randomOptions").classList.add("hidden");
 }
 
 function startRandomGame() {
-    secretWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+    const chosenLength = parseInt(document.getElementById("lengthSlider").value);
+
+    const filtered = dictionary.filter(w => w.length === chosenLength);
+
+    if (filtered.length === 0) {
+        alert("Нет слов такой длины!");
+        return;
+    }
+
+    secretWord = filtered[Math.floor(Math.random() * filtered.length)];
     setupGame();
 }
 
@@ -114,6 +161,7 @@ function setupGame() {
     wordLength = secretWord.length;
 
     document.getElementById("modeSelection").classList.add("hidden");
+    document.getElementById("randomOptions").classList.add("hidden");
     document.getElementById("customWordDiv").classList.add("hidden");
     document.getElementById("gameArea").classList.remove("hidden");
 
