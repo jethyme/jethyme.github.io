@@ -402,9 +402,18 @@ function restartGame(){
 document.getElementById("guessInput").addEventListener("keydown",e=>{
     if(e.key==="Enter") checkGuess();
 });
+function showRandomOptions() {
+    document.getElementById("modeSelection").classList.add("hidden");
+    document.getElementById("randomOptions").classList.remove("hidden");
+}
 
+function showCustomInput() {
+    document.getElementById("modeSelection").classList.add("hidden");
+    document.getElementById("customWordDiv").classList.remove("hidden");
+}
 loadDictionaries();
 
 </script>
 </body>
 </html>
+
