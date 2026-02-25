@@ -176,6 +176,11 @@ input, select {
 </div>
 </div>
 
+<div id="definitionBlock" class="hidden" style="margin-top:20px; font-size:16px; text-align:left; background:#343454; padding:12px; border-radius:10px;">
+    <strong>Определение слова:</strong>
+    <div id="definitionText">Загрузка...</div>
+</div>
+
 <script>
 
 let dictionary = [];
@@ -185,6 +190,34 @@ let wordLength = 0;
 let gameOver = false;
 let maxAttempts = 0;
 let remainingAttempts = 0;
+
+async function showDefinition(word) {
+    const defBlock = document.getElementById("definitionBlock");
+    const defText = document.getElementById("definitionText");
+
+    defBlock.classList.remove("hidden");
+    defText.innerText = "Загрузка...";
+
+    try {
+        const response = await fetch(
+            `https://dictionary-api-7hmy.onrender.com/define?word=${encodeURIComponent(word)}`
+        );
+
+        if (!response.ok) {
+            throw new Error("Не удалось получить данные");
+        }
+
+        const data = await response.json();
+
+        if (data.definition) {
+            defText.innerText = `${data.definition}`;
+        } else {
+            defText.innerText = "Определение не найдено";
+        }
+    } catch (e) {
+        defText.innerText = "Ошибка при получении определения";
+    }
+}
 
 async function loadDictionaries() {
     const r1 = await fetch("words.txt");
@@ -334,12 +367,14 @@ function checkGuess() {
 
     if(bulls===wordLength){
         document.getElementById("winMessage").innerText="🎉 Победа! Слово: "+secretWord;
+		showDefinition(secretWord);
         endGame();
         return;
     }
 
     if(maxAttempts>0 && remainingAttempts<=0){
         document.getElementById("winMessage").innerText="❌ Попытки закончились. Слово было: "+secretWord;
+		showDefinition(secretWord);
         endGame();
     }
 }
@@ -347,6 +382,7 @@ function checkGuess() {
 function surrender(){
     if(gameOver) return;
     document.getElementById("winMessage").innerText="Вы сдались. Слово было: "+secretWord;
+	showDefinition(secretWord);
     endGame();
 }
 
@@ -372,5 +408,4 @@ loadDictionaries();
 </script>
 </body>
 </html>
-
 
