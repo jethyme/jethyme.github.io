@@ -6,7 +6,9 @@
 <title>Быки и Коровы</title>
 
 <style>
-:root { --cell-size: 48px; }
+:root {
+    --cell-size: 48px;
+}
 
 body {
     font-family: 'Segoe UI', sans-serif;
@@ -69,7 +71,10 @@ input, select {
     padding-bottom: 5px;
 }
 
-.letters { display: flex; gap: 6px; }
+.letters {
+    display: flex;
+    gap: 6px;
+}
 
 .letter-box {
     width: var(--cell-size);
@@ -85,28 +90,51 @@ input, select {
     text-transform: uppercase;
 }
 
-.result { font-size: 18px; white-space: nowrap; }
+.result {
+    font-size: 18px;
+    white-space: nowrap;
+}
 
-.win { margin-top: 20px; font-weight: bold; }
+.win {
+    margin-top: 20px;
+    font-weight: bold;
+}
 
+/* 📖 Плашка определения */
 .definition-card {
     margin-top: 20px;
     background: #343454;
     padding: 15px;
     border-radius: 12px;
     text-align: left;
-    width: 100%;
-    box-sizing: border-box;
 }
 
-.definition-card a {
-    color: #8fa3ff;
-    text-decoration: none;
-}
-
+/* 📱 Мобильная версия */
 @media (max-width: 600px) {
-    :root { --cell-size: 36px; }
-    button, input, select { width: 100%; box-sizing: border-box; }
+
+    :root {
+        --cell-size: 36px;
+    }
+
+    button {
+        width: 100%;
+        margin: 6px 0;
+        font-size: 16px;
+    }
+
+    input, select {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
+
+    .word-row {
+        gap: 8px;
+    }
+
+    .result {
+        font-size: 16px;
+    }
 }
 </style>
 </head>
@@ -146,7 +174,8 @@ input, select {
 <p id="info"></p>
 
 <div id="gameArea" class="hidden">
-    <input type="text" id="guessInput" placeholder="Введите слово"><br>
+    <input type="text" id="guessInput" placeholder="Введите слово">
+    <br>
     <button onclick="checkGuess()" id="checkBtn">Проверить</button>
     <button onclick="surrender()" id="surrenderBtn">Сдаться</button>
     <button onclick="restartGame()">Новая игра</button>
@@ -165,69 +194,56 @@ input, select {
 
 let dictionary = [];
 let singularWords = [];
-let wiktionaryCache = new Map();
+let wiktionarySet = new Set();
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
 let maxAttempts = 0;
 let remainingAttempts = 0;
 
-/* ----------- Викисловарь ----------- */
-
-async function getWiktionaryDefinition(word) {
-    if (wiktionaryCache.has(word)) return wiktionaryCache.get(word);
-
-    const url = `https://ru.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(word)}&prop=text&format=json&origin=*`;
-
-    try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!data.parse) return null;
-
-        const html = data.parse.text["*"];
-        const temp = document.createElement("div");
-        temp.innerHTML = html;
-
-        const li = temp.querySelector("ol li");
-        if (!li) return null;
-
-        const text = li.textContent.trim();
-        wiktionaryCache.set(word, text);
-        return text;
-
-    } catch {
-        return null;
-    }
+async function wordExistsInWiktionary(word){
+    const url = `https://ru.wiktionary.org/w/api.php?action=query&format=json&origin=*&titles=${encodeURIComponent(word)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const page = Object.values(data.query.pages)[0];
+    return !page.missing;
 }
 
-async function showDefinition(word) {
+async function showDefinition(word){
     const block = document.getElementById("definitionBlock");
     const text = document.getElementById("definitionText");
 
     block.classList.remove("hidden");
     text.innerText = "Загрузка...";
 
-    const def = await getWiktionaryDefinition(word);
+    try{
+        const url = `https://ru.wiktionary.org/w/api.php?action=parse&format=json&origin=*&page=${encodeURIComponent(word)}&prop=text&section=0`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-    if (!def) {
-        text.innerHTML =
-            `Определение не найдено.<br>
-             <a target="_blank" href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}">
-             Открыть в Викисловаре ↗</a>`;
-        return;
+        if(!data.parse){
+            text.innerHTML = "Определение не найдено.";
+            return;
+        }
+
+        const html = data.parse.text["*"];
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
+
+        const firstLi = temp.querySelector("ol li");
+        if(firstLi){
+            text.innerHTML = firstLi.innerText +
+                `<br><br><a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">Читать полностью ↗</a>`;
+        } else {
+            text.innerHTML = "Определение не найдено.";
+        }
+
+    }catch(e){
+        text.innerHTML = "Ошибка загрузки определения.";
     }
-
-    text.innerHTML =
-        def +
-        `<br><br>
-         <a target="_blank" href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}">
-         Читать полностью ↗</a>`;
 }
 
-/* ----------- Словари ----------- */
-
-async function loadDictionaries() {
+async function loadDictionaries(){
     const r1 = await fetch("words.txt");
     dictionary = (await r1.text()).split("\n").map(w=>w.trim().toLowerCase()).filter(Boolean);
 
@@ -237,47 +253,56 @@ async function loadDictionaries() {
     calculateLengthBounds();
 }
 
-function calculateLengthBounds() {
+function calculateLengthBounds(){
     const lengths = dictionary.map(w=>w.length);
     const slider = document.getElementById("lengthSlider");
+    const preferred = 5;
     slider.min = Math.min(...lengths);
     slider.max = Math.max(...lengths);
-    slider.value = 5;
+    slider.value = dictionary.some(w=>w.length===preferred)?preferred:slider.min;
     document.getElementById("lengthValue").innerText = slider.value;
-    slider.oninput = () => document.getElementById("lengthValue").innerText = slider.value;
+    slider.oninput=()=>document.getElementById("lengthValue").innerText=slider.value;
 }
 
-/* ----------- Игра ----------- */
+function showRandomOptions(){
+    document.getElementById("randomOptions").classList.remove("hidden");
+    document.getElementById("customWordDiv").classList.add("hidden");
+}
 
-async function startRandomGame() {
+function showCustomInput(){
+    document.getElementById("customWordDiv").classList.remove("hidden");
+    document.getElementById("randomOptions").classList.add("hidden");
+}
+
+async function startRandomGame(){
     const len = parseInt(document.getElementById("lengthSlider").value);
     const filtered = dictionary.filter(w=>w.length===len);
 
     const valid = [];
-    for (const word of filtered) {
-        const exists = await getWiktionaryDefinition(word);
-        if (exists) valid.push(word);
+    for(const w of filtered){
+        if(await wordExistsInWiktionary(w)) valid.push(w);
     }
 
-    if (!valid.length) return alert("Нет слов этой длины в Викисловаре");
+    if(!valid.length) return alert("Нет слов такой длины в Викисловаре");
 
     secretWord = valid[Math.floor(Math.random()*valid.length)];
     setupGame();
 }
 
-async function startCustomGame() {
+async function startCustomGame(){
     const word = document.getElementById("customWordInput").value.toLowerCase().trim();
 
-    if (!dictionary.includes(word) && !singularWords.includes(word)) {
-        const exists = await getWiktionaryDefinition(word);
-        if (!exists) return alert("Слова нет ни в словарях, ни в Викисловаре");
+    if(!dictionary.includes(word) &&
+       !singularWords.includes(word) &&
+       !(await wordExistsInWiktionary(word))){
+        return alert("Слова нет ни в словарях, ни в Викисловаре");
     }
 
     secretWord = word;
     setupGame();
 }
 
-function setupGame() {
+function setupGame(){
     wordLength = secretWord.length;
     gameOver = false;
     maxAttempts = parseInt(document.getElementById("attemptSelect").value);
@@ -290,42 +315,41 @@ function setupGame() {
     document.getElementById("definitionBlock").classList.add("hidden");
 
     updateInfo();
-    document.getElementById("history").innerHTML = "";
-    document.getElementById("winMessage").innerText = "";
-    document.getElementById("guessInput").disabled = false;
-    document.getElementById("checkBtn").disabled = false;
-    document.getElementById("surrenderBtn").disabled = false;
+    document.getElementById("history").innerHTML="";
+    document.getElementById("winMessage").innerText="";
+    document.getElementById("guessInput").disabled=false;
+    document.getElementById("checkBtn").disabled=false;
+    document.getElementById("surrenderBtn").disabled=false;
 }
 
-function updateInfo() {
-    let text = "Слово из " + wordLength + " букв.";
-    if (maxAttempts > 0)
-        text += " Осталось попыток: " + remainingAttempts;
-    document.getElementById("info").innerText = text;
+function updateInfo(){
+    let text="Слово из "+wordLength+" букв.";
+    if(maxAttempts>0) text+=" Осталось попыток: "+remainingAttempts;
+    document.getElementById("info").innerText=text;
 }
 
-function countBullsAndCows(secret, guess) {
-    let bulls=0, cows=0;
-    let sRem=[], gRem=[];
+function countBullsAndCows(secret, guess){
+    let bulls=0,cows=0;
+    let sRem=[],gRem=[];
     for(let i=0;i<secret.length;i++){
         if(secret[i]===guess[i]) bulls++;
-        else { sRem.push(secret[i]); gRem.push(guess[i]); }
+        else {sRem.push(secret[i]);gRem.push(guess[i]);}
     }
     let count={};
     sRem.forEach(c=>count[c]=(count[c]||0)+1);
-    gRem.forEach(c=>{ if(count[c]>0){ cows++; count[c]--; }});
+    gRem.forEach(c=>{if(count[c]>0){cows++;count[c]--;}});
     return {bulls,cows};
 }
 
-async function checkGuess() {
+async function checkGuess(){
     if(gameOver) return;
 
-    const guess=document.getElementById("guessInput").value.toLowerCase().trim();
+    const input=document.getElementById("guessInput");
+    const guess=input.value.toLowerCase().trim();
 
-    const existsLocal = dictionary.includes(guess) || singularWords.includes(guess);
-    const existsWiki = await getWiktionaryDefinition(guess);
-
-    if(!existsLocal && !existsWiki)
+    if(!dictionary.includes(guess) &&
+       !singularWords.includes(guess) &&
+       !(await wordExistsInWiktionary(guess)))
         return alert("Слова нет ни в словарях, ни в Викисловаре");
 
     if(guess.length!==wordLength)
@@ -333,7 +357,7 @@ async function checkGuess() {
 
     const {bulls,cows}=countBullsAndCows(secretWord,guess);
 
-    if(maxAttempts>0){ remainingAttempts--; updateInfo(); }
+    if(maxAttempts>0){remainingAttempts--;updateInfo();}
 
     const row=document.createElement("div");
     row.className="word-row";
@@ -366,6 +390,8 @@ async function checkGuess() {
     row.appendChild(result);
     document.getElementById("history").appendChild(row);
 
+    input.value="";
+
     if(bulls===wordLength){
         document.getElementById("winMessage").innerText="🎉 Победа! Слово: "+secretWord;
         showDefinition(secretWord);
@@ -397,23 +423,15 @@ function endGame(){
 function restartGame(){
     document.getElementById("modeSelection").classList.remove("hidden");
     document.getElementById("gameArea").classList.add("hidden");
+    document.getElementById("info").innerText="";
 }
 
 document.getElementById("guessInput").addEventListener("keydown",e=>{
     if(e.key==="Enter") checkGuess();
 });
-function showRandomOptions() {
-    document.getElementById("modeSelection").classList.add("hidden");
-    document.getElementById("randomOptions").classList.remove("hidden");
-}
 
-function showCustomInput() {
-    document.getElementById("modeSelection").classList.add("hidden");
-    document.getElementById("customWordDiv").classList.remove("hidden");
-}
 loadDictionaries();
 
 </script>
 </body>
 </html>
-
