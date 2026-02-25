@@ -16,42 +16,33 @@ body {
 
 .container {
     background: #2f2f4f;
-    width: 650px;
+    width: 600px;
     margin: auto;
     padding: 30px;
     border-radius: 20px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.4);
 }
 
-input[type="text"] {
-    padding: 12px;
-    font-size: 18px;
-    border-radius: 12px;
-    border: none;
-    outline: none;
-    text-align: center;
-    width: 200px;
-}
-
 button {
     padding: 10px 16px;
-    font-size: 15px;
+    font-size: 14px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
     background: #5865f2;
     color: white;
-    transition: 0.2s;
     margin: 5px;
 }
 
-button:hover {
-    background: #4752c4;
-}
+button:hover { background: #4752c4; }
+button:disabled { background: #555; cursor: not-allowed; }
 
-button:disabled {
-    background: #555;
-    cursor: not-allowed;
+input, select {
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    margin: 5px;
+    text-align: center;
 }
 
 .hidden { display: none; }
@@ -60,7 +51,7 @@ button:disabled {
     margin-top: 25px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .word-row {
@@ -68,7 +59,7 @@ button:disabled {
     justify-content: center;
     align-items: center;
     gap: 12px;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.25s ease;
 }
 
 .letters {
@@ -77,32 +68,30 @@ button:disabled {
 }
 
 .letter-box {
-    width: 48px;
-    height: 48px;
+    width: 45px;
+    height: 45px;
     border-radius: 10px;
     background: #3c3c5f;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
     font-weight: bold;
+    font-size: 18px;
     text-transform: uppercase;
 }
 
 .result {
     font-size: 20px;
     min-width: 120px;
-    text-align: left;
 }
 
 .win {
     margin-top: 20px;
-    font-size: 18px;
     font-weight: bold;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
+    from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
 }
 </style>
@@ -111,38 +100,47 @@ button:disabled {
 <body>
 
 <div class="container">
-    <h2>🐂 Быки и Коровы 🐄</h2>
+<h2>🐂 Быки и Коровы 🐄</h2>
 
-    <div id="modeSelection">
-        <button onclick="showRandomOptions()">🎲 Случайное слово</button>
-        <button onclick="showCustomInput()">✍ Ввести своё слово</button>
-    </div>
+<div id="modeSelection">
+    <button onclick="showRandomOptions()">🎲 Случайное слово</button>
+    <button onclick="showCustomInput()">✍ Ввести своё слово</button>
+    <br>
+    <label>Количество попыток:</label>
+    <select id="attemptSelect">
+        <option value="0">Неограниченно</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="10">10</option>
+    </select>
+</div>
 
-    <div id="randomOptions" class="hidden">
-        <label>Длина слова: <span id="lengthValue"></span></label><br>
-        <input type="range" id="lengthSlider">
-        <br>
-        <button onclick="startRandomGame()">Начать игру</button>
-    </div>
+<div id="randomOptions" class="hidden">
+    <label>Длина слова: <span id="lengthValue"></span></label><br>
+    <input type="range" id="lengthSlider">
+    <br>
+    <button onclick="startRandomGame()">Начать игру</button>
+</div>
 
-    <div id="customWordDiv" class="hidden">
-        <input type="text" id="customWordInput" placeholder="Введите слово">
-        <br>
-        <button onclick="startCustomGame()">Начать игру</button>
-    </div>
+<div id="customWordDiv" class="hidden">
+    <input type="text" id="customWordInput" placeholder="Введите слово">
+    <br>
+    <button onclick="startCustomGame()">Начать игру</button>
+</div>
 
-    <p id="info"></p>
+<p id="info"></p>
 
-    <div id="gameArea" class="hidden">
-        <input type="text" id="guessInput" placeholder="Введите слово">
-        <br>
-        <button onclick="checkGuess()" id="checkBtn">Проверить</button>
-        <button onclick="surrender()" id="surrenderBtn">Сдаться</button>
-        <button onclick="restartGame()">Новая игра</button>
+<div id="gameArea" class="hidden">
+    <input type="text" id="guessInput" placeholder="Введите слово">
+    <br>
+    <button onclick="checkGuess()" id="checkBtn">Проверить</button>
+    <button onclick="surrender()" id="surrenderBtn">Сдаться</button>
+    <button onclick="restartGame()">Новая игра</button>
 
-        <div class="history" id="history"></div>
-        <div class="win" id="winMessage"></div>
-    </div>
+    <div class="history" id="history"></div>
+    <div class="win" id="winMessage"></div>
+</div>
 </div>
 
 <script>
@@ -152,19 +150,21 @@ let singularWords = [];
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
-let attempts = 0;
-const maxAttempts = 6;
+let maxAttempts = 0;
+let remainingAttempts = 0;
 
 async function loadDictionaries() {
-    const response1 = await fetch("words.txt");
-    const text1 = await response1.text();
-    dictionary = text1.split("\n").map(w => w.trim().toLowerCase()).filter(w => w);
+    const r1 = await fetch("words.txt");
+    dictionary = (await r1.text()).split("\n").map(w=>w.trim().toLowerCase()).filter(Boolean);
 
-    const response2 = await fetch("singular.txt");
-    const text2 = await response2.text();
-    singularWords = text2.split("\n").map(w => w.trim().toLowerCase()).filter(w => w);
+    const r2 = await fetch("singular.txt");
+    singularWords = (await r2.text()).split("\n").map(w=>w.trim().toLowerCase()).filter(Boolean);
 
-    const lengths = dictionary.map(w => w.length);
+    calculateLengthBounds();
+}
+
+function calculateLengthBounds() {
+    const lengths = dictionary.map(w=>w.length);
     const slider = document.getElementById("lengthSlider");
     slider.min = Math.min(...lengths);
     slider.max = Math.max(...lengths);
@@ -174,165 +174,159 @@ async function loadDictionaries() {
 }
 
 function showRandomOptions() {
-    randomOptions.classList.remove("hidden");
-    customWordDiv.classList.add("hidden");
+    document.getElementById("randomOptions").classList.remove("hidden");
+    document.getElementById("customWordDiv").classList.add("hidden");
 }
 
 function showCustomInput() {
-    customWordDiv.classList.remove("hidden");
-    randomOptions.classList.add("hidden");
+    document.getElementById("customWordDiv").classList.remove("hidden");
+    document.getElementById("randomOptions").classList.add("hidden");
 }
 
 function startRandomGame() {
-    const length = parseInt(lengthSlider.value);
-    const filtered = dictionary.filter(w => w.length === length);
-    secretWord = filtered[Math.floor(Math.random() * filtered.length)];
+    const len = parseInt(document.getElementById("lengthSlider").value);
+    const filtered = dictionary.filter(w=>w.length===len);
+    if (!filtered.length) return alert("Нет слов такой длины");
+    secretWord = filtered[Math.floor(Math.random()*filtered.length)];
     setupGame();
 }
 
 function startCustomGame() {
-    const word = customWordInput.value.toLowerCase().trim();
-    if (!dictionary.includes(word)) {
-        alert("Слова нет в словаре");
-        return;
-    }
+    const word = document.getElementById("customWordInput").value.toLowerCase().trim();
+    if (!dictionary.includes(word)) return alert("Слова нет в словаре");
     secretWord = word;
     setupGame();
 }
 
 function setupGame() {
     wordLength = secretWord.length;
-    attempts = 0;
     gameOver = false;
 
-    modeSelection.classList.add("hidden");
-    randomOptions.classList.add("hidden");
-    customWordDiv.classList.add("hidden");
-    gameArea.classList.remove("hidden");
+    maxAttempts = parseInt(document.getElementById("attemptSelect").value);
+    remainingAttempts = maxAttempts;
 
-    info.innerText = "Слово из " + wordLength + " букв. Попыток: " + maxAttempts;
-    history.innerHTML = "";
-    winMessage.innerText = "";
+    document.getElementById("modeSelection").classList.add("hidden");
+    document.getElementById("randomOptions").classList.add("hidden");
+    document.getElementById("customWordDiv").classList.add("hidden");
+    document.getElementById("gameArea").classList.remove("hidden");
 
-    guessInput.disabled = false;
-    checkBtn.disabled = false;
-    surrenderBtn.disabled = false;
-    guessInput.value = "";
-    guessInput.focus();
+    updateInfo();
+    document.getElementById("history").innerHTML = "";
+    document.getElementById("winMessage").innerText = "";
+    document.getElementById("guessInput").disabled = false;
+    document.getElementById("checkBtn").disabled = false;
+    document.getElementById("surrenderBtn").disabled = false;
+    document.getElementById("guessInput").focus();
+}
+
+function updateInfo() {
+    let text = "Слово из " + wordLength + " букв.";
+    if (maxAttempts > 0)
+        text += " Осталось попыток: " + remainingAttempts;
+    document.getElementById("info").innerText = text;
 }
 
 function countBullsAndCows(secret, guess) {
-    let bulls = 0;
-    let secretRem = [];
-    let guessRem = [];
-
-    for (let i = 0; i < secret.length; i++) {
-        if (secret[i] === guess[i]) bulls++;
-        else {
-            secretRem.push(secret[i]);
-            guessRem.push(guess[i]);
-        }
+    let bulls=0, cows=0;
+    let sRem=[], gRem=[];
+    for(let i=0;i<secret.length;i++){
+        if(secret[i]===guess[i]) bulls++;
+        else { sRem.push(secret[i]); gRem.push(guess[i]); }
     }
-
-    let cows = 0;
-    let count = {};
-    secretRem.forEach(c => count[c] = (count[c] || 0) + 1);
-    guessRem.forEach(c => {
-        if (count[c] > 0) {
-            cows++;
-            count[c]--;
-        }
+    let count={};
+    sRem.forEach(c=>count[c]=(count[c]||0)+1);
+    gRem.forEach(c=>{
+        if(count[c]>0){ cows++; count[c]--; }
     });
-
-    return { bulls, cows };
+    return {bulls,cows};
 }
 
 function checkGuess() {
-    if (gameOver) return;
+    if(gameOver) return;
 
-    const guess = guessInput.value.toLowerCase().trim();
+    const input=document.getElementById("guessInput");
+    const guess=input.value.toLowerCase().trim();
 
-    if (!dictionary.includes(guess) && !singularWords.includes(guess)) {
-        alert("Этого слова нет в словаре");
-        return;
+    if(!dictionary.includes(guess)&&!singularWords.includes(guess))
+        return alert("Слова нет в словаре");
+
+    if(guess.length!==wordLength)
+        return alert("Неверная длина");
+
+    const {bulls,cows}=countBullsAndCows(secretWord,guess);
+
+    if(maxAttempts>0){
+        remainingAttempts--;
+        updateInfo();
     }
 
-    if (guess.length !== wordLength) {
-        alert("Слово должно быть из " + wordLength + " букв");
-        return;
-    }
+    const row=document.createElement("div");
+    row.className="word-row";
 
-    attempts++;
-    const result = countBullsAndCows(secretWord, guess);
-
-    const row = document.createElement("div");
-    row.className = "word-row";
-
-    const lettersDiv = document.createElement("div");
-    lettersDiv.className = "letters";
-
-    guess.split("").forEach(l => {
-        const box = document.createElement("div");
-        box.className = "letter-box";
-        box.innerText = l;
-        lettersDiv.appendChild(box);
+    const letters=document.createElement("div");
+    letters.className="letters";
+    guess.split("").forEach(l=>{
+        const box=document.createElement("div");
+        box.className="letter-box";
+        box.innerText=l;
+        letters.appendChild(box);
     });
 
-    const resultDiv = document.createElement("div");
-    resultDiv.className = "result";
+    const result=document.createElement("div");
+    result.className="result";
 
-    if (wordLength > 7) {
-        resultDiv.innerText = `🐂 ${result.bulls}  🐄 ${result.cows}`;
-    } else {
-        if (result.bulls === 0 && result.cows === 0) {
-            resultDiv.innerText = "❌";
-        } else {
-            let str = "";
-            if (result.bulls > 0) str += "🐂".repeat(result.bulls) + " ";
-            if (result.cows > 0) str += "🐄".repeat(result.cows);
-            resultDiv.innerText = str.trim();
+    if(wordLength>7){
+        result.innerText="🐂 "+bulls+"  🐄 "+cows;
+    }else{
+        if(bulls===0 && cows===0){
+            result.innerText="❌";
+        }else{
+            let str="";
+            if(bulls>0) str+="🐂".repeat(bulls)+" ";
+            if(cows>0) str+="🐄".repeat(cows);
+            result.innerText=str.trim();
         }
     }
 
-    row.appendChild(lettersDiv);
-    row.appendChild(resultDiv);
-    history.appendChild(row);
+    row.appendChild(letters);
+    row.appendChild(result);
+    document.getElementById("history").appendChild(row);
 
-    guessInput.value = "";
+    input.value="";
 
-    if (result.bulls === wordLength) {
-        winMessage.innerText = "🎉 Победа! Слово: " + secretWord;
+    if(bulls===wordLength){
+        document.getElementById("winMessage").innerText="🎉 Победа! Слово: "+secretWord;
         endGame();
         return;
     }
 
-    if (attempts >= maxAttempts) {
-        winMessage.innerText = "❌ Попытки закончились. Слово было: " + secretWord;
+    if(maxAttempts>0 && remainingAttempts<=0){
+        document.getElementById("winMessage").innerText="❌ Попытки закончились. Слово было: "+secretWord;
         endGame();
     }
 }
 
-function surrender() {
-    if (gameOver) return;
-    winMessage.innerText = "Вы сдались. Слово было: " + secretWord;
+function surrender(){
+    if(gameOver) return;
+    document.getElementById("winMessage").innerText="Вы сдались. Слово было: "+secretWord;
     endGame();
 }
 
-function endGame() {
-    gameOver = true;
-    guessInput.disabled = true;
-    checkBtn.disabled = true;
-    surrenderBtn.disabled = true;
+function endGame(){
+    gameOver=true;
+    document.getElementById("guessInput").disabled=true;
+    document.getElementById("checkBtn").disabled=true;
+    document.getElementById("surrenderBtn").disabled=true;
 }
 
-function restartGame() {
-    modeSelection.classList.remove("hidden");
-    gameArea.classList.add("hidden");
-    info.innerText = "";
+function restartGame(){
+    document.getElementById("modeSelection").classList.remove("hidden");
+    document.getElementById("gameArea").classList.add("hidden");
+    document.getElementById("info").innerText="";
 }
 
-guessInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") checkGuess();
+document.getElementById("guessInput").addEventListener("keydown",e=>{
+    if(e.key==="Enter") checkGuess();
 });
 
 loadDictionaries();
