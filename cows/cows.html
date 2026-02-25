@@ -226,7 +226,9 @@ function startRandomGame() {
 
 function startCustomGame() {
     const word = document.getElementById("customWordInput").value.toLowerCase().trim();
-    if (!dictionary.includes(word)) return alert("Слова нет в словаре");
+    if (!dictionary.includes(word) && !singularWords.includes(word)) {
+        return alert("Слова нет в словарях");
+    }
     secretWord = word;
     setupGame();
 }
@@ -367,3 +369,4 @@ loadDictionaries();
 </script>
 </body>
 </html>
+
