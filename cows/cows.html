@@ -199,9 +199,12 @@ async function loadDictionaries() {
 function calculateLengthBounds() {
     const lengths = dictionary.map(w=>w.length);
     const slider = document.getElementById("lengthSlider");
+    const preferred = 5;
     slider.min = Math.min(...lengths);
     slider.max = Math.max(...lengths);
-    slider.value = slider.min;
+    slider.value = dictionary.some(w => w.length === preferred)
+        ? preferred
+        : slider.min;
     document.getElementById("lengthValue").innerText = slider.value;
     slider.oninput = () => document.getElementById("lengthValue").innerText = slider.value;
 }
@@ -369,4 +372,5 @@ loadDictionaries();
 </script>
 </body>
 </html>
+
 
