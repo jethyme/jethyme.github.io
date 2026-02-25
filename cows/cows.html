@@ -199,26 +199,48 @@ async function showDefinition(word) {
     defText.innerText = "Загрузка...";
 
     try {
-        const response = await fetch(
-            `https://ru.wiktionary.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&origin=*&titles=${encodeURIComponent(word)}`
-        );
+        const url = `https://ru.wiktionary.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&redirects=1&origin=*&titles=${encodeURIComponent(word)}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("HTTP error");
+        }
 
         const data = await response.json();
-        const pages = data.query.pages;
-        const page = Object.values(pages)[0];
 
-        if (!page.extract || page.extract.trim() === "") {
-            defText.innerText = "Определение не найдено в Викисловаре.";
+        if (!data.query || !data.query.pages) {
+            defText.innerText = "Определение не найдено.";
             return;
         }
 
-        // Берём только первые 2-3 предложения
-        const shortText = page.extract.split("\n")[0];
+        const pages = data.query.pages;
+        const page = Object.values(pages)[0];
 
-        defText.innerText = shortText;
+        if (!page || page.missing || !page.extract) {
+            defText.innerHTML =
+                `Определение не найдено. <br>
+                 <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
+                 Открыть в Викисловаре ↗
+                 </a>`;
+            return;
+        }
 
-    } catch (e) {
-        defText.innerText = "Ошибка при получении определения.";
+        const firstParagraph = page.extract.split("\n")[0];
+
+        defText.innerHTML =
+            firstParagraph +
+            `<br><br>
+             <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
+             Читать полностью ↗
+             </a>`;
+
+    } catch (error) {
+        defText.innerHTML =
+            `Не удалось получить определение. <br>
+             <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
+             Попробовать открыть вручную ↗
+             </a>`;
     }
 }
 
@@ -411,5 +433,6 @@ loadDictionaries();
 </script>
 </body>
 </html>
+
 
 
