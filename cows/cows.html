@@ -6,9 +6,7 @@
 <title>Быки и Коровы</title>
 
 <style>
-:root {
-    --cell-size: 48px;
-}
+:root { --cell-size: 48px; }
 
 body {
     font-family: 'Segoe UI', sans-serif;
@@ -71,10 +69,7 @@ input, select {
     padding-bottom: 5px;
 }
 
-.letters {
-    display: flex;
-    gap: 6px;
-}
+.letters { display: flex; gap: 6px; }
 
 .letter-box {
     width: var(--cell-size);
@@ -90,42 +85,28 @@ input, select {
     text-transform: uppercase;
 }
 
-.result {
-    font-size: 18px;
-    white-space: nowrap;
-}
+.result { font-size: 18px; white-space: nowrap; }
 
-.win {
+.win { margin-top: 20px; font-weight: bold; }
+
+.definition-card {
     margin-top: 20px;
-    font-weight: bold;
+    background: #343454;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* 📱 Мобильная версия */
+.definition-card a {
+    color: #8fa3ff;
+    text-decoration: none;
+}
+
 @media (max-width: 600px) {
-
-    :root {
-        --cell-size: 36px;
-    }
-
-    button {
-        width: 100%;
-        margin: 6px 0;
-        font-size: 16px;
-    }
-
-    input, select {
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
-
-    .word-row {
-        gap: 8px;
-    }
-
-    .result {
-        font-size: 16px;
-    }
+    :root { --cell-size: 36px; }
+    button, input, select { width: 100%; box-sizing: border-box; }
 }
 </style>
 </head>
@@ -165,84 +146,86 @@ input, select {
 <p id="info"></p>
 
 <div id="gameArea" class="hidden">
-    <input type="text" id="guessInput" placeholder="Введите слово">
-    <br>
+    <input type="text" id="guessInput" placeholder="Введите слово"><br>
     <button onclick="checkGuess()" id="checkBtn">Проверить</button>
     <button onclick="surrender()" id="surrenderBtn">Сдаться</button>
     <button onclick="restartGame()">Новая игра</button>
 
     <div class="history" id="history"></div>
     <div class="win" id="winMessage"></div>
-</div>
-</div>
 
-<div id="definitionBlock" class="hidden" style="margin-top:20px; font-size:16px; text-align:left; background:#343454; padding:12px; border-radius:10px;">
-    <strong>Определение слова:</strong>
-    <div id="definitionText">Загрузка...</div>
+    <div id="definitionBlock" class="definition-card hidden">
+        <strong>📖 Определение:</strong>
+        <div id="definitionText">Загрузка...</div>
+    </div>
+</div>
 </div>
 
 <script>
 
 let dictionary = [];
 let singularWords = [];
+let wiktionaryCache = new Map();
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
 let maxAttempts = 0;
 let remainingAttempts = 0;
 
-async function showDefinition(word) {
-    const defBlock = document.getElementById("definitionBlock");
-    const defText = document.getElementById("definitionText");
+/* ----------- Викисловарь ----------- */
 
-    defBlock.classList.remove("hidden");
-    defText.innerText = "Загрузка...";
+async function getWiktionaryDefinition(word) {
+    if (wiktionaryCache.has(word)) return wiktionaryCache.get(word);
+
+    const url = `https://ru.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(word)}&prop=text&format=json&origin=*`;
 
     try {
-        const url = `https://ru.wiktionary.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&redirects=1&origin=*&titles=${encodeURIComponent(word)}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-        const response = await fetch(url);
+        if (!data.parse) return null;
 
-        if (!response.ok) {
-            throw new Error("HTTP error");
-        }
+        const html = data.parse.text["*"];
+        const temp = document.createElement("div");
+        temp.innerHTML = html;
 
-        const data = await response.json();
+        const li = temp.querySelector("ol li");
+        if (!li) return null;
 
-        if (!data.query || !data.query.pages) {
-            defText.innerText = "Определение не найдено.";
-            return;
-        }
+        const text = li.textContent.trim();
+        wiktionaryCache.set(word, text);
+        return text;
 
-        const pages = data.query.pages;
-        const page = Object.values(pages)[0];
-
-        if (!page || page.missing || !page.extract) {
-            defText.innerHTML =
-                `Определение не найдено. <br>
-                 <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
-                 Открыть в Викисловаре ↗
-                 </a>`;
-            return;
-        }
-
-        const firstParagraph = page.extract.split("\n")[0];
-
-        defText.innerHTML =
-            firstParagraph +
-            `<br><br>
-             <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
-             Читать полностью ↗
-             </a>`;
-
-    } catch (error) {
-        defText.innerHTML =
-            `Не удалось получить определение. <br>
-             <a href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}" target="_blank" style="color:#8fa3ff;">
-             Попробовать открыть вручную ↗
-             </a>`;
+    } catch {
+        return null;
     }
 }
+
+async function showDefinition(word) {
+    const block = document.getElementById("definitionBlock");
+    const text = document.getElementById("definitionText");
+
+    block.classList.remove("hidden");
+    text.innerText = "Загрузка...";
+
+    const def = await getWiktionaryDefinition(word);
+
+    if (!def) {
+        text.innerHTML =
+            `Определение не найдено.<br>
+             <a target="_blank" href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}">
+             Открыть в Викисловаре ↗</a>`;
+        return;
+    }
+
+    text.innerHTML =
+        def +
+        `<br><br>
+         <a target="_blank" href="https://ru.wiktionary.org/wiki/${encodeURIComponent(word)}">
+         Читать полностью ↗</a>`;
+}
+
+/* ----------- Словари ----------- */
 
 async function loadDictionaries() {
     const r1 = await fetch("words.txt");
@@ -257,39 +240,39 @@ async function loadDictionaries() {
 function calculateLengthBounds() {
     const lengths = dictionary.map(w=>w.length);
     const slider = document.getElementById("lengthSlider");
-    const preferred = 5;
     slider.min = Math.min(...lengths);
     slider.max = Math.max(...lengths);
-    slider.value = dictionary.some(w => w.length === preferred)
-        ? preferred
-        : slider.min;
+    slider.value = 5;
     document.getElementById("lengthValue").innerText = slider.value;
     slider.oninput = () => document.getElementById("lengthValue").innerText = slider.value;
 }
 
-function showRandomOptions() {
-    document.getElementById("randomOptions").classList.remove("hidden");
-    document.getElementById("customWordDiv").classList.add("hidden");
-}
+/* ----------- Игра ----------- */
 
-function showCustomInput() {
-    document.getElementById("customWordDiv").classList.remove("hidden");
-    document.getElementById("randomOptions").classList.add("hidden");
-}
-
-function startRandomGame() {
+async function startRandomGame() {
     const len = parseInt(document.getElementById("lengthSlider").value);
     const filtered = dictionary.filter(w=>w.length===len);
-    if (!filtered.length) return alert("Нет слов такой длины");
-    secretWord = filtered[Math.floor(Math.random()*filtered.length)];
+
+    const valid = [];
+    for (const word of filtered) {
+        const exists = await getWiktionaryDefinition(word);
+        if (exists) valid.push(word);
+    }
+
+    if (!valid.length) return alert("Нет слов этой длины в Викисловаре");
+
+    secretWord = valid[Math.floor(Math.random()*valid.length)];
     setupGame();
 }
 
-function startCustomGame() {
+async function startCustomGame() {
     const word = document.getElementById("customWordInput").value.toLowerCase().trim();
+
     if (!dictionary.includes(word) && !singularWords.includes(word)) {
-        return alert("Слова нет в словарях");
+        const exists = await getWiktionaryDefinition(word);
+        if (!exists) return alert("Слова нет ни в словарях, ни в Викисловаре");
     }
+
     secretWord = word;
     setupGame();
 }
@@ -304,6 +287,7 @@ function setupGame() {
     document.getElementById("randomOptions").classList.add("hidden");
     document.getElementById("customWordDiv").classList.add("hidden");
     document.getElementById("gameArea").classList.remove("hidden");
+    document.getElementById("definitionBlock").classList.add("hidden");
 
     updateInfo();
     document.getElementById("history").innerHTML = "";
@@ -311,7 +295,6 @@ function setupGame() {
     document.getElementById("guessInput").disabled = false;
     document.getElementById("checkBtn").disabled = false;
     document.getElementById("surrenderBtn").disabled = false;
-    document.getElementById("guessInput").focus();
 }
 
 function updateInfo() {
@@ -330,37 +313,33 @@ function countBullsAndCows(secret, guess) {
     }
     let count={};
     sRem.forEach(c=>count[c]=(count[c]||0)+1);
-    gRem.forEach(c=>{
-        if(count[c]>0){ cows++; count[c]--; }
-    });
+    gRem.forEach(c=>{ if(count[c]>0){ cows++; count[c]--; }});
     return {bulls,cows};
 }
 
-function checkGuess() {
+async function checkGuess() {
     if(gameOver) return;
 
-    const input=document.getElementById("guessInput");
-    const guess=input.value.toLowerCase().trim();
+    const guess=document.getElementById("guessInput").value.toLowerCase().trim();
 
-    if(!dictionary.includes(guess)&&!singularWords.includes(guess))
-        return alert("Слова нет в словаре");
+    const existsLocal = dictionary.includes(guess) || singularWords.includes(guess);
+    const existsWiki = await getWiktionaryDefinition(guess);
+
+    if(!existsLocal && !existsWiki)
+        return alert("Слова нет ни в словарях, ни в Викисловаре");
 
     if(guess.length!==wordLength)
         return alert("Неверная длина");
 
     const {bulls,cows}=countBullsAndCows(secretWord,guess);
 
-    if(maxAttempts>0){
-        remainingAttempts--;
-        updateInfo();
-    }
+    if(maxAttempts>0){ remainingAttempts--; updateInfo(); }
 
     const row=document.createElement("div");
     row.className="word-row";
 
     const letters=document.createElement("div");
     letters.className="letters";
-
     guess.split("").forEach(l=>{
         const box=document.createElement("div");
         box.className="letter-box";
@@ -374,9 +353,8 @@ function checkGuess() {
     if(wordLength>7){
         result.innerText="🐂 "+bulls+"  🐄 "+cows;
     }else{
-        if(bulls===0 && cows===0){
-            result.innerText="❌";
-        }else{
+        if(bulls===0 && cows===0) result.innerText="❌";
+        else{
             let str="";
             if(bulls>0) str+="🐂".repeat(bulls)+" ";
             if(cows>0) str+="🐄".repeat(cows);
@@ -388,18 +366,16 @@ function checkGuess() {
     row.appendChild(result);
     document.getElementById("history").appendChild(row);
 
-    input.value="";
-
     if(bulls===wordLength){
         document.getElementById("winMessage").innerText="🎉 Победа! Слово: "+secretWord;
-		showDefinition(secretWord);
+        showDefinition(secretWord);
         endGame();
         return;
     }
 
     if(maxAttempts>0 && remainingAttempts<=0){
         document.getElementById("winMessage").innerText="❌ Попытки закончились. Слово было: "+secretWord;
-		showDefinition(secretWord);
+        showDefinition(secretWord);
         endGame();
     }
 }
@@ -407,7 +383,7 @@ function checkGuess() {
 function surrender(){
     if(gameOver) return;
     document.getElementById("winMessage").innerText="Вы сдались. Слово было: "+secretWord;
-	showDefinition(secretWord);
+    showDefinition(secretWord);
     endGame();
 }
 
@@ -421,7 +397,6 @@ function endGame(){
 function restartGame(){
     document.getElementById("modeSelection").classList.remove("hidden");
     document.getElementById("gameArea").classList.add("hidden");
-    document.getElementById("info").innerText="";
 }
 
 document.getElementById("guessInput").addEventListener("keydown",e=>{
@@ -433,6 +408,3 @@ loadDictionaries();
 </script>
 </body>
 </html>
-
-
-
