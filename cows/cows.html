@@ -109,9 +109,9 @@ function calculateLengthBounds() {
     maxLength = Math.max(...lengths);
 
     const slider = document.getElementById("lengthSlider");
-    slider.min = minLength;
-    slider.max = maxLength;
-    slider.value = minLength;
+    slider.min = 0;
+    slider.max = 15;
+    slider.value = 5;
 
     document.getElementById("lengthValue").innerText = minLength;
 
@@ -244,3 +244,4 @@ loadDictionary();
 
 </body>
 </html>
+
