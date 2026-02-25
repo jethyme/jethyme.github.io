@@ -158,14 +158,15 @@ function startCustomGame() {
     const input = document.getElementById("customWordInput");
     const word = input.value.toLowerCase().trim();
 
-    if (!dictionary.includes(word)) {
-        alert("Такого слова нет в словаре!");
+    if (!dictionary.includes(word) && !singularWords.includes(word)) {
+        alert("Такого слова нет в словарях!");
         return;
     }
 
     secretWord = word;
     setupGame();
 }
+
 
 function setupGame() {
     wordLength = secretWord.length;
@@ -259,4 +260,5 @@ loadDictionaries();
 </script>
 
 </body>
+
 
