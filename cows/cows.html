@@ -104,12 +104,8 @@ async function loadDictionary() {
 }
 
 function calculateLengthBounds() {
-    const lengths = dictionary.map(w => w.length);
-    minLength = Math.min(...lengths);
-    maxLength = Math.max(...lengths);
-
     const slider = document.getElementById("lengthSlider");
-    slider.min = 0;
+    slider.min = 3;
     slider.max = 15;
     slider.value = 5;
 
@@ -244,4 +240,5 @@ loadDictionary();
 
 </body>
 </html>
+
 
