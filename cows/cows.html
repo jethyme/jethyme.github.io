@@ -314,13 +314,14 @@ function checkGuess() {
     result.className="result";
 
     const isMobile = window.innerWidth <= 600;
+    const totalEmojis = bulls + cows;
     const emojiLimit = isMobile ? 4 : 7;
     
-    if(wordLength > emojiLimit){
-        result.innerText="🐂 "+bulls+"  🐄 "+cows;
+    if(totalEmojis > emojiLimit){
+        result.innerText = "🐂 " + bulls + "  🐄 " + cows;
     }else{
-        if(bulls===0 && cows===0){
-            result.innerText="❌";
+        if(totalEmojis === 0){
+            result.innerText = "❌";
         }else{
             let str="";
             if(bulls>0) str+="🐂".repeat(bulls)+" ";
@@ -375,6 +376,7 @@ loadDictionaries();
 </script>
 </body>
 </html>
+
 
 
 
