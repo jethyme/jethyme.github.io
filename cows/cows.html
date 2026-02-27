@@ -313,7 +313,10 @@ function checkGuess() {
     const result=document.createElement("div");
     result.className="result";
 
-    if(wordLength>7){
+    const isMobile = window.innerWidth <= 600;
+    const emojiLimit = isMobile ? 4 : 7;
+    
+    if(wordLength > emojiLimit){
         result.innerText="🐂 "+bulls+"  🐄 "+cows;
     }else{
         if(bulls===0 && cows===0){
@@ -324,7 +327,6 @@ function checkGuess() {
             if(cows>0) str+="🐄".repeat(cows);
             result.innerText=str.trim();
         }
-    }
 
     row.appendChild(letters);
     row.appendChild(result);
@@ -372,4 +374,5 @@ loadDictionaries();
 </script>
 </body>
 </html>
+
 
