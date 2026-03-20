@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 Табун 🐂</title>
+<title>Hardcore Solver</title>
 
 <style>
 body{
@@ -43,6 +43,7 @@ body{
 }
 
 .cell.green{background:#4caf50}
+.cell.yellow{background:#f9a825}
 
 /* алфавит */
 .alphabet{
@@ -61,6 +62,7 @@ body{
 
 .gray{background:#555;opacity:0.4}
 .green{background:#4caf50}
+.yellow{background:#f9a825}
 
 /* ввод */
 .row{
@@ -100,10 +102,10 @@ input{
 
 <div class="container">
 
-<h2>🐂 Табун 🐂</h2>
+<h2>🧠 Hardcore Solver</h2>
 
 <div id="start">
-<input id="len" type="number" placeholder="Длина">
+<input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
 </div>
 
@@ -142,6 +144,7 @@ let usedHints=[];
 let excluded=new Set(); // буквы точно нет
 let present=new Set();  // буквы есть
 let correct=[];         // точные позиции
+let maybe=[];           // буквы, которые могут быть в слове (жёлтые)
 let solution=document.getElementById("solution");
 let alphabetDiv=document.getElementById("alphabet");
 let history=document.getElementById("history");
@@ -164,6 +167,7 @@ window.start=function(){
     document.getElementById("game").classList.remove("hidden");
 
     correct=Array(length).fill(null);
+    maybe=Array(length).fill(null);
     buildSolution();
     renderAlphabet();
 }
@@ -183,9 +187,14 @@ function updateSolution(){
         if(correct[i]){
             c.innerText=correct[i];
             c.classList.add("green");
-        } else {
-            c.innerText="_";
+            c.classList.remove("yellow");
+        } else if(maybe[i]){
+            c.innerText=maybe[i];
+            c.classList.add("yellow");
             c.classList.remove("green");
+        } else{
+            c.innerText="_";
+            c.classList.remove("green","yellow");
         }
     });
 }
@@ -198,22 +207,45 @@ window.add=function(){
 
     attempts.push({w,b,c});
 
-    // обработка букв
-    let counted=new Array(length).fill(false);
-
-    // 1. фиксируем быков
-    for(let i=0;i<length;i++){
-        if(b>0 && !correct[i]){
-            correct[i]=null; // мы будем решать после анализа
-        }
-    }
-
-    // 2. анализ букв для уверенности
+    // 1. анализируем нулевые буквы
     for(let i=0;i<length;i++){
         if(b===0 && c===0){
             excluded.add(w[i]);
-        } else {
-            present.add(w[i]);
+        }
+    }
+
+    // 2. фиксируем быков
+    if(b>0){
+        for(let i=0;i<length;i++){
+            if(!correct[i]){
+                // проверяем: может ли эта позиция быть быком
+                // если на этой позиции буква уже встречалась как бык, пропускаем
+                correct[i] = null; // оставим для анализа ниже
+            }
+        }
+    }
+
+    // 3. фиксируем коров и вероятные буквы
+    for(let i=0;i<length;i++){
+        let ch=w[i];
+        if(!excluded.has(ch)){
+            present.add(ch);
+            maybe[i] = maybe[i] || ch;
+        }
+    }
+
+    // обновляем точные быки (зелёные)
+    // простая эвристика: если в попытке есть бык, и буква встречается только один раз среди букв без исключений, то точно на месте
+    if(b>0){
+        let possibleIndices=[];
+        for(let i=0;i<length;i++){
+            if(!correct[i] && present.has(w[i])) possibleIndices.push(i);
+        }
+        if(possibleIndices.length===b){
+            for(let idx of possibleIndices){
+                correct[idx]=w[idx];
+                maybe[idx]=null;
+            }
         }
     }
 
@@ -234,6 +266,8 @@ function renderHistory(){
             s="❌ "+a.w;
         } else {
             s=`${a.w}`;
+            if(a.b>0) s+=` 🐂${a.b}`;
+            if(a.c>0) s+=` 🐄${a.c}`;
         }
         history.appendChild(document.createElement("div")).innerText=s;
     });
@@ -245,7 +279,8 @@ function renderAlphabet(){
         const d=document.createElement("div");
         d.className="letter";
         if(excluded.has(l)) d.classList.add("gray");
-        else if(correct.includes(l) || present.has(l)) d.classList.add("green");
+        else if(correct.includes(l)) d.classList.add("green");
+        else if(present.has(l)) d.classList.add("yellow");
         d.innerText=l;
         alphabetDiv.appendChild(d);
     });
