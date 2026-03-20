@@ -161,19 +161,32 @@ input {
 
 <script>
 
+document.addEventListener("DOMContentLoaded", () => {
+
 const alphabet = "абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
+
 let excluded = new Set();
 let attempts = [];
 let wordLength = 0;
 let words = [];
 let usedHints = [];
 
+// элементы
+const alphabetEl = document.getElementById("alphabet");
+const error = document.getElementById("error");
+const wordInput = document.getElementById("wordInput");
+const bullsInput = document.getElementById("bullsInput");
+const cowsInput = document.getElementById("cowsInput");
+const historyEl = document.getElementById("history");
+const lenText = document.getElementById("lenText");
+const lengthInput = document.getElementById("lengthInput");
+
 async function loadWords(){
     const r = await fetch("singular.txt");
     words = (await r.text()).split("\n").map(w=>w.trim());
 }
 
-function start(){
+window.start = function(){
     wordLength = parseInt(lengthInput.value);
     if(!wordLength) return;
 
@@ -185,7 +198,7 @@ function start(){
     renderAlphabet();
 }
 
-function restart(){
+window.restart = function(){
     location.reload();
 }
 
@@ -215,7 +228,7 @@ function clearError(){
     wordInput.classList.remove("input-error");
 }
 
-function addAttempt(){
+window.addAttempt = function(){
     const word = wordInput.value.trim().toLowerCase();
     let bulls = parseInt(bullsInput.value);
     let cows = parseInt(cowsInput.value);
@@ -245,11 +258,11 @@ function addAttempt(){
 }
 
 function renderHistory(){
-    history.innerHTML="";
+    historyEl.innerHTML="";
     attempts.forEach(a=>{
         const d=document.createElement("div");
         d.innerText=`${a.word} → 🐂${a.bulls} 🐄${a.cows}`;
-        history.appendChild(d);
+        historyEl.appendChild(d);
     });
 }
 
@@ -284,8 +297,7 @@ function fits(word){
     return true;
 }
 
-/* 🧠 УМНЫЙ ВЫБОР */
-function getHint(){
+window.getHint = function(){
 
     const candidates = words.filter(w=>fits(w) && !usedHints.includes(w));
 
@@ -295,7 +307,6 @@ function getHint(){
         return;
     }
 
-    // считаем частоты букв
     let freq={};
     candidates.forEach(w=>{
         new Set(w).forEach(l=>{
@@ -303,7 +314,6 @@ function getHint(){
         });
     });
 
-    // оцениваем слова
     let bestWord=null;
     let bestScore=-1;
 
@@ -324,6 +334,8 @@ function getHint(){
 }
 
 loadWords();
+
+});
 
 </script>
 
