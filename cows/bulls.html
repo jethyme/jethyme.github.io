@@ -3,103 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver</title>
+<title>Hardcore Solver — точная логика</title>
 <style>
-body{
-    font-family:sans-serif;
-    background:#1e1e2f;
-    color:white;
-    text-align:center;
-    margin:0;
-    padding:10px;
-}
-.container{
-    max-width:520px;
-    margin:auto;
-    background:#2f2f4f;
-    padding:20px;
-    border-radius:20px;
-}
-.solution{
-    display:flex;
-    justify-content:center;
-    gap:5px;
-    margin-bottom:10px;
-}
-.cell{
-    width:40px;
-    height:40px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:#444;
-    border-radius:6px;
-    font-weight:bold;
-    text-transform:uppercase;
-}
+body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
+.container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
+.solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px;}
+.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold;}
 .cell.green{background:#4caf50}
-.alphabet{
-    display:grid;
-    grid-template-columns:repeat(11,1fr);
-    gap:4px;
-    margin-top:10px;
-}
-.letter{
-    padding:6px;
-    border-radius:5px;
-    background:#444;
-    font-weight:bold;
-    text-transform:uppercase;
-}
-.gray{background:#555;opacity:0.4}
+.alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
+.letter{ padding:6px; border-radius:5px; background:#444; font-weight:bold; }
+.gray{background:#555; opacity:0.4}
 .green{background:#4caf50}
 .yellow{background:#f9a825}
-.row{
-    display:flex;
-    gap:6px;
-    margin-top:10px;
-}
+.row{ display:flex; gap:6px; margin-top:10px;}
 .row input{flex:1}
-button{
-    margin-top:10px;
-    padding:10px;
-    border:none;
-    border-radius:10px;
-    background:#5865f2;
-    color:white;
-    cursor:pointer;
-}
-input{
-    padding:10px;
-    border-radius:10px;
-    border:none;
-    text-align:center;
-}
+button{ margin-top:10px; padding:10px; border:none; border-radius:10px; background:#5865f2; color:white; cursor:pointer;}
+input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .hidden{display:none}
-.word-entry{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    justify-content:center;
-    margin-top:5px;
-}
-.word-entry button{
-    padding:2px 6px;
-    font-size:12px;
-    background:#f44336;
-    border:none;
-    border-radius:6px;
-    color:white;
-    cursor:pointer;
-}
-.error{
-    color:#ff6b6b;
-    margin-top:6px;
-}
-@media(max-width:600px){
-    .row{flex-direction:column}
-    button{width:100%}
-}
+.word-entry{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:5px;}
+.word-entry button{ padding:2px 6px; font-size:12px; background:#f44336;}
+.error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
+.loading{ color:#aaa; font-size:14px; margin-top:5px;}
+@media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
 </style>
 </head>
 <body>
@@ -108,6 +33,7 @@ input{
 <div id="start">
 <input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
+<div id="loadStatus" class="loading">📚 Загрузка словаря...</div>
 </div>
 
 <div id="game" class="hidden">
@@ -122,220 +48,340 @@ input{
 <input id="cows" type="number" placeholder="🐄">
 </div>
 
-<div class="error" id="error"></div>
-
-<button onclick="add()">Добавить</button>
+<button onclick="add()">➕ Добавить</button>
 <button onclick="hint()">💡 Подсказка</button>
 <button onclick="restart()">🔄 Новая игра</button>
 
+<div id="error" class="error hidden"></div>
 <div id="alphabet" class="alphabet"></div>
 <div id="history"></div>
 </div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
+// ------------------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ -------------------
+const alphabet = "абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
+let dictionary = [];          // все слова из файла
+let length = 0;               // текущая длина слова
+let attempts = [];            // массив попыток {w, b, c}
+let usedHints = [];           // слова, уже показанные в подсказке
+let currentCandidates = [];   // слова, прошедшие все проверки
+let correct = [];             // точно известные буквы на позициях
+let present = new Set();      // буквы, которые точно есть в слове (но не на точной позиции)
+let excluded = new Set();     // буквы, которых нет в слове
 
-const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
-let length=0;
-let attempts=[];
-let usedHints=[];
-let excluded=new Set();
-let present=new Set();
-let correct=[];
-let solution=document.getElementById("solution");
-let alphabetDiv=document.getElementById("alphabet");
-let history=document.getElementById("history");
-let wordInput=document.getElementById("word");
-let bullsInput=document.getElementById("bulls");
-let cowsInput=document.getElementById("cows");
-let lenInput=document.getElementById("len");
-let errorEl=document.getElementById("error");
-let words=[];
+// DOM элементы
+const solutionDiv = document.getElementById("solution");
+const alphabetDiv = document.getElementById("alphabet");
+const historyDiv = document.getElementById("history");
+const wordInput = document.getElementById("word");
+const bullsInput = document.getElementById("bulls");
+const cowsInput = document.getElementById("cows");
+const lenInput = document.getElementById("len");
+const errorDiv = document.getElementById("error");
+const gameDiv = document.getElementById("game");
+const startDiv = document.getElementById("start");
+const loadStatusSpan = document.getElementById("loadStatus");
 
-// загружаем словарь
-async function loadWords(){
-    const r=await fetch("singular.txt");
-    words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
-}
-loadWords();
-
-window.start=function(){
-    length=parseInt(lenInput.value);
-    if(!length){
-        errorEl.innerText="Введите длину слова";
-        return;
-    }
-    document.getElementById("start").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    correct=Array(length).fill(null);
-    buildSolution();
-    renderAlphabet();
+// ------------------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -------------------
+function showError(msg) {
+    errorDiv.innerText = msg;
+    errorDiv.classList.remove("hidden");
+    wordInput.classList.add("input-error");
+    // небольшая анимация встряски
+    wordInput.classList.remove("shake");
+    void wordInput.offsetWidth;
+    wordInput.classList.add("shake");
 }
 
-function buildSolution(){
-    solution.innerHTML="";
-    for(let i=0;i<length;i++){
-        const d=document.createElement("div");
-        d.className="cell";
-        d.innerText="_";
-        solution.appendChild(d);
-    }
+function clearError() {
+    errorDiv.classList.add("hidden");
+    wordInput.classList.remove("input-error");
 }
 
-function updateSolution(){
-    [...solution.children].forEach((c,i)=>{
-        if(correct[i]){
-            c.innerText=correct[i];
-            c.classList.add("green");
-        } else{
-            c.innerText="_";
-            c.classList.remove("green");
-        }
-    });
-}
-
-// вычисление букв и позиций по всем попыткам
-function recalc(){
-    excluded.clear();
-    present.clear();
-    correct=Array(length).fill(null);
-
-    // 1. все буквы с нулями точно отсутствуют
-    for(let a of attempts){
-        if(a.b===0 && a.c===0){
-            for(let ch of a.w) excluded.add(ch);
+// подсчёт быков и коров между двумя словами одинаковой длины
+function getBullsCows(guess, target) {
+    let bulls = 0, cows = 0;
+    let guessArr = guess.split('');
+    let targetArr = target.split('');
+    // сначала быки
+    for (let i = 0; i < length; i++) {
+        if (guessArr[i] === targetArr[i]) {
+            bulls++;
+            guessArr[i] = targetArr[i] = null;
         }
     }
-
-    // 2. собираем количество каждой буквы в попытках с быками/корами
-    let possiblePositions=Array(length).fill().map(()=>new Set(alphabet));
-    let minCount={}; // буква точно есть хотя бы minCount раз
-    for(let a of attempts){
-        if(a.b+a.c>0){
-            let counts={};
-            for(let ch of a.w){
-                if(!excluded.has(ch)) counts[ch]=(counts[ch]||0)+1;
-            }
-            for(let ch in counts){
-                minCount[ch]=Math.max(minCount[ch]||0, counts[ch]);
+    // потом коровы
+    for (let i = 0; i < length; i++) {
+        if (guessArr[i] !== null) {
+            let idx = targetArr.indexOf(guessArr[i]);
+            if (idx !== -1) {
+                cows++;
+                targetArr[idx] = null;
             }
         }
     }
-
-    // 3. определяем возможные позиции для букв
-    for(let i=0;i<length;i++){
-        let mustExclude=new Set();
-        for(let a of attempts){
-            if(a.b+a.c===0) continue;
-            if(a.w[i] && excluded.has(a.w[i])) continue;
-            // если на позиции i буква не может быть быком
-            if(a.b===0) mustExclude.add(a.w[i]);
-        }
-        possiblePositions[i] = new Set([...possiblePositions[i]].filter(ch=>!mustExclude.has(ch)));
-    }
-
-    // 4. пытаемся определить точные позиции (быки)
-    for(let i=0;i<length;i++){
-        if(possiblePositions[i].size===1){
-            let ch=[...possiblePositions[i]][0];
-            correct[i]=ch;
-            present.add(ch);
-        }
-    }
-
-    // 5. буквы, которые есть хотя бы один раз (зелёные в алфавите)
-    for(let ch in minCount) present.add(ch);
-
-    updateSolution();
-    renderAlphabet();
-    renderHistory();
+    return { bulls, cows };
 }
 
-window.add=function(){
-    let w=wordInput.value.trim().toLowerCase();
-    let b=parseInt(bullsInput.value)||0;
-    let c=parseInt(cowsInput.value)||0;
-    errorEl.innerText="";
-    if(w.length!==length){
-        errorEl.innerText="Неверная длина слова";
-        return;
-    }
-    attempts.push({w,b,c});
-    recalc();
-    wordInput.value="";
-    bullsInput.value="";
-    cowsInput.value="";
-}
-
-function renderHistory(){
-    history.innerHTML="";
-    attempts.forEach((a,i)=>{
-        let s="";
-        if(a.b===0 && a.c===0) s=a.w+" ❌";
-        else {
-            s=a.w;
-            if(a.b>0) s+=` 🐂${a.b}`;
-            if(a.c>0) s+=` 🐄${a.c}`;
-        }
-        let div=document.createElement("div");
-        div.className="word-entry";
-        let text=document.createElement("span");
-        text.innerText=s;
-        let btn=document.createElement("button");
-        btn.innerText="✖";
-        btn.onclick=()=>{ attempts.splice(i,1); recalc(); };
-        div.appendChild(text);
-        div.appendChild(btn);
-        history.appendChild(div);
-    });
-}
-
-function renderAlphabet(){
-    alphabetDiv.innerHTML="";
-    alphabet.forEach(l=>{
-        const d=document.createElement("div");
-        d.className="letter";
-        if(excluded.has(l)) d.classList.add("gray");
-        else if(correct.includes(l)) d.classList.add("green");
-        else if(present.has(l)) d.classList.add("yellow");
-        d.innerText=l;
-        alphabetDiv.appendChild(d);
-    });
-}
-
-function fits(word){
-    if(word.length!==length) return false;
-    for(let i=0;i<length;i++){
-        if(correct[i] && word[i]!==correct[i]) return false;
-    }
-    for(let l of excluded){
-        if(word.includes(l)) return false;
+// проверяет, подходит ли слово подо все сделанные попытки
+function matchesAllAttempts(word) {
+    for (let a of attempts) {
+        const { bulls, cows } = getBullsCows(a.w, word);
+        if (bulls !== a.b || cows !== a.c) return false;
     }
     return true;
 }
 
-window.hint=function(){
-    const candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
-    if(!candidates.length){
-        errorEl.innerText="Нет вариантов для подсказки";
+// ------------------- ОСНОВНАЯ ЛОГИКА (ПЕРЕСЧЁТ ВСЕГО) -------------------
+function recalc() {
+    // если словарь ещё не загружен – выходим, позже пересчитается
+    if (!dictionary.length) return;
+
+    // 1. отбираем слова правильной длины
+    let candidates = dictionary.filter(w => w.length === length);
+    if (!candidates.length) {
+        showError("❌ Нет слов такой длины в словаре. Попробуйте другую длину.");
         return;
     }
-    // умный выбор: слово с максимальным количеством разных букв
-    let best=candidates.reduce((a,b)=>{
-        let scoreB=[...new Set(b)].length;
-        let scoreA=a?[...new Set(a)].length:0;
-        return scoreB>scoreA?b:a;
-    }, null);
-    wordInput.value=best;
-    usedHints.push(best);
+
+    // 2. фильтруем по всем попыткам
+    for (let a of attempts) {
+        candidates = candidates.filter(word => {
+            const { bulls, cows } = getBullsCows(a.w, word);
+            return bulls === a.b && cows === a.c;
+        });
+    }
+
+    currentCandidates = candidates;
+
+    // 3. если вариантов не осталось – противоречивые данные
+    if (candidates.length === 0) {
+        showError("⚠️ Нет слов, удовлетворяющих всем условиям. Проверьте введённые быки/коровы.");
+        // сбрасываем точные буквы, чтобы не вводить в заблуждение
+        correct = Array(length).fill(null);
+        present.clear();
+        excluded.clear();
+        updateSolution();
+        renderAlphabet();
+        renderHistory();
+        return;
+    }
+
+    // 4. определяем точные позиции (если на позиции во всех кандидатах одна буква)
+    const newCorrect = Array(length).fill(null);
+    for (let i = 0; i < length; i++) {
+        const lettersAtPos = new Set(candidates.map(w => w[i]));
+        if (lettersAtPos.size === 1) {
+            newCorrect[i] = [...lettersAtPos][0];
+        }
+    }
+    correct = newCorrect;
+
+    // 5. определяем буквы, которые точно присутствуют в слове (present)
+    const newPresent = new Set();
+    for (let w of candidates) {
+        for (let ch of w) {
+            newPresent.add(ch);
+        }
+    }
+    present = newPresent;
+
+    // 6. определяем исключённые буквы (которых нет ни в одном кандидате)
+    const newExcluded = new Set();
+    for (let ch of alphabet) {
+        if (!present.has(ch) && !correct.includes(ch)) {
+            newExcluded.add(ch);
+        }
+    }
+    excluded = newExcluded;
+
+    // 7. обновляем интерфейс
+    updateSolution();
+    renderAlphabet();
+    renderHistory();
+    clearError();
 }
 
-window.restart=function(){
+// ------------------- ОТРИСОВКА ИНТЕРФЕЙСА -------------------
+function buildSolution() {
+    solutionDiv.innerHTML = "";
+    for (let i = 0; i < length; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.innerText = "_";
+        solutionDiv.appendChild(cell);
+    }
+}
+
+function updateSolution() {
+    const cells = [...solutionDiv.children];
+    for (let i = 0; i < length; i++) {
+        if (correct[i]) {
+            cells[i].innerText = correct[i];
+            cells[i].classList.add("green");
+        } else {
+            cells[i].innerText = "_";
+            cells[i].classList.remove("green");
+        }
+    }
+}
+
+function renderAlphabet() {
+    alphabetDiv.innerHTML = "";
+    for (let ch of alphabet) {
+        const div = document.createElement("div");
+        div.className = "letter";
+        if (excluded.has(ch)) {
+            div.classList.add("gray");
+        } else if (correct.includes(ch)) {
+            div.classList.add("green");
+        } else if (present.has(ch)) {
+            div.classList.add("yellow");
+        }
+        div.innerText = ch;
+        alphabetDiv.appendChild(div);
+    }
+}
+
+function renderHistory() {
+    historyDiv.innerHTML = "";
+    for (let i = 0; i < attempts.length; i++) {
+        const a = attempts[i];
+        let text = a.w;
+        if (a.b === 0 && a.c === 0) {
+            text += " ❌";
+        } else {
+            if (a.b > 0) text += ` 🐂${a.b}`;
+            if (a.c > 0) text += ` 🐄${a.c}`;
+        }
+        const div = document.createElement("div");
+        div.className = "word-entry";
+        const span = document.createElement("span");
+        span.innerText = text;
+        const delBtn = document.createElement("button");
+        delBtn.innerText = "✖";
+        delBtn.onclick = () => {
+            attempts.splice(i, 1);
+            recalc();          // пересчитываем всё заново
+        };
+        div.appendChild(span);
+        div.appendChild(delBtn);
+        historyDiv.appendChild(div);
+    }
+}
+
+// ------------------- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ -------------------
+window.start = function() {
+    const val = parseInt(lenInput.value);
+    if (!val || val < 1) {
+        showError("Введите корректную длину слова (от 1 до 15)");
+        return;
+    }
+    if (!dictionary.length) {
+        showError("Словарь ещё не загружен. Подождите секунду и повторите старт.");
+        return;
+    }
+    // проверяем, есть ли слова такой длины
+    const anyWord = dictionary.some(w => w.length === val);
+    if (!anyWord) {
+        showError(`Нет слов длины ${val} в словаре. Попробуйте другую длину.`);
+        return;
+    }
+
+    length = val;
+    attempts = [];
+    usedHints = [];
+    correct = Array(length).fill(null);
+    present.clear();
+    excluded.clear();
+    currentCandidates = [];
+
+    startDiv.classList.add("hidden");
+    gameDiv.classList.remove("hidden");
+    buildSolution();
+    recalc();   // инициализируем пустыми попытками – покажет все возможные буквы
+};
+
+window.add = function() {
+    if (!length) return;
+    let w = wordInput.value.trim().toLowerCase();
+    let b = parseInt(bullsInput.value) || 0;
+    let c = parseInt(cowsInput.value) || 0;
+
+    if (w.length !== length) {
+        showError(`Слово должно быть длиной ${length} букв`);
+        return;
+    }
+    if (!/^[а-яё]+$/.test(w)) {
+        showError("Используйте только русские буквы");
+        return;
+    }
+    if (b + c > length) {
+        showError("Сумма быков и коров не может превышать длину слова");
+        return;
+    }
+
+    clearError();
+
+    // проверка на возможную ошибку: если быков и коров больше, чем неповторяющихся букв
+    // (необязательно, но полезно)
+    const uniqueInWord = new Set(w);
+    if (b + c > uniqueInWord.size) {
+        // предупреждение, но не блокируем
+        showError(`⚠️ Сумма быков+коров (${b+c}) превышает количество уникальных букв (${uniqueInWord.size}). Возможно, ошибка в данных.`);
+    }
+
+    attempts.push({ w, b, c });
+    wordInput.value = "";
+    bullsInput.value = "";
+    cowsInput.value = "";
+    recalc();
+};
+
+window.hint = function() {
+    clearError();
+    if (!currentCandidates.length) {
+        showError("Нет вариантов для подсказки. Добавьте больше данных или проверьте корректность.");
+        return;
+    }
+    let candidates = currentCandidates.filter(w => !usedHints.includes(w));
+    if (candidates.length === 0) {
+        candidates = currentCandidates; // все варианты уже были – покажем любой
+    }
+    const randomWord = candidates[Math.floor(Math.random() * candidates.length)];
+    wordInput.value = randomWord;
+    usedHints.push(randomWord);
+};
+
+window.restart = function() {
     location.reload();
+};
+
+// ------------------- ЗАГРУЗКА СЛОВАРЯ -------------------
+async function loadDictionary() {
+    try {
+        loadStatusSpan.innerText = "📥 Загрузка словаря...";
+        const response = await fetch("singular.txt");
+        if (!response.ok) throw new Error("Файл singular.txt не найден");
+        const text = await response.text();
+        dictionary = text.split("\n")
+            .map(line => line.trim().toLowerCase())
+            .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3 && word.length <= 12);
+        loadStatusSpan.innerText = `✅ Загружено ${dictionary.length} слов`;
+        // если игра уже запущена (например, пользователь нажал старт до загрузки)
+        if (length > 0 && !startDiv.classList.contains("hidden") === false) {
+            recalc();
+        }
+    } catch (err) {
+        console.error(err);
+        loadStatusSpan.innerText = "❌ Ошибка загрузки словаря. Обновите страницу.";
+        loadStatusSpan.style.color = "#ff6b6b";
+    }
 }
 
-});
+// ------------------- СТАРТ ЗАГРУЗКИ -------------------
+loadDictionary();
 </script>
 </body>
 </html>
