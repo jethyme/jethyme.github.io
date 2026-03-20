@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver — исправленная логика</title>
+<title>Hardcore Solver — безопасная логика</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
@@ -66,7 +66,7 @@ let length = 0;
 let attempts = [];            // { w, b, c }
 let usedHints = [];
 
-// Результаты анализа (без словаря)
+// Результаты анализа
 let correct = [];             // точные позиции (зелёные)
 let present = new Set();      // буквы, которые точно есть (жёлтые)
 let excluded = new Set();     // буквы, которых нет (серые)
@@ -142,58 +142,19 @@ function recalc() {
         }
     }
 
-    // 3. Определение зелёных позиций (точные быки)
+    // 3. Зелёные позиции: только если есть попытка с быками == длине слова
     correct = Array(length).fill(null);
-
-    // Собираем для каждой позиции все буквы, которые там встречались в попытках с b+c>0
-    let posLetters = Array(length).fill().map(() => new Set());
     for (let a of attempts) {
-        if (a.b + a.c === 0) continue; // нулевые попытки не дают информации о позициях
-        for (let i = 0; i < length; i++) {
-            posLetters[i].add(a.w[i]);
-        }
-    }
-
-    // Кандидаты в зелёные: позиции, где во всех попытках одна буква
-    let candidates = Array(length).fill(false);
-    let candidateLetters = Array(length).fill(null);
-    for (let i = 0; i < length; i++) {
-        if (posLetters[i].size === 1) {
-            let ch = [...posLetters[i]][0];
-            if (!excluded.has(ch) && present.has(ch)) {
-                candidates[i] = true;
-                candidateLetters[i] = ch;
+        if (a.b === length) {
+            // Все буквы этой попытки — зелёные
+            for (let i = 0; i < length; i++) {
+                correct[i] = a.w[i];
+                // Убираем из present, т.к. они уже зелёные
+                present.delete(a.w[i]);
             }
-        }
-    }
-
-    // Теперь проверим, что в каждой попытке количество кандидатов не превышает количество быков
-    // Если превышает – убираем лишние, но мы не знаем какие. Поэтому если в какой-то попытке
-    // количество кандидатов > b, то мы не можем доверять ни одному из них (ни один не зелёный)
-    let valid = true;
-    for (let a of attempts) {
-        if (a.b + a.c === 0) continue;
-        let cnt = 0;
-        for (let i = 0; i < length; i++) {
-            if (candidates[i] && a.w[i] === candidateLetters[i]) cnt++;
-        }
-        if (cnt > a.b) {
-            valid = false;
+            // Если нашли такую попытку, дальше не ищем (все позиции определены)
             break;
         }
-    }
-
-    if (valid) {
-        // Если условие выполняется, то все кандидаты становятся зелёными
-        for (let i = 0; i < length; i++) {
-            if (candidates[i]) {
-                correct[i] = candidateLetters[i];
-                present.delete(candidateLetters[i]); // зелёные не должны быть жёлтыми
-            }
-        }
-    } else {
-        // Иначе оставляем correct пустым (ни одной зелёной)
-        // Но можно попробовать более сложный отбор, но для простоты оставим так.
     }
 
     // 4. Проверка на явные ошибки (например, быков больше, чем может быть)
@@ -207,7 +168,7 @@ function recalc() {
             showError(`❌ Ошибка: в слове "${a.w}" быков ${a.b}, но уже известно ${possibleBulls} точных позиций. Удалите лишние попытки.`);
             return;
         }
-        // Также можно проверить, что коров не больше, чем доступных букв
+        // Проверка на коров: не может быть больше, чем неподтверждённых букв
         let presentInWord = 0;
         for (let ch of a.w) {
             if (present.has(ch) || correct.includes(ch)) presentInWord++;
@@ -222,7 +183,7 @@ function recalc() {
     updateSolution();
     renderAlphabet();
     renderHistory();
-    clearError(); // если дошли сюда – ошибок нет
+    clearError();
 }
 
 // ------------------- ОТРИСОВКА -------------------
