@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 Табун 🐂</title>
+<title>🐂 🐄 🐂</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
 .solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px; flex-wrap:wrap;}
-.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold; cursor:pointer; transition:0.1s; position:relative;}
-.cell.green{background:#4caf50}
-.cell.red{background:#f44336}
-.cell-input-wrapper{ position:relative; }
-.cell-input{ position:absolute; top:45px; left:0; width:40px; padding:4px; text-align:center; border-radius:6px; border:none; background:#333; color:white; font-size:12px; z-index:10; }
+.cell-input{ width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold; font-size:20px; text-align:center; border:none; color:white; font-family:monospace; cursor:pointer; transition:0.1s; }
+.cell-input:focus{ outline:2px solid #5865f2; background:#555; }
+.cell-input.green{ background:#4caf50; cursor:default; }
+.cell-input.red{ background:#f44336; }
 .alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
-.letter{ padding:6px; border-radius:5px; background:#5865f2; font-weight:bold; transition:0.1s; cursor:pointer;}
+.letter{ padding:6px; border-radius:5px; background:#5865f2; font-weight:bold; transition:0.1s; cursor:pointer; text-align:center;}
 .letter:hover{ filter:brightness(0.9); }
 .gray{background:#555; opacity:0.4}
 .green{background:#4caf50}
@@ -30,7 +29,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .word-entry button{ padding:2px 6px; font-size:12px; background:#f44336;}
 .error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
 .loading{ color:#aaa; font-size:14px; margin-top:5px;}
-@media(max-width:600px){ .row{flex-direction:column} button{width:100%} .cell-input{ width:35px; } }
+@media(max-width:600px){ .row{flex-direction:column} button{width:100%} .cell-input{ width:36px; height:36px; font-size:16px; } }
 </style>
 </head>
 <body>
@@ -46,7 +45,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div id="solution" class="solution"></div>
 
 <div class="row">
-<input id="word" placeholder="Слово">
+<input id="word" placeholder="Слово для проверки">
 </div>
 
 <div class="row">
@@ -78,8 +77,6 @@ let present = new Set();      // буквы, которые точно есть 
 let excluded = new Set();     // буквы, которых нет (серые)
 let redLetters = new Set();   // буквы, отмеченные красным (предполагаемые)
 let redPositions = [];        // массив с красными буквами на конкретных позициях
-
-let activeCellInput = null;   // для отслеживания открытого инпута
 
 // DOM
 const solutionDiv = document.getElementById("solution");
@@ -132,7 +129,7 @@ function getBullsCows(guess, target) {
     return { bulls, cows };
 }
 
-// Проверка соответствия слова всем ограничениям (попытки + красные буквы)
+// Проверка соответствия слова всем ограничениям
 function wordMatches(word) {
     for (let a of attempts) {
         const { bulls, cows } = getBullsCows(a.w, word);
@@ -147,80 +144,29 @@ function wordMatches(word) {
     return true;
 }
 
-// Закрыть активный инпут
-function closeActiveInput() {
-    if (activeCellInput) {
-        activeCellInput.remove();
-        activeCellInput = null;
-    }
-}
-
-// Открыть инпут для клетки
-function openCellInput(pos, cellElement) {
-    closeActiveInput();
-    const input = document.createElement("input");
-    input.type = "text";
-    input.maxLength = 1;
-    input.className = "cell-input";
-    input.value = redPositions[pos] || "";
-    input.placeholder = "буква";
-    input.style.position = "absolute";
-    input.style.top = (cellElement.offsetTop + 45) + "px";
-    input.style.left = cellElement.offsetLeft + "px";
-    input.style.width = "40px";
-    input.style.padding = "4px";
-    input.style.textAlign = "center";
-    input.style.background = "#333";
-    input.style.color = "white";
-    input.style.border = "none";
-    input.style.borderRadius = "6px";
-    input.style.zIndex = "100";
+// Установка красной позиции
+function setRedPosition(pos, letter) {
+    if (correct[pos]) return; // зелёные нельзя менять
     
-    input.onblur = () => {
-        setTimeout(() => closeActiveInput(), 200);
-    };
-    input.onkeydown = (e) => {
-        if (e.key === "Enter") {
-            const val = input.value.trim().toLowerCase();
-            if (val === "") {
-                if (redPositions[pos]) {
-                    const oldLetter = redPositions[pos];
-                    redPositions[pos] = null;
-                    // Если эта буква больше нигде не используется как красная позиция, убираем из redLetters
-                    if (!redPositions.includes(oldLetter)) {
-                        redLetters.delete(oldLetter);
-                    }
-                }
-            } else if (/^[а-яё]$/.test(val)) {
-                if (redPositions[pos]) {
-                    const oldLetter = redPositions[pos];
-                    redPositions[pos] = val;
-                    redLetters.add(val);
-                    if (oldLetter !== val && !redPositions.includes(oldLetter)) {
-                        redLetters.delete(oldLetter);
-                    }
-                } else {
-                    redPositions[pos] = val;
-                    redLetters.add(val);
-                }
-                excluded.delete(val);
-            } else {
-                showError("Введите одну русскую букву");
-                input.focus();
-                return;
-            }
-            closeActiveInput();
-            recalc();
+    const oldLetter = redPositions[pos];
+    if (oldLetter === letter) return;
+    
+    if (letter && /^[а-яё]$/.test(letter)) {
+        redPositions[pos] = letter;
+        redLetters.add(letter);
+        excluded.delete(letter);
+        // Если старая буква больше нигде не используется как красная позиция, убираем из redLetters
+        if (oldLetter && !redPositions.includes(oldLetter)) {
+            redLetters.delete(oldLetter);
         }
-        if (e.key === "Escape") {
-            closeActiveInput();
+    } else if (letter === "") {
+        // Удаляем
+        redPositions[pos] = null;
+        if (oldLetter && !redPositions.includes(oldLetter)) {
+            redLetters.delete(oldLetter);
         }
-    };
-    solutionDiv.parentElement.style.position = "relative";
-    solutionDiv.parentElement.appendChild(input);
-    activeCellInput = input;
-    input.focus();
-    input.select();
+    }
+    recalc();
 }
 
 // ------------------- ОСНОВНАЯ ЛОГИКА -------------------
@@ -345,34 +291,61 @@ function recalc() {
 function buildSolution() {
     solutionDiv.innerHTML = "";
     for (let i = 0; i < length; i++) {
-        const cell = document.createElement("div");
-        cell.className = "cell";
-        cell.innerText = "_";
-        cell.dataset.pos = i;
-        cell.onclick = (e) => {
-            e.stopPropagation();
-            if (correct[i]) return;
-            openCellInput(i, cell);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.maxLength = 1;
+        input.className = "cell-input";
+        input.value = "";
+        input.dataset.pos = i;
+        
+        input.onkeydown = (e) => {
+            // Разрешаем backspace, delete, стрелки
+            if (e.key === "Backspace" || e.key === "Delete" || e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Tab") {
+                // Обрабатываем позже
+                return;
+            }
+            // Если это буква
+            if (/^[а-яё]$/i.test(e.key)) {
+                e.preventDefault();
+                const letter = e.key.toLowerCase();
+                if (correct[i]) return; // зелёные нельзя менять
+                setRedPosition(i, letter);
+            }
         };
-        solutionDiv.appendChild(cell);
+        
+        input.onkeyup = (e) => {
+            if (e.key === "Backspace" || e.key === "Delete") {
+                if (correct[i]) return;
+                setRedPosition(i, "");
+            }
+        };
+        
+        input.onfocus = () => {
+            input.select();
+        };
+        
+        solutionDiv.appendChild(input);
     }
 }
 
 function updateSolution() {
-    const cells = [...solutionDiv.children];
+    const inputs = [...solutionDiv.querySelectorAll(".cell-input")];
     for (let i = 0; i < length; i++) {
         if (correct[i]) {
-            cells[i].innerText = correct[i];
-            cells[i].classList.add("green");
-            cells[i].classList.remove("red");
+            inputs[i].value = correct[i];
+            inputs[i].classList.add("green");
+            inputs[i].classList.remove("red");
+            inputs[i].readOnly = true;
         } else if (redPositions[i]) {
-            cells[i].innerText = redPositions[i];
-            cells[i].classList.add("red");
-            cells[i].classList.remove("green");
+            inputs[i].value = redPositions[i];
+            inputs[i].classList.add("red");
+            inputs[i].classList.remove("green");
+            inputs[i].readOnly = false;
         } else {
-            cells[i].innerText = "_";
-            cells[i].classList.remove("green");
-            cells[i].classList.remove("red");
+            inputs[i].value = "";
+            inputs[i].classList.remove("green");
+            inputs[i].classList.remove("red");
+            inputs[i].readOnly = false;
         }
     }
 }
@@ -444,7 +417,6 @@ function renderHistory() {
 
 // ------------------- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ -------------------
 window.start = function() {
-    closeActiveInput();
     const val = parseInt(lenInput.value);
     if (!val || val < 1 || val > 20) {
         showError("Введите длину слова от 1 до 20");
@@ -539,7 +511,6 @@ window.hint = function() {
 };
 
 window.restart = function() {
-    closeActiveInput();
     location.reload();
 };
 
@@ -562,13 +533,6 @@ async function loadDictionary() {
 }
 
 loadDictionary();
-
-// Закрываем инпут при клике вне его
-document.addEventListener("click", function(e) {
-    if (activeCellInput && !activeCellInput.contains(e.target) && !e.target.classList.contains("cell")) {
-        closeActiveInput();
-    }
-});
 </script>
 </body>
 </html>
