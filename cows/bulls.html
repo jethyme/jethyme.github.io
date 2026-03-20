@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver</title>
+<title>Hardcore Solver v2</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
@@ -28,7 +28,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 </head>
 <body>
 <div class="container">
-<h2>🧠 Hardcore Solver</h2>
+<h2>🧠 Hardcore Solver v2</h2>
 <div id="start">
 <input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
@@ -71,6 +71,7 @@ const cowsInput=document.getElementById("cows");
 const lenInput=document.getElementById("len");
 const errorDiv=document.getElementById("error");
 
+// Загрузка слов
 async function loadWords(){
     const r=await fetch("singular.txt");
     words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
@@ -123,35 +124,34 @@ function updateSolution(){
     });
 }
 
+// Пересчет логики
 function recalc(){
     excluded.clear(); present.clear(); correct=Array(length).fill(null);
 
-    // шаг 1: буквы с нулями точно отсутствуют
+    // 1. Найти точно отсутствующие буквы
     for(let a of attempts){
         if(a.b===0 && a.c===0){
             for(let ch of a.w) excluded.add(ch);
         }
     }
 
-    // шаг 2: ищем точные позиции (быки) и буквы, которые точно могут быть
-    let countsPerPosition = Array(length).fill(null).map(()=>new Map());
+    // 2. Проходим по каждой позиции для быков
+    for(let pos=0; pos<length; pos++){
+        const candidates = attempts.filter(a=>a.b>0 || a.c>0).map(a=>a.w[pos]);
+        const filtered = candidates.filter(c=>!excluded.has(c));
+        const unique = [...new Set(filtered)];
+        if(unique.length===1){
+            // Если только одна буква возможна здесь → точно бык
+            correct[pos]=unique[0];
+        }
+    }
+
+    // 3. Определяем буквы, которые точно есть где-то в слове
     for(let a of attempts){
-        let unmatchedIndexes=[];
-        for(let i=0;i<length;i++){
-            let ch=a.w[i];
-            if(!excluded.has(ch)){
-                countsPerPosition[i].set(ch,(countsPerPosition[i].get(ch)||0)+1);
-                unmatchedIndexes.push({i,ch});
-            }
-        }
-        if(a.b>0){
-            // если на позиции i буква встречается только здесь → бык
-            if(a.b===1 && unmatchedIndexes.length===1){
-                correct[unmatchedIndexes[0].i]=unmatchedIndexes[0].ch;
-            }
-        }
         if(a.b+a.c>0){
-            unmatchedIndexes.forEach(x=>present.add(x.ch));
+            for(let ch of a.w){
+                if(!excluded.has(ch) && !correct.includes(ch)) present.add(ch);
+            }
         }
     }
 
@@ -175,19 +175,12 @@ function renderHistory(){
     history.innerHTML="";
     attempts.forEach((a,i)=>{
         let s="";
-        if(a.b===0 && a.c===0){
-            s=a.w+" ❌";
-        } else {
-            s=a.w;
-            if(a.b>0) s+=` 🐂${a.b}`;
-            if(a.c>0) s+=` 🐄${a.c}`;
-        }
+        if(a.b===0 && a.c===0){ s=a.w+" ❌"; }
+        else{ s=a.w; if(a.b>0) s+=` 🐂${a.b}`; if(a.c>0) s+=` 🐄${a.c}`; }
         let div=document.createElement("div");
         div.className="word-entry";
-        let text=document.createElement("span");
-        text.innerText=s;
-        let btn=document.createElement("button");
-        btn.innerText="✖";
+        let text=document.createElement("span"); text.innerText=s;
+        let btn=document.createElement("button"); btn.innerText="✖";
         btn.onclick=()=>{ attempts.splice(i,1); recalc(); }
         div.appendChild(text); div.appendChild(btn);
         history.appendChild(div);
@@ -218,7 +211,12 @@ window.hint=function(){
     clearError();
     let candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
     if(!candidates.length){ showError("Нет вариантов"); return; }
-    let best=candidates[Math.floor(Math.random()*candidates.length)];
+    let best=candidates[0]; let bestScore=-1;
+    candidates.forEach(w=>{
+        let score=0;
+        for(let l of w) if(present.has(l) || correct.includes(l)) score++;
+        if(score>bestScore){ bestScore=score; best=w; }
+    });
     wordInput.value=best;
     usedHints.push(best);
 }
