@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 Быки и Коровы 🐄</title>
+<title>Быки и Коровы</title>
 
 <style>
 :root { --cell-size: 48px; }
@@ -99,6 +99,8 @@ input, select {
     pointer-events: none;
 }
 .loading-indicator { font-size: 12px; color: #ccc; margin-top: 5px; }
+.input-group { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.input-group label { font-weight: bold; }
 </style>
 </head>
 <body>
@@ -109,23 +111,20 @@ input, select {
 <div id="modeSelection">
     <button onclick="showRandomOptions()">🎲 Случайное слово</button>
     <button onclick="showCustomInput()">✍ Ввести своё слово</button>
-    <br>
-    <label>Количество попыток:</label>
-    <select id="attemptSelect">
-        <option value="0">Неограниченно</option>
-        <option value="3">3</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="10">10</option>
-    </select>
+    <div class="input-group">
+        <label>📊 Попытки:</label>
+        <input type="number" id="attemptInput" placeholder="∞ (неограниченно)" value="" step="1" min="1" style="width: 100px;">
+    </div>
     <div id="dictLoader" class="loading-indicator">📚 Загрузка словарей...</div>
 </div>
 
 <div id="randomOptions" class="hidden">
-    <label>Длина слова: <span id="lengthValue"></span></label><br>
-    <input type="range" id="lengthSlider">
-    <br>
+    <div class="input-group">
+        <label>🔤 Длина слова:</label>
+        <input type="number" id="wordLengthInput" min="1" max="20" value="5" step="1" style="width: 80px;">
+    </div>
     <button onclick="startRandomGame()">Начать игру</button>
+    <div id="randomError" class="error hidden"></div>
 </div>
 
 <div id="customWordDiv" class="hidden">
@@ -159,35 +158,30 @@ let singularWords = [];
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
-let maxAttempts = 0;
+let maxAttempts = 0;      // 0 = неограниченно
 let remainingAttempts = 0;
 let isSharedGame = false;
 let dictionariesLoaded = false;
 
 const XOR_KEY = "BullsAndCows2024!";
 
-// Функция для преобразования строки в UTF-8 байты
+// UTF-8 support
 function strToUtf8Bytes(str) {
     const encoder = new TextEncoder();
     return encoder.encode(str);
 }
-
-// Функция для преобразования байтов в строку (UTF-8)
 function utf8BytesToStr(bytes) {
     const decoder = new TextDecoder('utf-8');
     return decoder.decode(bytes);
 }
 
 function encryptWord(word) {
-    // 1. Получаем UTF-8 байты исходного слова
     const wordBytes = strToUtf8Bytes(word);
-    // 2. XOR с ключом
     const keyBytes = strToUtf8Bytes(XOR_KEY);
     const encryptedBytes = new Uint8Array(wordBytes.length);
     for (let i = 0; i < wordBytes.length; i++) {
         encryptedBytes[i] = wordBytes[i] ^ keyBytes[i % keyBytes.length];
     }
-    // 3. Преобразуем байты в строку (как есть) и кодируем в Base64
     let binaryString = '';
     for (let i = 0; i < encryptedBytes.length; i++) {
         binaryString += String.fromCharCode(encryptedBytes[i]);
@@ -197,20 +191,16 @@ function encryptWord(word) {
 
 function decryptWord(encryptedBase64) {
     try {
-        // 1. Декодируем Base64 в бинарную строку
         const binaryString = atob(encryptedBase64);
-        // 2. Преобразуем в массив байтов
         const encryptedBytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
             encryptedBytes[i] = binaryString.charCodeAt(i);
         }
-        // 3. XOR с ключом
         const keyBytes = strToUtf8Bytes(XOR_KEY);
         const decryptedBytes = new Uint8Array(encryptedBytes.length);
         for (let i = 0; i < encryptedBytes.length; i++) {
             decryptedBytes[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
         }
-        // 4. Преобразуем байты в строку UTF-8
         return utf8BytesToStr(decryptedBytes);
     } catch(e) {
         console.error('Decrypt error:', e);
@@ -224,10 +214,15 @@ function getCurrentBaseUrl() {
     return url.toString();
 }
 
-function generateShareLink(word) {
+function generateShareLink(word, attempts) {
     const encrypted = encryptWord(word);
-    const baseUrl = getCurrentBaseUrl();
-    return `${baseUrl}?w=${encodeURIComponent(encrypted)}`;
+    let baseUrl = getCurrentBaseUrl();
+    let url = new URL(baseUrl);
+    url.searchParams.set('w', encrypted);
+    if (attempts > 0) {
+        url.searchParams.set('a', attempts);
+    }
+    return url.toString();
 }
 
 function showToast(msg, isError = false) {
@@ -246,7 +241,6 @@ function showCustomWordError(msg) {
 }
 
 function copyShareLink() {
-    console.log("copyShareLink вызвана");
     const copyBtn = document.getElementById("copyLinkBtn");
     const inputField = document.getElementById("customWordInput");
     let word = inputField.value.trim().toLowerCase();
@@ -261,17 +255,15 @@ function copyShareLink() {
         return;
     }
 
-    console.log("Проверяем слово:", word);
-    console.log("В словаре dictionary:", dictionary.includes(word));
-    console.log("В singularWords:", singularWords.includes(word));
-
     if (!dictionary.includes(word) && !singularWords.includes(word)) {
         showCustomWordError("Слова нет в словарях, ссылку нельзя создать");
         return;
     }
 
+    // Получаем количество попыток из поля ввода
+    let attempts = getAttemptsFromInput();
     try {
-        const link = generateShareLink(word);
+        const link = generateShareLink(word, attempts);
         navigator.clipboard.writeText(link).then(() => {
             showToast("✅ Ссылка скопирована! Отправь другу.");
             copyBtn.style.transform = "scale(0.97)";
@@ -286,6 +278,15 @@ function copyShareLink() {
     }
 }
 
+function getAttemptsFromInput() {
+    const input = document.getElementById("attemptInput");
+    let val = input.value.trim();
+    if (val === "") return 0;   // неограниченно
+    let num = parseInt(val, 10);
+    if (isNaN(num) || num < 1) return 0;
+    return num;
+}
+
 async function loadDictionaries() {
     try {
         const r1 = await fetch("words.txt");
@@ -298,14 +299,29 @@ async function loadDictionaries() {
             const loader = document.getElementById("dictLoader");
             if(loader) loader.style.opacity = "0.6";
         }, 1500);
-        calculateLengthBounds();
 
+        // Обработка ссылки (слово + попытки)
         const urlParams = new URLSearchParams(window.location.search);
         const encryptedParam = urlParams.get("w");
+        const attemptsParam = urlParams.get("a");
         if (encryptedParam) {
             const decryptedWord = decryptWord(encryptedParam);
             if (decryptedWord && (dictionary.includes(decryptedWord) || singularWords.includes(decryptedWord))) {
                 secretWord = decryptedWord;
+                // Устанавливаем попытки из параметра, если он есть
+                if (attemptsParam) {
+                    let a = parseInt(attemptsParam, 10);
+                    if (!isNaN(a) && a > 0) {
+                        maxAttempts = a;
+                        // также обновим поле ввода для отображения
+                        document.getElementById("attemptInput").value = a;
+                    } else {
+                        maxAttempts = 0;
+                        document.getElementById("attemptInput").value = "";
+                    }
+                } else {
+                    maxAttempts = getAttemptsFromInput(); // из текущего поля
+                }
                 isSharedGame = true;
                 setupGame();
                 return;
@@ -321,20 +337,10 @@ async function loadDictionaries() {
     }
 }
 
-function calculateLengthBounds() {
-    if(!dictionary.length) return;
-    const lengths = dictionary.map(w=>w.length);
-    const slider = document.getElementById("lengthSlider");
-    slider.min = Math.min(...lengths);
-    slider.max = Math.max(...lengths);
-    slider.value = dictionary.some(w => w.length === 5) ? 5 : slider.min;
-    document.getElementById("lengthValue").innerText = slider.value;
-    slider.oninput = () => document.getElementById("lengthValue").innerText = slider.value;
-}
-
 function showRandomOptions() {
     document.getElementById("randomOptions").classList.remove("hidden");
     document.getElementById("customWordDiv").classList.add("hidden");
+    document.getElementById("randomError").classList.add("hidden");
 }
 
 function showCustomInput() {
@@ -350,11 +356,23 @@ function showCustomInput() {
 
 function startRandomGame() {
     if (!dictionariesLoaded) return alert("Словари ещё не готовы, подождите.");
-    const len = parseInt(document.getElementById("lengthSlider").value);
-    const filtered = dictionary.filter(w=>w.length===len);
-    if (!filtered.length) return alert("Нет слов такой длины");
-    secretWord = filtered[Math.floor(Math.random()*filtered.length)];
+    const lenInput = document.getElementById("wordLengthInput");
+    let length = parseInt(lenInput.value, 10);
+    if (isNaN(length) || length < 1) {
+        length = 5;
+        lenInput.value = 5;
+    }
+    const filtered = dictionary.filter(w => w.length === length);
+    if (filtered.length === 0) {
+        const errorDiv = document.getElementById("randomError");
+        errorDiv.innerText = `Нет слов длины ${length} в словаре. Попробуйте другую длину.`;
+        errorDiv.classList.remove("hidden");
+        return;
+    }
+    document.getElementById("randomError").classList.add("hidden");
+    secretWord = filtered[Math.floor(Math.random() * filtered.length)];
     isSharedGame = false;
+    maxAttempts = getAttemptsFromInput();
     setupGame();
 }
 
@@ -367,14 +385,14 @@ function startCustomGame() {
     }
     secretWord = word;
     isSharedGame = false;
+    maxAttempts = getAttemptsFromInput();
     setupGame();
 }
 
 function setupGame() {
     wordLength = secretWord.length;
     gameOver = false;
-    maxAttempts = parseInt(document.getElementById("attemptSelect").value);
-    remainingAttempts = maxAttempts;
+    remainingAttempts = maxAttempts;  // если maxAttempts=0, то неограниченно
 
     document.getElementById("modeSelection").classList.add("hidden");
     document.getElementById("randomOptions").classList.add("hidden");
@@ -392,31 +410,36 @@ function setupGame() {
 
     if (isSharedGame) {
         const infoDiv = document.getElementById("info");
-        infoDiv.innerHTML = `🎁 Загадано слово: ${wordLength} букв.</br> ${maxAttempts > 0 ? "Осталось попыток: " + remainingAttempts : "Попытки не ограничены"}`;
+        infoDiv.innerHTML = `🎁 Слово из ${wordLength} букв. ` +
+            (maxAttempts > 0 ? `Осталось попыток: ${remainingAttempts}` : "Попытки не ограничены");
     }
 }
 
 function updateInfo() {
-    let text = "Слово из " + wordLength + " букв.";
-    if (maxAttempts > 0) text += " Осталось попыток: " + remainingAttempts;
+    let text = `Слово из ${wordLength} букв.`;
+    if (maxAttempts > 0) {
+        text += ` Осталось попыток: ${remainingAttempts}`;
+    } else {
+        text += ` Попытки не ограничены.`;
+    }
     if (isSharedGame && !gameOver) text = "🎁 " + text;
     document.getElementById("info").innerText = text;
 }
 
 function countBullsAndCows(secret, guess) {
-    let bulls=0, cows=0;
-    let sRem=[], gRem=[];
-    for(let i=0;i<secret.length;i++){
-        if(secret[i]===guess[i]) bulls++;
+    let bulls = 0, cows = 0;
+    let sRem = [], gRem = [];
+    for (let i = 0; i < secret.length; i++) {
+        if (secret[i] === guess[i]) bulls++;
         else { sRem.push(secret[i]); gRem.push(guess[i]); }
     }
-    let count={};
-    sRem.forEach(c=>count[c]=(count[c]||0)+1);
-    gRem.forEach(c=>{ if(count[c]>0){ cows++; count[c]--; } });
-    return {bulls,cows};
+    let count = {};
+    sRem.forEach(c => count[c] = (count[c] || 0) + 1);
+    gRem.forEach(c => { if (count[c] > 0) { cows++; count[c]--; } });
+    return { bulls, cows };
 }
 
-function showError(msg){
+function showError(msg) {
     const error = document.getElementById("errorMessage");
     const input = document.getElementById("guessInput");
     error.innerText = msg;
@@ -427,7 +450,7 @@ function showError(msg){
     input.classList.add("shake");
 }
 
-function clearError(){
+function clearError() {
     const error = document.getElementById("errorMessage");
     const input = document.getElementById("guessInput");
     error.innerText = "";
@@ -436,102 +459,104 @@ function clearError(){
 }
 
 function checkGuess() {
-    if(gameOver) return;
-    const input=document.getElementById("guessInput");
-    const guess=input.value.toLowerCase().trim();
-    if(!dictionary.includes(guess)&&!singularWords.includes(guess)){
+    if (gameOver) return;
+    const input = document.getElementById("guessInput");
+    const guess = input.value.toLowerCase().trim();
+    if (!dictionary.includes(guess) && !singularWords.includes(guess)) {
         showError("Слова нет в словаре");
         return;
     }
-    if(guess.length!==wordLength){
-        showError("Неверная длина");
+    if (guess.length !== wordLength) {
+        showError(`Неверная длина. Нужно ${wordLength} букв.`);
         return;
     }
     clearError();
 
-    const {bulls,cows}=countBullsAndCows(secretWord,guess);
+    const { bulls, cows } = countBullsAndCows(secretWord, guess);
 
-    if(maxAttempts>0){
+    if (maxAttempts > 0) {
         remainingAttempts--;
         updateInfo();
     }
 
-    const row=document.createElement("div");
-    row.className="word-row";
+    const row = document.createElement("div");
+    row.className = "word-row";
 
-    const letters=document.createElement("div");
-    letters.className="letters";
-    guess.split("").forEach(l=>{
-        const box=document.createElement("div");
-        box.className="letter-box";
-        box.innerText=l;
+    const letters = document.createElement("div");
+    letters.className = "letters";
+    guess.split("").forEach(l => {
+        const box = document.createElement("div");
+        box.className = "letter-box";
+        box.innerText = l;
         letters.appendChild(box);
     });
 
-    const result=document.createElement("div");
-    result.className="result";
+    const result = document.createElement("div");
+    result.className = "result";
     const isMobile = window.innerWidth <= 600;
     const totalEmojis = bulls + cows;
     const emojiLimit = isMobile ? 4 : 7;
-    
-    if(totalEmojis > emojiLimit){
-        result.innerText = "🐂 " + bulls + "  🐄 " + cows;
-    }else{
-        if(totalEmojis === 0){
+
+    if (totalEmojis > emojiLimit) {
+        result.innerText = `🐂 ${bulls}  🐄 ${cows}`;
+    } else {
+        if (totalEmojis === 0) {
             result.innerText = "❌";
-        }else{
-            let str="";
-            if(bulls>0) str+="🐂".repeat(bulls)+" ";
-            if(cows>0) str+="🐄".repeat(cows);
-            result.innerText=str.trim();
+        } else {
+            let str = "";
+            if (bulls > 0) str += "🐂".repeat(bulls) + " ";
+            if (cows > 0) str += "🐄".repeat(cows);
+            result.innerText = str.trim();
         }
     }
 
     row.appendChild(letters);
     row.appendChild(result);
     document.getElementById("history").appendChild(row);
-    input.value="";
+    input.value = "";
 
-    if(bulls===wordLength){
-        document.getElementById("winMessage").innerHTML="🎉 Победа! Слово: "+secretWord;
+    if (bulls === wordLength) {
+        document.getElementById("winMessage").innerHTML = `🎉 Победа! Слово: ${secretWord}`;
         endGame();
         return;
     }
 
-    if(maxAttempts>0 && remainingAttempts<=0){
-        document.getElementById("winMessage").innerHTML="❌ Попытки закончились. Слово было: "+secretWord;
+    if (maxAttempts > 0 && remainingAttempts <= 0) {
+        document.getElementById("winMessage").innerHTML = `❌ Попытки закончились. Слово было: ${secretWord}`;
         endGame();
     }
 }
 
-function surrender(){
-    if(gameOver) return;
-    document.getElementById("winMessage").innerHTML="Вы сдались. Слово было: "+secretWord;
+function surrender() {
+    if (gameOver) return;
+    document.getElementById("winMessage").innerHTML = `Вы сдались. Слово было: ${secretWord}`;
     endGame();
 }
 
-function endGame(){
-    gameOver=true;
-    document.getElementById("guessInput").disabled=true;
-    document.getElementById("checkBtn").disabled=true;
-    document.getElementById("surrenderBtn").disabled=true;
+function endGame() {
+    gameOver = true;
+    document.getElementById("guessInput").disabled = true;
+    document.getElementById("checkBtn").disabled = true;
+    document.getElementById("surrenderBtn").disabled = true;
 }
 
-function restartGame(){
+function restartGame() {
     document.getElementById("modeSelection").classList.remove("hidden");
     document.getElementById("gameArea").classList.add("hidden");
     document.getElementById("info").innerText = "";
     document.getElementById("winMessage").innerText = "";
     document.getElementById("history").innerHTML = "";
     isSharedGame = false;
+    // Очищаем параметры в URL
     const url = new URL(window.location.href);
     url.searchParams.delete("w");
+    url.searchParams.delete("a");
     window.history.replaceState({}, document.title, url.toString());
     document.getElementById("customWordInput").value = "";
     clearError();
 }
 
-document.getElementById("guessInput").addEventListener("keydown",e=>{ if(e.key==="Enter") checkGuess(); });
+document.getElementById("guessInput").addEventListener("keydown", e => { if (e.key === "Enter") checkGuess(); });
 document.getElementById("guessInput").addEventListener("input", clearError);
 document.getElementById("customWordInput").addEventListener("input", () => {
     document.getElementById("customWordError").classList.add("hidden");
