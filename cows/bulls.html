@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver</title>
+<title>🐂 Табун 🐂</title>
 
 <style>
 body{
@@ -56,6 +56,7 @@ body{
     padding:6px;
     border-radius:5px;
     background:#444;
+    font-weight:bold;
 }
 
 .gray{background:#555;opacity:0.4}
@@ -140,7 +141,7 @@ let attempts=[];
 let words=[];
 let usedHints=[];
 let excluded=new Set(); // буквы, которых нет
-let present=new Set();  // буквы, которые есть
+let present=new Set();  // буквы есть
 let correct=[];         // точные позиции
 let solution=document.getElementById("solution");
 let alphabetDiv=document.getElementById("alphabet");
@@ -150,9 +151,10 @@ let bullsInput=document.getElementById("bulls");
 let cowsInput=document.getElementById("cows");
 let lenInput=document.getElementById("len");
 
+// загружаем словарь для подсказок
 async function loadWords(){
     const r=await fetch("singular.txt");
-    words=(await r.text()).split("\n").map(x=>x.trim());
+    words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase());
 }
 loadWords();
 
@@ -190,31 +192,42 @@ window.add=function(){
     let w=wordInput.value.trim().toLowerCase();
     let b=parseInt(bullsInput.value)||0;
     let c=parseInt(cowsInput.value)||0;
-    if(w.length!==length)return;
+    if(w.length!==length) return alert("Неверная длина слова");
 
     attempts.push({w,b,c});
 
-    // анализ повторов и позиций
-    let sCounts={}, aCounts={};
-    for(let i=0;i<w.length;i++) aCounts[w[i]]=(aCounts[w[i]]||0)+1;
+    // анализ букв
+    // 1. подсчет букв в попытке
+    let letterCount={};
+    for(let l of w) letterCount[l]=(letterCount[l]||0)+1;
 
-    if(b===0 && c===0){
-        w.split("").forEach(l=>excluded.add(l));
-    }else{
-        // проверка для быков
-        let bullsPositions=[];
-        for(let i=0;i<w.length;i++){
-            // простой вариант: если бык, буква фиксируется
-            if(b>0){
-                correct[i]=w[i];
-                present.add(w[i]);
-            }
+    // 2. фиксируем быков
+    let tempB=b;
+    for(let i=0;i<length;i++){
+        if(tempB>0 && !correct[i]){
+            // если буква ещё не зафиксирована, ставим быка
+            correct[i]=w[i];
+            present.add(w[i]);
+            tempB--;
         }
-        // все буквы есть в слове
-        w.split("").forEach(l=>{
-            if(!excluded.has(l)) present.add(l);
-        });
     }
+
+    // 3. коровы: буквы есть в слове, но на другой позиции
+    let tempC=c;
+    for(let i=0;i<length;i++){
+        if(correct[i]===w[i]) continue;
+        if(tempC>0){
+            present.add(w[i]);
+            tempC--;
+        }else{
+            excluded.add(w[i]);
+        }
+    }
+
+    // 4. буквы, которых нет
+    w.split("").forEach(l=>{
+        if(!present.has(l)) excluded.add(l);
+    });
 
     renderAlphabet();
     renderHistory();
@@ -247,9 +260,8 @@ function renderAlphabet(){
     });
 }
 
-// проверка кандидата
 function fits(word){
-    if(word.length!==length)return false;
+    if(word.length!==length) return false;
     for(let l of word){
         if(excluded.has(l)) return false;
     }
@@ -261,7 +273,7 @@ function fits(word){
 
 window.hint=function(){
     const candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
-    if(!candidates.length)return;
+    if(!candidates.length) return alert("Подсказок больше нет");
     // частотная оценка
     let freq={};
     candidates.forEach(w=>{
