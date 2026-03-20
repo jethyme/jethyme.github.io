@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 🐄 🐂</title>
+<title>🐂 Табун 🐂</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
 .solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px; flex-wrap:wrap;}
-.cell-input{ width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold; font-size:20px; text-align:center; border:none; color:white; font-family:monospace; cursor:pointer; transition:0.1s; }
+.cell-input{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold; font-size:20px; text-align:center; border:none; color:white; font-family:monospace; cursor:pointer; transition:0.1s; }
 .cell-input:focus{ outline:2px solid #5865f2; background:#555; }
 .cell-input.green{ background:#4caf50; cursor:default; }
 .cell-input.red{ background:#f44336; }
@@ -29,7 +29,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .word-entry button{ padding:2px 6px; font-size:12px; background:#f44336;}
 .error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
 .loading{ color:#aaa; font-size:14px; margin-top:5px;}
-@media(max-width:600px){ .row{flex-direction:column} button{width:100%} .cell-input{ width:36px; height:36px; font-size:16px; } }
+@media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
 </style>
 </head>
 <body>
@@ -131,6 +131,7 @@ function getBullsCows(guess, target) {
 
 // Проверка соответствия слова всем ограничениям
 function wordMatches(word) {
+    if (word.length !== length) return false;
     for (let a of attempts) {
         const { bulls, cows } = getBullsCows(a.w, word);
         if (bulls !== a.b || cows !== a.c) return false;
@@ -310,6 +311,11 @@ function buildSolution() {
                 const letter = e.key.toLowerCase();
                 if (correct[i]) return; // зелёные нельзя менять
                 setRedPosition(i, letter);
+                // Автоматический переход к следующей ячейке
+                const nextInput = solutionDiv.children[i + 1];
+                if (nextInput && !correct[i + 1]) {
+                    nextInput.focus();
+                }
             }
         };
         
@@ -317,6 +323,13 @@ function buildSolution() {
             if (e.key === "Backspace" || e.key === "Delete") {
                 if (correct[i]) return;
                 setRedPosition(i, "");
+                // Переход к предыдущей ячейке при Backspace
+                if (e.key === "Backspace" && !redPositions[i]) {
+                    const prevInput = solutionDiv.children[i - 1];
+                    if (prevInput && !correct[i - 1]) {
+                        prevInput.focus();
+                    }
+                }
             }
         };
         
@@ -471,24 +484,7 @@ window.hint = function() {
         return;
     }
     
-    let candidates = dictionary.filter(word => word.length === length);
-    
-    for (let a of attempts) {
-        candidates = candidates.filter(word => {
-            const { bulls, cows } = getBullsCows(a.w, word);
-            return bulls === a.b && cows === a.c;
-        });
-    }
-    
-    for (let i = 0; i < length; i++) {
-        if (redPositions[i]) {
-            candidates = candidates.filter(word => word[i] === redPositions[i]);
-        }
-    }
-    
-    for (let ch of redLetters) {
-        candidates = candidates.filter(word => word.includes(ch));
-    }
+    let candidates = dictionary.filter(word => wordMatches(word));
     
     if (candidates.length === 0) {
         showError("Нет подходящих слов в словаре");
