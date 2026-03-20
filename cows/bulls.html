@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver — безопасная логика</title>
+<title>Hardcore Solver — умная логика</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
@@ -99,7 +99,7 @@ function clearError() {
     wordInput.classList.remove("input-error");
 }
 
-// Подсчёт быков и коров между двумя словами
+// Подсчёт быков и коров между двумя словами (для подсказки)
 function getBullsCows(guess, target) {
     let bulls = 0, cows = 0;
     let g = guess.split('');
@@ -122,9 +122,9 @@ function getBullsCows(guess, target) {
     return { bulls, cows };
 }
 
-// ------------------- ОСНОВНАЯ ЛОГИКА (БЕЗ СЛОВАРЯ) -------------------
+// ------------------- ОСНОВНАЯ ЛОГИКА -------------------
 function recalc() {
-    // 1. Исключённые буквы (попытки с 0 быков и 0 коров)
+    // 1. Исключённые буквы из попыток с 0 быков и 0 коров
     excluded.clear();
     for (let a of attempts) {
         if (a.b === 0 && a.c === 0) {
@@ -132,32 +132,74 @@ function recalc() {
         }
     }
 
-    // 2. Буквы, которые точно присутствуют (из попыток с b+c>0, не исключённые)
-    present.clear();
-    for (let a of attempts) {
-        if (a.b + a.c > 0) {
-            for (let ch of a.w) {
-                if (!excluded.has(ch)) present.add(ch);
-            }
-        }
-    }
-
-    // 3. Зелёные позиции: только если есть попытка с быками == длине слова
+    // 2. Определяем зелёные позиции
     correct = Array(length).fill(null);
+
+    // Правило 1: попытка с быками = длина слова → все буквы зелёные
     for (let a of attempts) {
         if (a.b === length) {
-            // Все буквы этой попытки — зелёные
-            for (let i = 0; i < length; i++) {
-                correct[i] = a.w[i];
-                // Убираем из present, т.к. они уже зелёные
-                present.delete(a.w[i]);
-            }
-            // Если нашли такую попытку, дальше не ищем (все позиции определены)
+            for (let i = 0; i < length; i++) correct[i] = a.w[i];
             break;
         }
     }
 
-    // 4. Проверка на явные ошибки (например, быков больше, чем может быть)
+    // Правило 2: для каждой попытки с одним быком и без коров, если среди букв этой попытки
+    // только одна не исключена и ещё не зелёная, то она становится зелёной на своей позиции.
+    let changed;
+    do {
+        changed = false;
+        for (let a of attempts) {
+            if (a.b !== 1 || a.c !== 0) continue;
+            // Найдём позицию, где буква ещё не зелёная и не исключена
+            let candidatePos = -1;
+            let candidateLetter = '';
+            for (let i = 0; i < length; i++) {
+                let ch = a.w[i];
+                if (correct[i] !== null) continue; // уже зелёная
+                if (excluded.has(ch)) continue;
+                // Если нашли больше одной подходящей буквы — не можем определить
+                if (candidatePos !== -1) { candidatePos = -2; break; }
+                candidatePos = i;
+                candidateLetter = ch;
+            }
+            if (candidatePos >= 0 && candidatePos !== -2) {
+                if (correct[candidatePos] === null) {
+                    correct[candidatePos] = candidateLetter;
+                    changed = true;
+                }
+            }
+        }
+    } while (changed);
+
+    // 3. После определения зелёных, исключаем буквы из попыток, где быки уже покрыты и нет коров
+    for (let a of attempts) {
+        if (a.c !== 0) continue;
+        if (a.b === 0) continue;
+        // Подсчитываем, сколько зелёных позиций совпадает с этой попыткой
+        let covered = 0;
+        for (let i = 0; i < length; i++) {
+            if (correct[i] !== null && correct[i] === a.w[i]) covered++;
+        }
+        if (covered === a.b) {
+            // Все быки учтены, значит, остальные буквы в этой попытке исключаем
+            for (let i = 0; i < length; i++) {
+                let ch = a.w[i];
+                if (correct[i] === ch) continue; // зелёную не исключаем
+                excluded.add(ch);
+            }
+        }
+    }
+
+    // 4. Буквы, которые точно присутствуют (из попыток с b+c>0, не исключённые и не зелёные)
+    present.clear();
+    for (let a of attempts) {
+        if (a.b + a.c === 0) continue;
+        for (let ch of a.w) {
+            if (!excluded.has(ch) && !correct.includes(ch)) present.add(ch);
+        }
+    }
+
+    // 5. Проверка на явные ошибки
     for (let a of attempts) {
         if (a.b + a.c === 0) continue;
         let possibleBulls = 0;
@@ -168,7 +210,6 @@ function recalc() {
             showError(`❌ Ошибка: в слове "${a.w}" быков ${a.b}, но уже известно ${possibleBulls} точных позиций. Удалите лишние попытки.`);
             return;
         }
-        // Проверка на коров: не может быть больше, чем неподтверждённых букв
         let presentInWord = 0;
         for (let ch of a.w) {
             if (present.has(ch) || correct.includes(ch)) presentInWord++;
@@ -301,7 +342,6 @@ window.add = function() {
     recalc();
 };
 
-// Подсказка с использованием словаря
 window.hint = function() {
     clearError();
     if (!dictionary.length) {
