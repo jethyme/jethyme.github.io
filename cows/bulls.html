@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🐂 Табун 🐂</title>
-
 <style>
 body{
     font-family:sans-serif;
@@ -14,7 +13,6 @@ body{
     margin:0;
     padding:10px;
 }
-
 .container{
     max-width:520px;
     margin:auto;
@@ -22,14 +20,12 @@ body{
     padding:20px;
     border-radius:20px;
 }
-
 .solution{
     display:flex;
     justify-content:center;
     gap:5px;
     margin-bottom:10px;
 }
-
 .cell{
     width:40px;
     height:40px;
@@ -40,35 +36,28 @@ body{
     border-radius:6px;
     font-weight:bold;
 }
-
 .cell.green{background:#4caf50}
-
 .alphabet{
     display:grid;
     grid-template-columns:repeat(11,1fr);
     gap:4px;
     margin-top:10px;
 }
-
 .letter{
     padding:6px;
     border-radius:5px;
     background:#444;
     font-weight:bold;
 }
-
 .gray{background:#555;opacity:0.4}
 .green{background:#4caf50}
 .yellow{background:#f9a825}
-
 .row{
     display:flex;
     gap:6px;
     margin-top:10px;
 }
-
 .row input{flex:1}
-
 button{
     margin-top:10px;
     padding:10px;
@@ -76,37 +65,42 @@ button{
     border-radius:10px;
     background:#5865f2;
     color:white;
+    cursor:pointer;
 }
-
 input{
     padding:10px;
     border-radius:10px;
     border:none;
     text-align:center;
 }
-
 .hidden{display:none}
-
+.word-entry{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    justify-content:center;
+    margin-top:5px;
+}
+.word-entry button{
+    padding:2px 6px;
+    font-size:12px;
+    background:#f44336;
+}
 @media(max-width:600px){
     .row{flex-direction:column}
     button{width:100%}
 }
 </style>
 </head>
-
 <body>
-
 <div class="container">
-
-<h2>🧠 Hardcore Solver</h2>
-
+<h2>🐂 Табун 🐂</h2>
 <div id="start">
 <input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
 </div>
 
 <div id="game" class="hidden">
-
 <div id="solution" class="solution"></div>
 
 <div class="row">
@@ -124,9 +118,7 @@ input{
 
 <div id="alphabet" class="alphabet"></div>
 <div id="history"></div>
-
 </div>
-
 </div>
 
 <script>
@@ -135,11 +127,11 @@ document.addEventListener("DOMContentLoaded",()=>{
 const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
 let length=0;
 let attempts=[];
-let words=[];
+let words=[]; 
 let usedHints=[];
 let excluded=new Set(); // буквы точно нет
-let present=new Set();  // буквы могут быть
-let correct=[];         // буквы точно на своих местах
+let present=new Set();  // буквы которые могут быть
+let correct=[];         // буквы на своих местах
 let solution=document.getElementById("solution");
 let alphabetDiv=document.getElementById("alphabet");
 let history=document.getElementById("history");
@@ -148,7 +140,7 @@ let bullsInput=document.getElementById("bulls");
 let cowsInput=document.getElementById("cows");
 let lenInput=document.getElementById("len");
 
-// загружаем словарь для подсказок
+// словарь для подсказок
 async function loadWords(){
     const r=await fetch("singular.txt");
     words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase());
@@ -157,10 +149,9 @@ loadWords();
 
 window.start=function(){
     length=parseInt(lenInput.value);
-    if(!length)return;
+    if(!length) return;
     document.getElementById("start").classList.add("hidden");
     document.getElementById("game").classList.remove("hidden");
-
     correct=Array(length).fill(null);
     buildSolution();
     renderAlphabet();
@@ -188,49 +179,53 @@ function updateSolution(){
     });
 }
 
+function recalc(){
+    excluded.clear();
+    present.clear();
+    correct=Array(length).fill(null);
+
+    // шаг 1: буквы с нулями точно отсутствуют
+    for(let a of attempts){
+        if(a.b===0 && a.c===0){
+            for(let ch of a.w) excluded.add(ch);
+        }
+    }
+    // шаг2: устанавливаем точные быки
+    for(let a of attempts){
+        if(a.b>0){
+            for(let i=0;i<length;i++){
+                let ch=a.w[i];
+                if(!correct[i] && !excluded.has(ch)){
+                    let countBulls=0;
+                    for(let j=0;j<length;j++){
+                        if(a.w[j]===ch && i===j) countBulls++;
+                    }
+                    if(countBulls>0) correct[i]=ch;
+                    if(countBulls>0) present.add(ch);
+                }
+            }
+        }
+    }
+    // шаг3: буквы, которые могут быть в слове
+    for(let a of attempts){
+        if(a.b+a.c>0){
+            for(let ch of a.w){
+                if(!excluded.has(ch)) present.add(ch);
+            }
+        }
+    }
+    updateSolution();
+    renderAlphabet();
+    renderHistory();
+}
+
 window.add=function(){
     let w=wordInput.value.trim().toLowerCase();
     let b=parseInt(bullsInput.value)||0;
     let c=parseInt(cowsInput.value)||0;
     if(w.length!==length) return alert("Неверная длина слова");
-
     attempts.push({w,b,c});
-
-    // 1. буквы с нулями точно отсутствуют
-    if(b===0 && c===0){
-        for(let ch of w) excluded.add(ch);
-    }
-
-    // 2. фиксируем быков
-    if(b>0){
-        for(let i=0;i<length;i++){
-            if(w[i] && !correct[i]){
-                // если мы видим быка, ставим в correct
-                // простая эвристика: если b>0 и позиция совпадает
-                // тут можно делать более умную логику
-                if(b>0 && attempts.length>0){
-                    // проверяем, не исключена ли буква
-                    if(!excluded.has(w[i])){
-                        correct[i]=w[i];
-                        present.add(w[i]);
-                    }
-                }
-            }
-        }
-    }
-
-    // 3. добавляем буквы которые могут быть (c>0 или b>0) для алфавита
-    for(let i=0;i<length;i++){
-        let ch=w[i];
-        if(b+c>0 && !excluded.has(ch)){
-            present.add(ch);
-        }
-    }
-
-    renderAlphabet();
-    renderHistory();
-    updateSolution();
-
+    recalc();
     wordInput.value="";
     bullsInput.value="";
     cowsInput.value="";
@@ -238,18 +233,28 @@ window.add=function(){
 
 function renderHistory(){
     history.innerHTML="";
-    attempts.forEach(a=>{
+    attempts.forEach((a,i)=>{
         let s="";
         if(a.b===0 && a.c===0){
-            s="❌ "+a.w;
+            s=a.w+" ❌";
         } else {
-            s=`${a.w}`;
+            s=a.w;
             if(a.b>0) s+=` 🐂${a.b}`;
             if(a.c>0) s+=` 🐄${a.c}`;
         }
-        let d=document.createElement("div");
-        d.innerText=s;
-        history.appendChild(d);
+        let div=document.createElement("div");
+        div.className="word-entry";
+        let text=document.createElement("span");
+        text.innerText=s;
+        let btn=document.createElement("button");
+        btn.innerText="✖";
+        btn.onclick=()=>{
+            attempts.splice(i,1);
+            recalc();
+        };
+        div.appendChild(text);
+        div.appendChild(btn);
+        history.appendChild(div);
     });
 }
 
@@ -291,6 +296,5 @@ window.restart=function(){
 
 });
 </script>
-
 </body>
 </html>
