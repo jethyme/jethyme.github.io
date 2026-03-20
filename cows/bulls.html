@@ -3,32 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver v2</title>
+<title>Hardcore Solver</title>
 <style>
-body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
-.container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
-.solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px;}
-.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold;}
+body{
+    font-family:sans-serif;
+    background:#1e1e2f;
+    color:white;
+    text-align:center;
+    margin:0;
+    padding:10px;
+}
+.container{
+    max-width:520px;
+    margin:auto;
+    background:#2f2f4f;
+    padding:20px;
+    border-radius:20px;
+}
+.solution{
+    display:flex;
+    justify-content:center;
+    gap:5px;
+    margin-bottom:10px;
+}
+.cell{
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#444;
+    border-radius:6px;
+    font-weight:bold;
+    text-transform:uppercase;
+}
 .cell.green{background:#4caf50}
-.alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
-.letter{ padding:6px; border-radius:5px; background:#444; font-weight:bold; }
-.gray{background:#555; opacity:0.4}
+.alphabet{
+    display:grid;
+    grid-template-columns:repeat(11,1fr);
+    gap:4px;
+    margin-top:10px;
+}
+.letter{
+    padding:6px;
+    border-radius:5px;
+    background:#444;
+    font-weight:bold;
+    text-transform:uppercase;
+}
+.gray{background:#555;opacity:0.4}
 .green{background:#4caf50}
 .yellow{background:#f9a825}
-.row{ display:flex; gap:6px; margin-top:10px;}
+.row{
+    display:flex;
+    gap:6px;
+    margin-top:10px;
+}
 .row input{flex:1}
-button{ margin-top:10px; padding:10px; border:none; border-radius:10px; background:#5865f2; color:white; cursor:pointer;}
-input{ padding:10px; border-radius:10px; border:none; text-align:center;}
+button{
+    margin-top:10px;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    background:#5865f2;
+    color:white;
+    cursor:pointer;
+}
+input{
+    padding:10px;
+    border-radius:10px;
+    border:none;
+    text-align:center;
+}
 .hidden{display:none}
-.word-entry{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:5px;}
-.word-entry button{ padding:2px 6px; font-size:12px; background:#f44336;}
-.error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
-@media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
+.word-entry{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    justify-content:center;
+    margin-top:5px;
+}
+.word-entry button{
+    padding:2px 6px;
+    font-size:12px;
+    background:#f44336;
+    border:none;
+    border-radius:6px;
+    color:white;
+    cursor:pointer;
+}
+.error{
+    color:#ff6b6b;
+    margin-top:6px;
+}
+@media(max-width:600px){
+    .row{flex-direction:column}
+    button{width:100%}
+}
 </style>
 </head>
 <body>
 <div class="container">
-<h2>🧠 Hardcore Solver v2</h2>
+<h2>🧠 Hardcore Solver</h2>
 <div id="start">
 <input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
@@ -46,11 +122,12 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <input id="cows" type="number" placeholder="🐄">
 </div>
 
+<div class="error" id="error"></div>
+
 <button onclick="add()">Добавить</button>
 <button onclick="hint()">💡 Подсказка</button>
 <button onclick="restart()">🔄 Новая игра</button>
 
-<div id="error" class="error hidden"></div>
 <div id="alphabet" class="alphabet"></div>
 <div id="history"></div>
 </div>
@@ -60,41 +137,35 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 document.addEventListener("DOMContentLoaded",()=>{
 
 const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
-let length=0, attempts=[], usedHints=[], excluded=new Set(), present=new Set(), correct=[], words=[];
+let length=0;
+let attempts=[];
+let usedHints=[];
+let excluded=new Set();
+let present=new Set();
+let correct=[];
+let solution=document.getElementById("solution");
+let alphabetDiv=document.getElementById("alphabet");
+let history=document.getElementById("history");
+let wordInput=document.getElementById("word");
+let bullsInput=document.getElementById("bulls");
+let cowsInput=document.getElementById("cows");
+let lenInput=document.getElementById("len");
+let errorEl=document.getElementById("error");
+let words=[];
 
-const solution=document.getElementById("solution");
-const alphabetDiv=document.getElementById("alphabet");
-const history=document.getElementById("history");
-const wordInput=document.getElementById("word");
-const bullsInput=document.getElementById("bulls");
-const cowsInput=document.getElementById("cows");
-const lenInput=document.getElementById("len");
-const errorDiv=document.getElementById("error");
-
-// Загрузка слов
+// загружаем словарь
 async function loadWords(){
     const r=await fetch("singular.txt");
     words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
 }
 loadWords();
 
-function showError(msg){
-    errorDiv.innerText=msg;
-    errorDiv.classList.remove("hidden");
-    wordInput.classList.add("input-error");
-    wordInput.classList.remove("shake");
-    void wordInput.offsetWidth;
-    wordInput.classList.add("shake");
-}
-
-function clearError(){
-    errorDiv.classList.add("hidden");
-    wordInput.classList.remove("input-error");
-}
-
 window.start=function(){
     length=parseInt(lenInput.value);
-    if(!length){ showError("Введите длину слова"); return; }
+    if(!length){
+        errorEl.innerText="Введите длину слова";
+        return;
+    }
     document.getElementById("start").classList.add("hidden");
     document.getElementById("game").classList.remove("hidden");
     correct=Array(length).fill(null);
@@ -124,36 +195,57 @@ function updateSolution(){
     });
 }
 
-// Пересчет логики
+// вычисление букв и позиций по всем попыткам
 function recalc(){
-    excluded.clear(); present.clear(); correct=Array(length).fill(null);
+    excluded.clear();
+    present.clear();
+    correct=Array(length).fill(null);
 
-    // 1. Найти точно отсутствующие буквы
+    // 1. все буквы с нулями точно отсутствуют
     for(let a of attempts){
         if(a.b===0 && a.c===0){
             for(let ch of a.w) excluded.add(ch);
         }
     }
 
-    // 2. Проходим по каждой позиции для быков
-    for(let pos=0; pos<length; pos++){
-        const candidates = attempts.filter(a=>a.b>0 || a.c>0).map(a=>a.w[pos]);
-        const filtered = candidates.filter(c=>!excluded.has(c));
-        const unique = [...new Set(filtered)];
-        if(unique.length===1){
-            // Если только одна буква возможна здесь → точно бык
-            correct[pos]=unique[0];
-        }
-    }
-
-    // 3. Определяем буквы, которые точно есть где-то в слове
+    // 2. собираем количество каждой буквы в попытках с быками/корами
+    let possiblePositions=Array(length).fill().map(()=>new Set(alphabet));
+    let minCount={}; // буква точно есть хотя бы minCount раз
     for(let a of attempts){
         if(a.b+a.c>0){
+            let counts={};
             for(let ch of a.w){
-                if(!excluded.has(ch) && !correct.includes(ch)) present.add(ch);
+                if(!excluded.has(ch)) counts[ch]=(counts[ch]||0)+1;
+            }
+            for(let ch in counts){
+                minCount[ch]=Math.max(minCount[ch]||0, counts[ch]);
             }
         }
     }
+
+    // 3. определяем возможные позиции для букв
+    for(let i=0;i<length;i++){
+        let mustExclude=new Set();
+        for(let a of attempts){
+            if(a.b+a.c===0) continue;
+            if(a.w[i] && excluded.has(a.w[i])) continue;
+            // если на позиции i буква не может быть быком
+            if(a.b===0) mustExclude.add(a.w[i]);
+        }
+        possiblePositions[i] = new Set([...possiblePositions[i]].filter(ch=>!mustExclude.has(ch)));
+    }
+
+    // 4. пытаемся определить точные позиции (быки)
+    for(let i=0;i<length;i++){
+        if(possiblePositions[i].size===1){
+            let ch=[...possiblePositions[i]][0];
+            correct[i]=ch;
+            present.add(ch);
+        }
+    }
+
+    // 5. буквы, которые есть хотя бы один раз (зелёные в алфавите)
+    for(let ch in minCount) present.add(ch);
 
     updateSolution();
     renderAlphabet();
@@ -164,25 +256,37 @@ window.add=function(){
     let w=wordInput.value.trim().toLowerCase();
     let b=parseInt(bullsInput.value)||0;
     let c=parseInt(cowsInput.value)||0;
-    if(w.length!==length){ showError("Неверная длина"); return; }
-    clearError();
+    errorEl.innerText="";
+    if(w.length!==length){
+        errorEl.innerText="Неверная длина слова";
+        return;
+    }
     attempts.push({w,b,c});
     recalc();
-    wordInput.value=""; bullsInput.value=""; cowsInput.value="";
+    wordInput.value="";
+    bullsInput.value="";
+    cowsInput.value="";
 }
 
 function renderHistory(){
     history.innerHTML="";
     attempts.forEach((a,i)=>{
         let s="";
-        if(a.b===0 && a.c===0){ s=a.w+" ❌"; }
-        else{ s=a.w; if(a.b>0) s+=` 🐂${a.b}`; if(a.c>0) s+=` 🐄${a.c}`; }
+        if(a.b===0 && a.c===0) s=a.w+" ❌";
+        else {
+            s=a.w;
+            if(a.b>0) s+=` 🐂${a.b}`;
+            if(a.c>0) s+=` 🐄${a.c}`;
+        }
         let div=document.createElement("div");
         div.className="word-entry";
-        let text=document.createElement("span"); text.innerText=s;
-        let btn=document.createElement("button"); btn.innerText="✖";
-        btn.onclick=()=>{ attempts.splice(i,1); recalc(); }
-        div.appendChild(text); div.appendChild(btn);
+        let text=document.createElement("span");
+        text.innerText=s;
+        let btn=document.createElement("button");
+        btn.innerText="✖";
+        btn.onclick=()=>{ attempts.splice(i,1); recalc(); };
+        div.appendChild(text);
+        div.appendChild(btn);
         history.appendChild(div);
     });
 }
@@ -202,26 +306,34 @@ function renderAlphabet(){
 
 function fits(word){
     if(word.length!==length) return false;
-    for(let i=0;i<length;i++) if(correct[i] && word[i]!==correct[i]) return false;
-    for(let l of excluded) if(word.includes(l)) return false;
+    for(let i=0;i<length;i++){
+        if(correct[i] && word[i]!==correct[i]) return false;
+    }
+    for(let l of excluded){
+        if(word.includes(l)) return false;
+    }
     return true;
 }
 
 window.hint=function(){
-    clearError();
-    let candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
-    if(!candidates.length){ showError("Нет вариантов"); return; }
-    let best=candidates[0]; let bestScore=-1;
-    candidates.forEach(w=>{
-        let score=0;
-        for(let l of w) if(present.has(l) || correct.includes(l)) score++;
-        if(score>bestScore){ bestScore=score; best=w; }
-    });
+    const candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
+    if(!candidates.length){
+        errorEl.innerText="Нет вариантов для подсказки";
+        return;
+    }
+    // умный выбор: слово с максимальным количеством разных букв
+    let best=candidates.reduce((a,b)=>{
+        let scoreB=[...new Set(b)].length;
+        let scoreA=a?[...new Set(a)].length:0;
+        return scoreB>scoreA?b:a;
+    }, null);
     wordInput.value=best;
     usedHints.push(best);
 }
 
-window.restart=function(){ location.reload(); }
+window.restart=function(){
+    location.reload();
+}
 
 });
 </script>
