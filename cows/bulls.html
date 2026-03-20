@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver — точная логика</title>
+<title>Hardcore Solver — исправленная логика</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
@@ -11,7 +11,7 @@ body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center
 .cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold;}
 .cell.green{background:#4caf50}
 .alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
-.letter{ padding:6px; border-radius:5px; background:#444; font-weight:bold; }
+.letter{ padding:6px; border-radius:5px; background:#444; font-weight:bold; transition:0.1s;}
 .gray{background:#555; opacity:0.4}
 .green{background:#4caf50}
 .yellow{background:#f9a825}
@@ -61,17 +61,17 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <script>
 // ------------------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ -------------------
 const alphabet = "абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
-let dictionary = [];          // все слова из файла
-let length = 0;               // текущая длина слова
-let attempts = [];            // массив попыток {w, b, c}
-let usedHints = [];           // слова, уже показанные в подсказке
+let dictionary = [];
+let length = 0;
+let attempts = [];            // { w, b, c }
+let usedHints = [];
 
-// Множества для отображения цветов (рассчитываются без словаря)
-let correct = [];             // точно известные буквы на позициях (зелёные)
-let present = new Set();      // буквы, которые точно есть в слове (жёлтые)
-let excluded = new Set();     // буквы, которых нет в слове (серые)
+// Результаты анализа (без словаря)
+let correct = [];             // точные позиции (зелёные)
+let present = new Set();      // буквы, которые точно есть (жёлтые)
+let excluded = new Set();     // буквы, которых нет (серые)
 
-// DOM элементы
+// DOM
 const solutionDiv = document.getElementById("solution");
 const alphabetDiv = document.getElementById("alphabet");
 const historyDiv = document.getElementById("history");
@@ -102,161 +102,130 @@ function clearError() {
 // Подсчёт быков и коров между двумя словами
 function getBullsCows(guess, target) {
     let bulls = 0, cows = 0;
-    let guessArr = guess.split('');
-    let targetArr = target.split('');
+    let g = guess.split('');
+    let t = target.split('');
     for (let i = 0; i < length; i++) {
-        if (guessArr[i] === targetArr[i]) {
+        if (g[i] === t[i]) {
             bulls++;
-            guessArr[i] = targetArr[i] = null;
+            g[i] = t[i] = null;
         }
     }
     for (let i = 0; i < length; i++) {
-        if (guessArr[i] !== null) {
-            let idx = targetArr.indexOf(guessArr[i]);
+        if (g[i] !== null) {
+            let idx = t.indexOf(g[i]);
             if (idx !== -1) {
                 cows++;
-                targetArr[idx] = null;
+                t[idx] = null;
             }
         }
     }
     return { bulls, cows };
 }
 
-// Проверка, может ли существовать хотя бы одно слово (любое, необязательно из словаря),
-// удовлетворяющее всем попыткам.
-function isConsistent() {
-    // Если попыток нет – всегда согласовано
-    if (attempts.length === 0) return true;
-
-    // Генерируем гипотетическое слово, удовлетворяющее известным точным позициям
-    // и содержащее все present буквы, но не содержащее excluded.
-    // Для простоты: проверим, что нет прямых противоречий между попытками.
-    // Например, если в одной попытке на позиции i стоит буква A, а в другой на той же позиции стоит B,
-    // и обе попытки имеют быков, то это противоречие, если бык не может быть одновременно A и B.
-    // Но мы не знаем, какие именно быки. Однако если в двух попытках на одной позиции разные буквы,
-    // и в каждой из попыток сумма быков+коров равна длине (т.е. все буквы учтены), то это противоречие.
-    // Вместо полного перебора воспользуемся простой эвристикой: проверим, что для каждой попытки
-    // можно подобрать слово, не выходящее за рамки известных correct, present, excluded.
-    // Для этого достаточно, чтобы в каждой попытке количество быков не превышало количество позиций,
-    // где буква совпадает с correct (если correct есть), и коров не превышало количество присутствующих букв.
-    // Это не строго, но для большинства случаев работает.
-    for (let a of attempts) {
-        let possibleBulls = 0;
-        let possibleCows = 0;
-        let used = new Set();
-        for (let i = 0; i < length; i++) {
-            if (correct[i] && a.w[i] === correct[i]) {
-                possibleBulls++;
-                used.add(a.w[i]);
-            }
-        }
-        for (let i = 0; i < length; i++) {
-            let ch = a.w[i];
-            if (correct[i] && a.w[i] === correct[i]) continue;
-            if (present.has(ch) && !used.has(ch)) {
-                possibleCows++;
-                used.add(ch);
-            }
-        }
-        if (possibleBulls > a.b || possibleCows > a.c) return false;
-        if (possibleBulls + possibleCows < a.b + a.c) return false;
-    }
-    return true;
-}
-
 // ------------------- ОСНОВНАЯ ЛОГИКА (БЕЗ СЛОВАРЯ) -------------------
 function recalc() {
-    // Сбрасываем все вычисляемые множества
-    correct = Array(length).fill(null);
-    present.clear();
+    // 1. Исключённые буквы (попытки с 0 быков и 0 коров)
     excluded.clear();
-
-    // 1. Обрабатываем попытки с нулевыми быками и коровами – все их буквы исключаем
     for (let a of attempts) {
         if (a.b === 0 && a.c === 0) {
-            for (let ch of a.w) {
-                excluded.add(ch);
-            }
+            for (let ch of a.w) excluded.add(ch);
         }
     }
 
-    // 2. Собираем буквы, которые встречались в попытках с положительной суммой
-    let seenLetters = new Set();
+    // 2. Буквы, которые точно присутствуют (из попыток с b+c>0, не исключённые)
+    present.clear();
     for (let a of attempts) {
         if (a.b + a.c > 0) {
             for (let ch of a.w) {
-                seenLetters.add(ch);
+                if (!excluded.has(ch)) present.add(ch);
             }
         }
     }
-    // Жёлтые = буквы из seenLetters, которые не исключены
-    for (let ch of seenLetters) {
-        if (!excluded.has(ch)) {
-            present.add(ch);
-        }
-    }
 
-    // 3. Пытаемся определить точные позиции (зелёные) на основе анализа быков
-    // Для каждой позиции ищем букву, которая во всех попытках, где она встречается на этой позиции,
-    // обязательно является быком, и при этом другие буквы на этой позиции не могут быть быками.
-    // Упрощённо: если в какой-то попытке на позиции i стоит буква ch, и при этом
-    // количество быков в этой попытке равно числу позиций, где буква совпадает с ch,
-    // и других кандидатов нет – тогда это зелёная.
-    // Более надёжно: используем перебор по всем возможным словам из словаря, чтобы найти общие позиции.
-    // Но поскольку слово может быть не из словаря, используем эвристику:
-    // буква становится зелёной, если во всех попытках, где она встречается на позиции i,
-    // она не может быть коровой (т.е. ни в одной из попыток она не может быть перемещена).
-    // Реализуем простой, но работающий на практике метод:
-    // для каждой позиции собираем буквы, которые там были. Если буква встречалась на этой позиции
-    // во всех попытках, где эта буква вообще встречалась, и при этом общее количество быков
-    // в этих попытках равно 1 и других букв на этой позиции нет – то она зелёная.
-    // Для примера "чешка 🐂1" и "весло 🐂1" это сработает, потому что 'е' на второй позиции
-    // встречается в обеих попытках и больше нигде не появляется.
+    // 3. Определение зелёных позиций (точные быки)
+    correct = Array(length).fill(null);
 
-    // Сначала создадим карту: позиция -> Set букв, которые там были в любой попытке
+    // Собираем для каждой позиции все буквы, которые там встречались в попытках с b+c>0
     let posLetters = Array(length).fill().map(() => new Set());
     for (let a of attempts) {
+        if (a.b + a.c === 0) continue; // нулевые попытки не дают информации о позициях
         for (let i = 0; i < length; i++) {
             posLetters[i].add(a.w[i]);
         }
     }
 
-    // Для каждой позиции ищем кандидата в зелёные
+    // Кандидаты в зелёные: позиции, где во всех попытках одна буква
+    let candidates = Array(length).fill(false);
+    let candidateLetters = Array(length).fill(null);
     for (let i = 0; i < length; i++) {
-        // Если на позиции только одна буква среди всех попыток, и она не исключена,
-        // то она зелёная (потому что во всех попытках она стоит на этом месте)
         if (posLetters[i].size === 1) {
             let ch = [...posLetters[i]][0];
-            if (!excluded.has(ch)) {
-                correct[i] = ch;
-                present.delete(ch); // зелёные не должны быть жёлтыми
-                continue;
+            if (!excluded.has(ch) && present.has(ch)) {
+                candidates[i] = true;
+                candidateLetters[i] = ch;
             }
         }
-
-        // Более сложный случай: если буква на этой позиции встречается во всех попытках,
-        // где она вообще есть, и при этом в каждой такой попытке бык >=1 и нет других букв,
-        // которые могли бы быть быками на этой позиции – можно считать её зелёной.
-        // Для простоты оставим только первый случай, он покрывает большинство ситуаций.
     }
 
-    // Дополнительно: если после предыдущего шага остались неопределённые позиции,
-    // можно попытаться использовать информацию о коровах. Но для демонстрации достаточно.
+    // Теперь проверим, что в каждой попытке количество кандидатов не превышает количество быков
+    // Если превышает – убираем лишние, но мы не знаем какие. Поэтому если в какой-то попытке
+    // количество кандидатов > b, то мы не можем доверять ни одному из них (ни один не зелёный)
+    let valid = true;
+    for (let a of attempts) {
+        if (a.b + a.c === 0) continue;
+        let cnt = 0;
+        for (let i = 0; i < length; i++) {
+            if (candidates[i] && a.w[i] === candidateLetters[i]) cnt++;
+        }
+        if (cnt > a.b) {
+            valid = false;
+            break;
+        }
+    }
 
-    // 4. Проверяем согласованность (непротиворечивость всех попыток)
-    if (!isConsistent()) {
-        showError("⚠️ Введённые данные противоречивы. Удалите последнюю попытку или исправьте быков/коров.");
+    if (valid) {
+        // Если условие выполняется, то все кандидаты становятся зелёными
+        for (let i = 0; i < length; i++) {
+            if (candidates[i]) {
+                correct[i] = candidateLetters[i];
+                present.delete(candidateLetters[i]); // зелёные не должны быть жёлтыми
+            }
+        }
     } else {
-        clearError();
+        // Иначе оставляем correct пустым (ни одной зелёной)
+        // Но можно попробовать более сложный отбор, но для простоты оставим так.
     }
 
-    // 5. Обновляем интерфейс
+    // 4. Проверка на явные ошибки (например, быков больше, чем может быть)
+    for (let a of attempts) {
+        if (a.b + a.c === 0) continue;
+        let possibleBulls = 0;
+        for (let i = 0; i < length; i++) {
+            if (correct[i] && a.w[i] === correct[i]) possibleBulls++;
+        }
+        if (possibleBulls > a.b) {
+            showError(`❌ Ошибка: в слове "${a.w}" быков ${a.b}, но уже известно ${possibleBulls} точных позиций. Удалите лишние попытки.`);
+            return;
+        }
+        // Также можно проверить, что коров не больше, чем доступных букв
+        let presentInWord = 0;
+        for (let ch of a.w) {
+            if (present.has(ch) || correct.includes(ch)) presentInWord++;
+        }
+        if (a.c > presentInWord - possibleBulls) {
+            showError(`❌ Ошибка: в слове "${a.w}" коров ${a.c}, но недостаточно неподтверждённых букв.`);
+            return;
+        }
+    }
+
+    // Обновление интерфейса
     updateSolution();
     renderAlphabet();
     renderHistory();
+    clearError(); // если дошли сюда – ошибок нет
 }
 
-// ------------------- ОТРИСОВКА ИНТЕРФЕЙСА -------------------
+// ------------------- ОТРИСОВКА -------------------
 function buildSolution() {
     solutionDiv.innerHTML = "";
     for (let i = 0; i < length; i++) {
@@ -362,11 +331,6 @@ window.add = function() {
         showError("Сумма быков и коров не может превышать длину слова");
         return;
     }
-    // Проверка на повторяющиеся буквы в слове – необязательно, но предупредим
-    const unique = new Set(w);
-    if (b + c > unique.size) {
-        showError(`⚠️ Сумма быков+коров (${b+c}) больше количества уникальных букв (${unique.size}). Возможна ошибка.`);
-    }
 
     clearError();
     attempts.push({ w, b, c });
@@ -376,14 +340,13 @@ window.add = function() {
     recalc();
 };
 
-// Подсказка с использованием словаря (если загружен)
+// Подсказка с использованием словаря
 window.hint = function() {
     clearError();
     if (!dictionary.length) {
         showError("Словарь ещё не загружен, подсказка недоступна");
         return;
     }
-    // Отбираем слова, подходящие под все попытки
     let candidates = dictionary.filter(word => word.length === length);
     for (let a of attempts) {
         candidates = candidates.filter(word => {
@@ -396,13 +359,15 @@ window.hint = function() {
         return;
     }
     candidates = candidates.filter(w => !usedHints.includes(w));
-    if (candidates.length === 0) candidates = dictionary.filter(word => word.length === length && (() => {
-        for (let a of attempts) {
-            const { bulls, cows } = getBullsCows(a.w, word);
-            if (bulls !== a.b || cows !== a.c) return false;
-        }
-        return true;
-    })());
+    if (candidates.length === 0) {
+        candidates = dictionary.filter(word => word.length === length && (() => {
+            for (let a of attempts) {
+                const { bulls, cows } = getBullsCows(a.w, word);
+                if (bulls !== a.b || cows !== a.c) return false;
+            }
+            return true;
+        })());
+    }
     if (candidates.length === 0) {
         showError("Нет новых вариантов для подсказки");
         return;
@@ -427,9 +392,6 @@ async function loadDictionary() {
             .map(line => line.trim().toLowerCase())
             .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3 && word.length <= 12);
         loadStatusSpan.innerText = `✅ Загружено ${dictionary.length} слов`;
-        if (!startDiv.classList.contains("hidden") === false) {
-            // Если игра уже начата, можно обновить подсказки, но recalc не зависит от словаря
-        }
     } catch (err) {
         console.error(err);
         loadStatusSpan.innerText = "❌ Ошибка загрузки словаря. Подсказка будет недоступна.";
