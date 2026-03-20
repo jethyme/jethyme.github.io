@@ -60,7 +60,6 @@ body{
 }
 
 .gray{background:#555;opacity:0.4}
-.yellow{background:#c9a227}
 .green{background:#4caf50}
 
 /* ввод */
@@ -101,7 +100,7 @@ input{
 
 <div class="container">
 
-<h2>🧠 Hardcore Solver</h2>
+<h2>🐂 Табун 🐂</h2>
 
 <div id="start">
 <input id="len" type="number" placeholder="Длина">
@@ -140,7 +139,7 @@ let length=0;
 let attempts=[];
 let words=[];
 let usedHints=[];
-let excluded=new Set(); // буквы, которых нет
+let excluded=new Set(); // буквы точно нет
 let present=new Set();  // буквы есть
 let correct=[];         // точные позиции
 let solution=document.getElementById("solution");
@@ -184,6 +183,9 @@ function updateSolution(){
         if(correct[i]){
             c.innerText=correct[i];
             c.classList.add("green");
+        } else {
+            c.innerText="_";
+            c.classList.remove("green");
         }
     });
 }
@@ -196,38 +198,24 @@ window.add=function(){
 
     attempts.push({w,b,c});
 
-    // анализ букв
-    // 1. подсчет букв в попытке
-    let letterCount={};
-    for(let l of w) letterCount[l]=(letterCount[l]||0)+1;
+    // обработка букв
+    let counted=new Array(length).fill(false);
 
-    // 2. фиксируем быков
-    let tempB=b;
+    // 1. фиксируем быков
     for(let i=0;i<length;i++){
-        if(tempB>0 && !correct[i]){
-            // если буква ещё не зафиксирована, ставим быка
-            correct[i]=w[i];
-            present.add(w[i]);
-            tempB--;
+        if(b>0 && !correct[i]){
+            correct[i]=null; // мы будем решать после анализа
         }
     }
 
-    // 3. коровы: буквы есть в слове, но на другой позиции
-    let tempC=c;
+    // 2. анализ букв для уверенности
     for(let i=0;i<length;i++){
-        if(correct[i]===w[i]) continue;
-        if(tempC>0){
-            present.add(w[i]);
-            tempC--;
-        }else{
+        if(b===0 && c===0){
             excluded.add(w[i]);
+        } else {
+            present.add(w[i]);
         }
     }
-
-    // 4. буквы, которых нет
-    w.split("").forEach(l=>{
-        if(!present.has(l)) excluded.add(l);
-    });
 
     renderAlphabet();
     renderHistory();
@@ -241,9 +229,13 @@ window.add=function(){
 function renderHistory(){
     history.innerHTML="";
     attempts.forEach(a=>{
-        const d=document.createElement("div");
-        d.innerText=`${a.w} → 🐂${a.b} 🐄${a.c}`;
-        history.appendChild(d);
+        let s="";
+        if(a.b===0 && a.c===0){
+            s="❌ "+a.w;
+        } else {
+            s=`${a.w}`;
+        }
+        history.appendChild(document.createElement("div")).innerText=s;
     });
 }
 
@@ -253,8 +245,7 @@ function renderAlphabet(){
         const d=document.createElement("div");
         d.className="letter";
         if(excluded.has(l)) d.classList.add("gray");
-        else if(correct.includes(l)) d.classList.add("green");
-        else if(present.has(l)) d.classList.add("yellow");
+        else if(correct.includes(l) || present.has(l)) d.classList.add("green");
         d.innerText=l;
         alphabetDiv.appendChild(d);
     });
@@ -274,22 +265,9 @@ function fits(word){
 window.hint=function(){
     const candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
     if(!candidates.length) return alert("Подсказок больше нет");
-    // частотная оценка
-    let freq={};
-    candidates.forEach(w=>{
-        new Set(w).forEach(l=>freq[l]=(freq[l]||0)+1);
-    });
-    let best=null;
-    let score=-1;
-    candidates.forEach(w=>{
-        let s=0;
-        new Set(w).forEach(l=>s+=freq[l]||0);
-        if(s>score){score=s;best=w;}
-    });
-    if(best){
-        wordInput.value=best;
-        usedHints.push(best);
-    }
+    let best=candidates[Math.floor(Math.random()*candidates.length)];
+    wordInput.value=best;
+    usedHints.push(best);
 }
 
 window.restart=function(){
