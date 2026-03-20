@@ -13,26 +13,20 @@ body {
     background: linear-gradient(135deg, #1e1e2f, #2b2b45);
     color: white;
     text-align: center;
+    margin:0;
+    padding:10px;
 }
 
 .container {
     background: #2f2f4f;
-    padding: 25px;
+    padding: 20px;
     border-radius: 20px;
-    width: fit-content;
+    max-width: 500px;
     margin: auto;
 }
 
-input {
-    padding: 8px;
-    border-radius: 8px;
-    border: none;
-    margin: 5px;
-    text-align: center;
-}
-
 button {
-    padding: 8px 12px;
+    padding: 10px;
     border-radius: 10px;
     border: none;
     background: #5865f2;
@@ -42,52 +36,84 @@ button {
 
 button:hover { background: #4752c4; }
 
-.hidden { display: none; }
+input {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    text-align: center;
+    font-size: 16px;
+}
+
+.row {
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+}
+
+.row input {
+    flex:1;
+}
+
+.full {
+    width:100%;
+    margin-top:10px;
+}
+
+.hidden { display:none; }
+
+.info {
+    margin-top:10px;
+}
 
 /* алфавит */
 .alphabet {
-    display: grid;
-    grid-template-columns: repeat(11, 1fr);
-    gap: 6px;
-    margin-top: 15px;
+    display:grid;
+    grid-template-columns: repeat(11,1fr);
+    gap:5px;
+    margin-top:15px;
 }
 
 .letter {
-    background: #3c3c5f;
-    padding: 8px;
-    border-radius: 6px;
+    background:#3c3c5f;
+    padding:8px;
+    border-radius:6px;
 }
 
 .letter.disabled {
-    background: #555;
-    opacity: 0.4;
+    background:#555;
+    opacity:0.4;
 }
 
 /* история */
 .history {
-    margin-top: 15px;
-    text-align: left;
+    margin-top:15px;
+    text-align:left;
+    font-size:14px;
 }
 
 /* ошибки */
 .error {
-    color: #ff6b6b;
-    text-align: center;
+    color:#ff6b6b;
+    margin-top:5px;
 }
 
 .input-error {
-    outline: 2px solid #ff6b6b;
+    outline:2px solid #ff6b6b;
 }
 
 /* shake */
-.shake {
-    animation: shake 0.3s;
-}
+.shake { animation:shake 0.3s; }
 @keyframes shake {
-    20% { transform: translateX(-6px); }
-    40% { transform: translateX(6px); }
-    60% { transform: translateX(-4px); }
-    80% { transform: translateX(4px); }
+    20%{transform:translateX(-6px);}
+    40%{transform:translateX(6px);}
+    60%{transform:translateX(-4px);}
+    80%{transform:translateX(4px);}
+}
+
+/* 📱 */
+@media (max-width:600px){
+    .row { flex-direction:column; }
+    button { width:100%; }
 }
 </style>
 </head>
@@ -96,30 +122,38 @@ button:hover { background: #4752c4; }
 
 <div class="container">
 
-<h2>🧠 Решатель Быков и Коров</h2>
+<h2>🧠 Решатель</h2>
 
-<div>
+<div id="startBlock">
     <input id="lengthInput" type="number" placeholder="Длина слова">
-    <button onclick="start()">Начать</button>
+    <button class="full" onclick="start()">Начать</button>
 </div>
 
 <div id="game" class="hidden">
 
-    <div>
-        <input id="wordInput" placeholder="Слово">
-        <input id="bullsInput" type="number" placeholder="🐂">
-        <input id="cowsInput" type="number" placeholder="🐄">
-        <button onclick="addAttempt()">OK</button>
-    </div>
+<div class="info">
+    Слово из <b id="lenText"></b> букв
+    <button onclick="restart()">Новая</button>
+</div>
 
-    <div id="error" class="error hidden"></div>
+<div class="row">
+    <input id="wordInput" placeholder="Слово">
+</div>
 
-    <button onclick="getHint()">💡 Подсказка</button>
-    <div id="hint"></div>
+<div class="row">
+    <input id="bullsInput" type="number" placeholder="🐂">
+    <input id="cowsInput" type="number" placeholder="🐄">
+</div>
 
-    <div class="alphabet" id="alphabet"></div>
+<button class="full" onclick="addAttempt()">Добавить</button>
 
-    <div class="history" id="history"></div>
+<div id="error" class="error hidden"></div>
+
+<button class="full" onclick="getHint()">💡 Подсказка</button>
+
+<div class="alphabet" id="alphabet"></div>
+
+<div class="history" id="history"></div>
 
 </div>
 
@@ -143,33 +177,37 @@ function start(){
     wordLength = parseInt(lengthInput.value);
     if(!wordLength) return;
 
+    document.getElementById("startBlock").classList.add("hidden");
     document.getElementById("game").classList.remove("hidden");
+
+    lenText.innerText = wordLength;
 
     renderAlphabet();
 }
 
-function renderAlphabet(){
-    const el = document.getElementById("alphabet");
-    el.innerHTML = "";
+function restart(){
+    location.reload();
+}
 
+function renderAlphabet(){
+    alphabetEl.innerHTML = "";
     alphabet.forEach(l=>{
-        const d = document.createElement("div");
-        d.className = "letter";
+        const d=document.createElement("div");
+        d.className="letter";
         if(excluded.has(l)) d.classList.add("disabled");
-        d.innerText = l;
-        el.appendChild(d);
+        d.innerText=l;
+        alphabetEl.appendChild(d);
     });
 }
 
 function showError(msg){
-    const e = document.getElementById("error");
-    e.innerText = msg;
-    e.classList.remove("hidden");
+    error.innerText=msg;
+    error.classList.remove("hidden");
 
-    wordInput.classList.add("shake");
     wordInput.classList.add("input-error");
-
-    setTimeout(()=>wordInput.classList.remove("shake"),300);
+    wordInput.classList.remove("shake");
+    void wordInput.offsetWidth;
+    wordInput.classList.add("shake");
 }
 
 function clearError(){
@@ -179,8 +217,11 @@ function clearError(){
 
 function addAttempt(){
     const word = wordInput.value.trim().toLowerCase();
-    const bulls = parseInt(bullsInput.value);
-    const cows = parseInt(cowsInput.value);
+    let bulls = parseInt(bullsInput.value);
+    let cows = parseInt(cowsInput.value);
+
+    if(isNaN(bulls)) bulls = 0;
+    if(isNaN(cows)) cows = 0;
 
     if(word.length !== wordLength){
         showError("Неверная длина");
@@ -204,18 +245,16 @@ function addAttempt(){
 }
 
 function renderHistory(){
-    const el = document.getElementById("history");
-    el.innerHTML = "";
-
+    history.innerHTML="";
     attempts.forEach(a=>{
-        const d = document.createElement("div");
-        d.innerText = `${a.word} → 🐂${a.bulls} 🐄${a.cows}`;
-        el.appendChild(d);
+        const d=document.createElement("div");
+        d.innerText=`${a.word} → 🐂${a.bulls} 🐄${a.cows}`;
+        history.appendChild(d);
     });
 }
 
 function fits(word){
-    if(word.length !== wordLength) return false;
+    if(word.length!==wordLength) return false;
 
     for(let l of word){
         if(excluded.has(l)) return false;
@@ -223,13 +262,12 @@ function fits(word){
 
     for(let a of attempts){
         let b=0,c=0;
-        let s=a.word;
-
         let sRem=[], wRem=[];
+
         for(let i=0;i<word.length;i++){
-            if(word[i]===s[i]) b++;
+            if(word[i]===a.word[i]) b++;
             else{
-                sRem.push(s[i]);
+                sRem.push(a.word[i]);
                 wRem.push(word[i]);
             }
         }
@@ -246,19 +284,43 @@ function fits(word){
     return true;
 }
 
+/* 🧠 УМНЫЙ ВЫБОР */
 function getHint(){
-    const filtered = words.filter(w=>fits(w) && !usedHints.includes(w));
 
-    if(!filtered.length){
-        hint.innerText="Нет вариантов";
+    const candidates = words.filter(w=>fits(w) && !usedHints.includes(w));
+
+    if(!candidates.length){
+        error.innerText="Нет вариантов";
+        error.classList.remove("hidden");
         return;
     }
 
-    const best = filtered[Math.floor(Math.random()*filtered.length)];
+    // считаем частоты букв
+    let freq={};
+    candidates.forEach(w=>{
+        new Set(w).forEach(l=>{
+            freq[l]=(freq[l]||0)+1;
+        });
+    });
 
-    hint.innerText = best;
+    // оцениваем слова
+    let bestWord=null;
+    let bestScore=-1;
 
-    usedHints.push(best);
+    candidates.forEach(w=>{
+        let score=0;
+        new Set(w).forEach(l=>{
+            score+=freq[l]||0;
+        });
+
+        if(score>bestScore){
+            bestScore=score;
+            bestWord=w;
+        }
+    });
+
+    wordInput.value = bestWord;
+    usedHints.push(bestWord);
 }
 
 loadWords();
