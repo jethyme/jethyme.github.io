@@ -104,12 +104,26 @@ input, select {
 .error {
     color: #ff6b6b;
     font-size: 14px;
-    margin-top: 4px;
-    text-align: left;
+    margin-top: 6px;
+    text-align: center; /* центр */
 }
 
 .input-error {
     outline: 2px solid #ff6b6b;
+}
+
+/* 💥 shake */
+.shake {
+    animation: shake 0.3s;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+    100% { transform: translateX(0); }
 }
 
 /* 📱 Мобильная версия */
@@ -299,6 +313,11 @@ function showError(msg){
     error.innerText = msg;
     error.classList.remove("hidden");
     input.classList.add("input-error");
+
+    // перезапуск анимации
+    input.classList.remove("shake");
+    void input.offsetWidth;
+    input.classList.add("shake");
 }
 
 function clearError(){
