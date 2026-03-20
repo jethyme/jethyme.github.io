@@ -99,6 +99,8 @@ input, select {
     margin-top: 20px;
     font-weight: bold;
 }
+
+/* ошибки */
 .error {
     color: #ff6b6b;
     font-size: 14px;
@@ -109,6 +111,7 @@ input, select {
 .input-error {
     outline: 2px solid #ff6b6b;
 }
+
 /* 📱 Мобильная версия */
 @media (max-width: 600px) {
 
@@ -166,8 +169,7 @@ input, select {
 </div>
 
 <div id="customWordDiv" class="hidden">
-    <input type="text" id="guessInput" placeholder="Введите слово">
-    <div id="errorMessage" class="error hidden"></div>
+    <input type="text" id="customWordInput" placeholder="Введите слово">
     <br>
     <button onclick="startCustomGame()">Начать игру</button>
 </div>
@@ -241,7 +243,8 @@ function startRandomGame() {
 function startCustomGame() {
     const word = document.getElementById("customWordInput").value.toLowerCase().trim();
     if (!dictionary.includes(word) && !singularWords.includes(word)) {
-        return alert("Слова нет в словарях");
+        alert("Слова нет в словарях");
+        return;
     }
     secretWord = word;
     setupGame();
@@ -289,6 +292,24 @@ function countBullsAndCows(secret, guess) {
     return {bulls,cows};
 }
 
+function showError(msg){
+    const error = document.getElementById("errorMessage");
+    const input = document.getElementById("guessInput");
+
+    error.innerText = msg;
+    error.classList.remove("hidden");
+    input.classList.add("input-error");
+}
+
+function clearError(){
+    const error = document.getElementById("errorMessage");
+    const input = document.getElementById("guessInput");
+
+    error.innerText = "";
+    error.classList.add("hidden");
+    input.classList.remove("input-error");
+}
+
 function checkGuess() {
     if(gameOver) return;
 
@@ -304,7 +325,9 @@ function checkGuess() {
         showError("Неверная длина");
         return;
     }
+
     clearError();
+
     const {bulls,cows}=countBullsAndCows(secretWord,guess);
 
     if(maxAttempts>0){
@@ -382,34 +405,14 @@ function restartGame(){
     document.getElementById("info").innerText="";
 }
 
-function showError(msg){
-    const error = document.getElementById("errorMessage");
-    const input = document.getElementById("guessInput");
-
-    error.innerText = msg;
-    error.classList.remove("hidden");
-    input.classList.add("input-error");
-}
-
-function clearError(){
-    const error = document.getElementById("errorMessage");
-    const input = document.getElementById("guessInput");
-
-    error.innerText = "";
-    error.classList.add("hidden");
-    input.classList.remove("input-error");
-}
-    
 document.getElementById("guessInput").addEventListener("keydown",e=>{
     if(e.key==="Enter") checkGuess();
 });
+
 document.getElementById("guessInput").addEventListener("input", clearError);
+
 loadDictionaries();
 
 </script>
 </body>
 </html>
-
-
-
-
