@@ -3,13 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Быки и Коровы</title>
+<title>🐂 Быки и Коровы 🐄</title>
 
 <style>
-:root {
-    --cell-size: 48px;
-}
-
+:root { --cell-size: 48px; }
 body {
     font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(135deg, #1e1e2f, #2b2b45);
@@ -18,7 +15,6 @@ body {
     margin: 0;
     padding: 20px 10px;
 }
-
 .container {
     background: #2f2f4f;
     width: fit-content;
@@ -29,7 +25,6 @@ body {
     border-radius: 20px;
     box-shadow: 0 20px 50px rgba(0,0,0,0.4);
 }
-
 button {
     padding: 10px 14px;
     font-size: 14px;
@@ -43,7 +38,6 @@ button {
 }
 button:hover { background: #4752c4; }
 button:disabled { background: #777; cursor: not-allowed; opacity: 0.6; }
-
 input, select {
     padding: 8px;
     border-radius: 8px;
@@ -52,30 +46,10 @@ input, select {
     text-align: center;
     font-size: 16px;
 }
-
 .hidden { display: none; }
-
-.history {
-    margin-top: 25px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.word-row {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 12px;
-    overflow-x: auto;
-    padding-bottom: 5px;
-}
-
-.letters {
-    display: flex;
-    gap: 6px;
-}
-
+.history { margin-top: 25px; display: flex; flex-direction: column; gap: 12px; }
+.word-row { display: flex; justify-content: flex-start; align-items: center; gap: 12px; overflow-x: auto; padding-bottom: 5px; }
+.letters { display: flex; gap: 6px; }
 .letter-box {
     width: var(--cell-size);
     height: var(--cell-size);
@@ -89,32 +63,11 @@ input, select {
     font-size: 18px;
     text-transform: uppercase;
 }
-
-.result {
-    font-size: 18px;
-    white-space: nowrap;
-}
-
-.win {
-    margin-top: 20px;
-    font-weight: bold;
-}
-
-.error {
-    color: #ff6b6b;
-    font-size: 14px;
-    margin-top: 6px;
-    text-align: center;
-}
-
-.input-error {
-    outline: 2px solid #ff6b6b;
-}
-
-.shake {
-    animation: shake 0.3s;
-}
-
+.result { font-size: 18px; white-space: nowrap; }
+.win { margin-top: 20px; font-weight: bold; }
+.error { color: #ff6b6b; font-size: 14px; margin-top: 6px; text-align: center; }
+.input-error { outline: 2px solid #ff6b6b; }
+.shake { animation: shake 0.3s; }
 @keyframes shake {
     0% { transform: translateX(0); }
     20% { transform: translateX(-6px); }
@@ -123,23 +76,13 @@ input, select {
     80% { transform: translateX(4px); }
     100% { transform: translateX(0); }
 }
-
 @media (max-width: 600px) {
     :root { --cell-size: 36px; }
-    button {
-        width: 100%;
-        margin: 6px 0;
-        font-size: 16px;
-    }
-    input, select {
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
+    button { width: 100%; margin: 6px 0; font-size: 16px; }
+    input, select { width: 100%; box-sizing: border-box; font-size: 16px; }
     .word-row { gap: 8px; }
     .result { font-size: 16px; }
 }
-
 .copy-toast {
     position: fixed;
     bottom: 20px;
@@ -155,12 +98,7 @@ input, select {
     transition: opacity 0.3s;
     pointer-events: none;
 }
-
-.loading-indicator {
-    font-size: 12px;
-    color: #ccc;
-    margin-top: 5px;
-}
+.loading-indicator { font-size: 12px; color: #ccc; margin-top: 5px; }
 </style>
 </head>
 <body>
@@ -197,7 +135,6 @@ input, select {
         <button onclick="copyShareLink()" id="copyLinkBtn" style="background: #2c7a4d;">📋 Скопировать ссылку</button>
     </div>
     <div id="customWordError" class="error hidden"></div>
-    <div id="copyStatusMsg" class="error hidden" style="color:#ddd;"></div>
 </div>
 
 <p id="info"></p>
@@ -209,7 +146,6 @@ input, select {
     <button onclick="checkGuess()" id="checkBtn">Проверить</button>
     <button onclick="surrender()" id="surrenderBtn">Сдаться</button>
     <button onclick="restartGame()">Новая игра</button>
-
     <div class="history" id="history"></div>
     <div class="win" id="winMessage"></div>
 </div>
@@ -228,35 +164,58 @@ let remainingAttempts = 0;
 let isSharedGame = false;
 let dictionariesLoaded = false;
 
-// Простое шифрование
 const XOR_KEY = "BullsAndCows2024!";
 
+// Функция для преобразования строки в UTF-8 байты
+function strToUtf8Bytes(str) {
+    const encoder = new TextEncoder();
+    return encoder.encode(str);
+}
+
+// Функция для преобразования байтов в строку (UTF-8)
+function utf8BytesToStr(bytes) {
+    const decoder = new TextDecoder('utf-8');
+    return decoder.decode(bytes);
+}
+
 function encryptWord(word) {
-    let keyBytes = [];
-    for (let i = 0; i < XOR_KEY.length; i++) keyBytes.push(XOR_KEY.charCodeAt(i));
-    let encryptedBytes = [];
-    for (let i = 0; i < word.length; i++) {
-        let keyByte = keyBytes[i % keyBytes.length];
-        encryptedBytes.push(word.charCodeAt(i) ^ keyByte);
+    // 1. Получаем UTF-8 байты исходного слова
+    const wordBytes = strToUtf8Bytes(word);
+    // 2. XOR с ключом
+    const keyBytes = strToUtf8Bytes(XOR_KEY);
+    const encryptedBytes = new Uint8Array(wordBytes.length);
+    for (let i = 0; i < wordBytes.length; i++) {
+        encryptedBytes[i] = wordBytes[i] ^ keyBytes[i % keyBytes.length];
     }
-    let byteString = String.fromCharCode(...encryptedBytes);
-    return btoa(byteString);
+    // 3. Преобразуем байты в строку (как есть) и кодируем в Base64
+    let binaryString = '';
+    for (let i = 0; i < encryptedBytes.length; i++) {
+        binaryString += String.fromCharCode(encryptedBytes[i]);
+    }
+    return btoa(binaryString);
 }
 
 function decryptWord(encryptedBase64) {
     try {
-        let byteString = atob(encryptedBase64);
-        let encryptedBytes = [];
-        for (let i = 0; i < byteString.length; i++) encryptedBytes.push(byteString.charCodeAt(i));
-        let keyBytes = [];
-        for (let i = 0; i < XOR_KEY.length; i++) keyBytes.push(XOR_KEY.charCodeAt(i));
-        let decryptedChars = [];
-        for (let i = 0; i < encryptedBytes.length; i++) {
-            let keyByte = keyBytes[i % keyBytes.length];
-            decryptedChars.push(String.fromCharCode(encryptedBytes[i] ^ keyByte));
+        // 1. Декодируем Base64 в бинарную строку
+        const binaryString = atob(encryptedBase64);
+        // 2. Преобразуем в массив байтов
+        const encryptedBytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            encryptedBytes[i] = binaryString.charCodeAt(i);
         }
-        return decryptedChars.join('');
-    } catch(e) { return null; }
+        // 3. XOR с ключом
+        const keyBytes = strToUtf8Bytes(XOR_KEY);
+        const decryptedBytes = new Uint8Array(encryptedBytes.length);
+        for (let i = 0; i < encryptedBytes.length; i++) {
+            decryptedBytes[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+        }
+        // 4. Преобразуем байты в строку UTF-8
+        return utf8BytesToStr(decryptedBytes);
+    } catch(e) {
+        console.error('Decrypt error:', e);
+        return null;
+    }
 }
 
 function getCurrentBaseUrl() {
@@ -271,7 +230,6 @@ function generateShareLink(word) {
     return `${baseUrl}?w=${encodeURIComponent(encrypted)}`;
 }
 
-// Показ уведомления
 function showToast(msg, isError = false) {
     const toast = document.getElementById("copyToast");
     toast.innerText = msg;
@@ -280,7 +238,6 @@ function showToast(msg, isError = false) {
     setTimeout(() => { toast.style.opacity = "0"; }, 2500);
 }
 
-// Показ ошибки в блоке customWordDiv
 function showCustomWordError(msg) {
     const errDiv = document.getElementById("customWordError");
     errDiv.innerText = msg;
@@ -289,6 +246,7 @@ function showCustomWordError(msg) {
 }
 
 function copyShareLink() {
+    console.log("copyShareLink вызвана");
     const copyBtn = document.getElementById("copyLinkBtn");
     const inputField = document.getElementById("customWordInput");
     let word = inputField.value.trim().toLowerCase();
@@ -303,23 +261,31 @@ function copyShareLink() {
         return;
     }
 
+    console.log("Проверяем слово:", word);
+    console.log("В словаре dictionary:", dictionary.includes(word));
+    console.log("В singularWords:", singularWords.includes(word));
+
     if (!dictionary.includes(word) && !singularWords.includes(word)) {
         showCustomWordError("Слова нет в словарях, ссылку нельзя создать");
         return;
     }
 
-    const link = generateShareLink(word);
-    navigator.clipboard.writeText(link).then(() => {
-        showToast("✅ Ссылка скопирована! Отправь другу.");
-        // кратковременная подсветка кнопки
-        copyBtn.style.transform = "scale(0.97)";
-        setTimeout(() => { copyBtn.style.transform = ""; }, 150);
-    }).catch(() => {
-        alert("Не удалось скопировать ссылку автоматически. Вот она:\n" + link);
-    });
+    try {
+        const link = generateShareLink(word);
+        navigator.clipboard.writeText(link).then(() => {
+            showToast("✅ Ссылка скопирована! Отправь другу.");
+            copyBtn.style.transform = "scale(0.97)";
+            setTimeout(() => { copyBtn.style.transform = ""; }, 150);
+        }).catch((err) => {
+            console.error("Ошибка копирования:", err);
+            alert("Не удалось скопировать ссылку автоматически. Вот она:\n" + link);
+        });
+    } catch(e) {
+        console.error("Ошибка при создании ссылки:", e);
+        showCustomWordError("Ошибка при создании ссылки: " + e.message);
+    }
 }
 
-// Загрузка словарей
 async function loadDictionaries() {
     try {
         const r1 = await fetch("words.txt");
@@ -334,7 +300,6 @@ async function loadDictionaries() {
         }, 1500);
         calculateLengthBounds();
 
-        // Обработка ссылки с шифрованным словом
         const urlParams = new URLSearchParams(window.location.search);
         const encryptedParam = urlParams.get("w");
         if (encryptedParam) {
