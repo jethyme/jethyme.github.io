@@ -5,122 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Быки и Коровы — Solver</title>
 <style>
-:root {
-    --cell-size: 48px;
-}
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #1e1e2f, #2b2b45);
-    color: white;
-    text-align: center;
-    margin: 0;
-    padding: 20px 10px;
-}
-.container {
-    background: #2f2f4f;
-    width: fit-content;
-    max-width: 95vw;
-    min-width: 320px;
-    margin: auto;
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-}
-button {
-    padding: 10px 14px;
-    font-size: 14px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    background: #5865f2;
-    color: white;
-    margin: 5px;
-}
-button:hover { background: #4752c4; }
-button:disabled { background: #555; cursor: not-allowed; }
-input, select {
-    padding: 8px;
-    border-radius: 8px;
-    border: none;
-    margin: 5px;
-    text-align: center;
-    font-size: 16px;
-}
-.hidden { display: none; }
-.history {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.word-row {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    flex-wrap: wrap;
-}
-.word-row span.word-box {
-    display: inline-block;
-    min-width: var(--cell-size);
-    height: var(--cell-size);
-    border-radius: 8px;
-    background: #3c3c5f;
-    line-height: var(--cell-size);
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-right: 4px;
-}
-.word-row button.remove-btn {
-    background: #ff6b6b;
-    margin-left: 6px;
-}
-.result { font-size: 16px; white-space: nowrap; margin-left: 6px; }
-.alphabet {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: 10px;
-    gap: 4px;
-}
-.alphabet .letter {
-    width: var(--cell-size);
-    height: var(--cell-size);
-    line-height: var(--cell-size);
-    border-radius: 8px;
-    background: #3c3c5f;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-.alphabet .green { background: #4caf50; }
-.alphabet .yellow { background: #ffeb3b; color: black; }
-.alphabet .gray { background: #555; }
-.error {
-    color: #ff6b6b;
-    font-size: 14px;
-    margin-top: 6px;
-    text-align: center;
-}
-.input-error { outline: 2px solid #ff6b6b; }
-.shake {
-    animation: shake 0.3s;
-}
-@keyframes shake {
-    0% { transform: translateX(0); }
-    20% { transform: translateX(-6px); }
-    40% { transform: translateX(6px); }
-    60% { transform: translateX(-4px); }
-    80% { transform: translateX(4px); }
-    100% { transform: translateX(0); }
-}
-/* Мобильная версия */
-@media (max-width: 600px) {
-    :root { --cell-size: 36px; }
-    button { width: 100%; margin: 6px 0; font-size: 16px; }
-    input, select { width: 100%; font-size: 16px; }
-    .word-row { gap: 4px; }
-}
+:root { --cell-size:48px; }
+body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1e1e2f,#2b2b45); color:white; margin:0; padding:20px 10px; text-align:center; }
+.container { background:#2f2f4f; width:fit-content; max-width:95vw; min-width:320px; margin:auto; padding:25px; border-radius:20px; box-shadow:0 20px 50px rgba(0,0,0,0.4);}
+button { padding:10px 14px; font-size:14px; border-radius:10px; border:none; cursor:pointer; background:#5865f2; color:white; margin:2px; }
+button:hover { background:#4752c4; } button:disabled { background:#555; cursor:not-allowed; }
+input { padding:8px; border-radius:8px; border:none; margin:2px; text-align:center; font-size:16px; }
+.hidden { display:none; }
+.history { margin-top:20px; display:flex; flex-direction:column; gap:8px; }
+.word-row { display:flex; justify-content:flex-start; align-items:center; gap:6px; flex-wrap:wrap; }
+.word-box { display:inline-block; min-width:var(--cell-size); height:var(--cell-size); border-radius:8px; background:#3c3c5f; line-height:var(--cell-size); font-weight:bold; text-transform:uppercase; }
+.result { font-size:16px; white-space:nowrap; }
+.alphabet { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; gap:4px; }
+.alphabet .letter { width:var(--cell-size); height:var(--cell-size); line-height:var(--cell-size); border-radius:8px; background:#3c3c5f; font-weight:bold; text-transform:uppercase; }
+.alphabet .green { background:#4caf50; }
+.alphabet .yellow { background:#ffeb3b; color:black; }
+.alphabet .gray { background:#555; }
+.error { color:#ff6b6b; font-size:14px; margin-top:6px; text-align:center; }
+.input-error { outline:2px solid #ff6b6b; }
+.shake { animation:shake 0.3s; }
+@keyframes shake { 0%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} 100%{transform:translateX(0);} }
+@media(max-width:600px){ :root{--cell-size:36px;} button,input{width:100%; font-size:16px;} .word-row{gap:4px;} }
 </style>
 </head>
 <body>
@@ -128,24 +33,24 @@ input, select {
 <h2>🐂 Быки и Коровы — Solver 🐄</h2>
 
 <div id="startBlock">
-    <label>Длина слова:</label>
-    <input type="number" id="lengthInput" min="1" style="width:60px;">
-    <button onclick="start()">Начать</button>
+<label>Длина слова:</label>
+<input type="number" id="lengthInput" min="1" style="width:60px;">
+<button onclick="start()">Начать</button>
 </div>
 
 <div id="game" class="hidden">
-    <div>
-        <input type="text" id="wordInput" placeholder="Введите слово">
-        <input type="number" id="bullsInput" placeholder="🐂" style="width:50px;">
-        <input type="number" id="cowsInput" placeholder="🐄" style="width:50px;">
-        <button onclick="addAttempt()">Добавить</button>
-        <button onclick="getHint()">Подсказка</button>
-        <button onclick="restart()">Новая игра</button>
-    </div>
-    <div id="error" class="error hidden"></div>
-    <p>Длина слова: <span id="lenText"></span></p>
-    <div class="alphabet" id="alphabet"></div>
-    <div class="history" id="history"></div>
+<div>
+<input type="text" id="wordInput" placeholder="Введите слово">
+<input type="number" id="bullsInput" placeholder="🐂" style="width:50px;">
+<input type="number" id="cowsInput" placeholder="🐄" style="width:50px;">
+<button onclick="addAttempt()">Добавить</button>
+<button onclick="getHint()">Подсказка</button>
+<button onclick="restart()">Новая игра</button>
+</div>
+<div id="error" class="error hidden"></div>
+<p>Длина слова: <span id="lenText"></span></p>
+<div class="alphabet" id="alphabet"></div>
+<div class="history" id="history"></div>
 </div>
 </div>
 
@@ -165,20 +70,9 @@ const alphabetEl=document.getElementById("alphabet"),
 
 async function loadWords(){
     const r=await fetch("singular.txt");
-    words=(await r.text()).split("\n").map(w=>w.trim());
+    words=(await r.text()).split("\n").map(w=>w.trim()).filter(Boolean);
 }
 loadWords();
-
-window.start=function(){
-    wordLength=parseInt(lengthInput.value);
-    if(!wordLength){ showError("Введите длину слова"); return; }
-    document.getElementById("startBlock").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    lenText.innerText=wordLength;
-    renderAlphabet();
-}
-
-window.restart=function(){ location.reload(); }
 
 function showError(msg){
     error.innerText=msg;
@@ -192,6 +86,17 @@ function clearError(){
     error.classList.add("hidden");
     wordInput.classList.remove("input-error");
 }
+
+window.start=function(){
+    wordLength=parseInt(lengthInput.value);
+    if(!wordLength){ showError("Введите длину слова"); return; }
+    document.getElementById("startBlock").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+    lenText.innerText=wordLength;
+    renderAlphabet();
+}
+
+window.restart=function(){ location.reload(); }
 
 function addAttempt(){
     let word=wordInput.value.trim().toLowerCase();
@@ -209,27 +114,32 @@ function addAttempt(){
 }
 
 function updateKnowledge(){
-    // пересчёт всех букв
     excluded=new Set(); greenPos={}; yellowSet=new Set();
-    for(let a of attempts){
-        if(a.bulls===0 && a.cows===0){
-            a.word.split("").forEach(l=>excluded.add(l));
-        }
-    }
-    // обработка позиции зелёных и жёлтых букв
-    let possiblePositions=Array.from({length:wordLength},()=>new Set(alphabet));
-    for(let a of attempts){
-        let sRem=[], wRem=[], b=0,c=0;
-        for(let i=0;i<wordLength;i++){
-            if(a.word[i]===a.word[i]){} // placeholder
-        }
-    }
-    // упрощённая логика: если одна буква в bulls на своей позиции однозначна
+    // серые
+    attempts.forEach(a=>{
+        if(a.bulls===0 && a.cows===0){ a.word.split("").forEach(l=>excluded.add(l)); }
+    });
+    // анализ по позициям
     for(let i=0;i<wordLength;i++){
-        for(let a of attempts){
-            if(a.word[i] && a.bulls>0){ greenPos[i]=a.word[i]; yellowSet.add(a.word[i]); }
+        let possible=[];
+        attempts.forEach(a=>{
+            if(a.bulls>0 || a.cows>0) possible.push(a.word[i]);
+        });
+        // если только одна буква возможна на этой позиции
+        let count={};
+        possible.forEach(l=>count[l]=(count[l]||0)+1);
+        for(let l in count){
+            if(count[l]===possible.length && !excluded.has(l)) greenPos[i]=l;
         }
     }
+    // желтые буквы
+    attempts.forEach(a=>{
+        if(a.bulls>0 || a.cows>0){
+            a.word.split("").forEach(l=>{
+                if(!Object.values(greenPos).includes(l) && !excluded.has(l)) yellowSet.add(l);
+            });
+        }
+    });
 }
 
 function renderAlphabet(){
@@ -248,67 +158,39 @@ function renderAlphabet(){
 function renderHistory(){
     historyEl.innerHTML="";
     attempts.forEach((a,idx)=>{
-        const row=document.createElement("div");
-        row.className="word-row";
-        let wordBox=document.createElement("span");
-        wordBox.className="word-box";
-        if(a.bulls===0 && a.cows===0) wordBox.innerText="❌ "+a.word;
-        else wordBox.innerText=a.word;
-        const res=document.createElement("span");
-        res.className="result";
-        let s=[];
-        if(a.bulls>0) s.push("🐂"+a.bulls);
-        if(a.cows>0) s.push("🐄"+a.cows);
-        res.innerText=s.join(" ");
-        const removeBtn=document.createElement("button");
-        removeBtn.className="remove-btn";
-        removeBtn.innerText="❌";
-        removeBtn.onclick=()=>{
-            attempts.splice(idx,1);
-            updateKnowledge();
-            renderHistory();
-            renderAlphabet();
-        }
-        row.appendChild(wordBox);
-        row.appendChild(res);
-        row.appendChild(removeBtn);
+        const row=document.createElement("div"); row.className="word-row";
+        const wordBox=document.createElement("span"); wordBox.className="word-box";
+        let displayWord=a.word.split("").map((l,i)=>greenPos[i]===l ? l : "_").join("");
+        if(a.bulls===0 && a.cows===0) displayWord+=" ❌";
+        wordBox.innerText=displayWord;
+        const res=document.createElement("span"); res.className="result";
+        let s=[]; if(a.bulls>0) s.push("🐂"+a.bulls); if(a.cows>0) s.push("🐄"+a.cows); res.innerText=s.join(" ");
+        const removeBtn=document.createElement("button"); removeBtn.innerText="❌";
+        removeBtn.onclick=()=>{ attempts.splice(idx,1); updateKnowledge(); renderHistory(); renderAlphabet(); }
+        row.appendChild(wordBox); row.appendChild(res); row.appendChild(removeBtn);
         historyEl.appendChild(row);
     });
 }
 
 window.getHint=function(){
-    // фильтруем слова по знанию
     let candidates=words.filter(w=>w.length===wordLength && !attempts.some(a=>{
         let {bulls,cows}=compareWord(w,a.word);
         return bulls!==a.bulls || cows!==a.cows;
     }) && !usedHints.includes(w));
     if(!candidates.length){ showError("Нет вариантов"); return; }
-    let freq={};
-    candidates.forEach(w=>new Set(w).forEach(l=>freq[l]=(freq[l]||0)+1));
+    let freq={}; candidates.forEach(w=>new Set(w).forEach(l=>freq[l]=(freq[l]||0)+1));
     let bestWord=null,bestScore=-1;
-    candidates.forEach(w=>{
-        let score=0; new Set(w).forEach(l=>score+=freq[l]||0);
-        if(score>bestScore){ bestScore=score; bestWord=w; }
-    });
+    candidates.forEach(w=>{ let score=0; new Set(w).forEach(l=>score+=freq[l]||0); if(score>bestScore){ bestScore=score; bestWord=w; }});
     wordInput.value=bestWord;
     usedHints.push(bestWord);
 }
 
 function compareWord(secret, guess){
-    let bulls=0,cows=0;
-    let sRem=[],gRem=[];
-    for(let i=0;i<secret.length;i++){
-        if(secret[i]===guess[i]) bulls++;
-        else { sRem.push(secret[i]); gRem.push(guess[i]); }
-    }
-    let count={};
-    sRem.forEach(c=>count[c]=(count[c]||0)+1);
-    gRem.forEach(c=>{
-        if(count[c]>0){ cows++; count[c]--; }
-    });
+    let bulls=0,cows=0,sRem=[],gRem=[];
+    for(let i=0;i<secret.length;i++){ if(secret[i]===guess[i]) bulls++; else { sRem.push(secret[i]); gRem.push(guess[i]); } }
+    let count={}; sRem.forEach(c=>count[c]=(count[c]||0)+1); gRem.forEach(c=>{ if(count[c]>0){ cows++; count[c]--; }});
     return {bulls,cows};
 }
-
 });
 </script>
 </body>
