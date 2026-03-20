@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver — умная логика</title>
+<title>Hardcore Solver — финальная версия</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
@@ -150,56 +150,63 @@ function recalc() {
         changed = false;
         for (let a of attempts) {
             if (a.b !== 1 || a.c !== 0) continue;
-            // Найдём позицию, где буква ещё не зелёная и не исключена
             let candidatePos = -1;
             let candidateLetter = '';
             for (let i = 0; i < length; i++) {
                 let ch = a.w[i];
-                if (correct[i] !== null) continue; // уже зелёная
+                if (correct[i] !== null) continue;
                 if (excluded.has(ch)) continue;
-                // Если нашли больше одной подходящей буквы — не можем определить
                 if (candidatePos !== -1) { candidatePos = -2; break; }
                 candidatePos = i;
                 candidateLetter = ch;
             }
-            if (candidatePos >= 0 && candidatePos !== -2) {
-                if (correct[candidatePos] === null) {
-                    correct[candidatePos] = candidateLetter;
-                    changed = true;
-                }
+            if (candidatePos >= 0 && candidatePos !== -2 && correct[candidatePos] === null) {
+                correct[candidatePos] = candidateLetter;
+                changed = true;
             }
         }
     } while (changed);
 
-    // 3. После определения зелёных, исключаем буквы из попыток, где быки уже покрыты и нет коров
-    for (let a of attempts) {
-        if (a.c !== 0) continue;
-        if (a.b === 0) continue;
-        // Подсчитываем, сколько зелёных позиций совпадает с этой попыткой
-        let covered = 0;
-        for (let i = 0; i < length; i++) {
-            if (correct[i] !== null && correct[i] === a.w[i]) covered++;
+    // 3. Если все позиции определены, то всё, что не входит в correct, исключаем
+    const allGreen = correct.every(c => c !== null);
+    if (allGreen) {
+        present.clear();
+        const greenSet = new Set(correct);
+        for (let ch of alphabet) {
+            if (!greenSet.has(ch)) excluded.add(ch);
         }
-        if (covered === a.b) {
-            // Все быки учтены, значит, остальные буквы в этой попытке исключаем
+    } else {
+        // 4. Иначе: исключаем буквы из попыток, где быки уже покрыты и нет коров
+        for (let a of attempts) {
+            if (a.c !== 0) continue;
+            if (a.b === 0) continue;
+            let covered = 0;
             for (let i = 0; i < length; i++) {
-                let ch = a.w[i];
-                if (correct[i] === ch) continue; // зелёную не исключаем
-                excluded.add(ch);
+                if (correct[i] !== null && correct[i] === a.w[i]) covered++;
+            }
+            if (covered === a.b) {
+                // Все быки учтены → остальные буквы в этой попытке исключаем,
+                // но только если они не являются зелёными (на любой позиции)
+                for (let i = 0; i < length; i++) {
+                    let ch = a.w[i];
+                    if (correct.includes(ch)) continue; // зелёную не трогаем
+                    excluded.add(ch);
+                }
+            }
+        }
+
+        // 5. Буквы, которые точно присутствуют (из попыток с b+c>0, не исключённые и не зелёные)
+        present.clear();
+        for (let a of attempts) {
+            if (a.b + a.c === 0) continue;
+            for (let ch of a.w) {
+                if (!excluded.has(ch) && !correct.includes(ch)) present.add(ch);
             }
         }
     }
 
-    // 4. Буквы, которые точно присутствуют (из попыток с b+c>0, не исключённые и не зелёные)
-    present.clear();
-    for (let a of attempts) {
-        if (a.b + a.c === 0) continue;
-        for (let ch of a.w) {
-            if (!excluded.has(ch) && !correct.includes(ch)) present.add(ch);
-        }
-    }
-
-    // 5. Проверка на явные ошибки
+    // 6. Проверка на явные ошибки (не блокирует, только предупреждает)
+    let hasError = false;
     for (let a of attempts) {
         if (a.b + a.c === 0) continue;
         let possibleBulls = 0;
@@ -207,24 +214,26 @@ function recalc() {
             if (correct[i] && a.w[i] === correct[i]) possibleBulls++;
         }
         if (possibleBulls > a.b) {
-            showError(`❌ Ошибка: в слове "${a.w}" быков ${a.b}, но уже известно ${possibleBulls} точных позиций. Удалите лишние попытки.`);
-            return;
+            showError(`⚠️ Внимание: в слове "${a.w}" быков ${a.b}, но уже известно ${possibleBulls} точных позиций. Возможно, данные противоречивы.`);
+            hasError = true;
+            break;
         }
         let presentInWord = 0;
         for (let ch of a.w) {
             if (present.has(ch) || correct.includes(ch)) presentInWord++;
         }
         if (a.c > presentInWord - possibleBulls) {
-            showError(`❌ Ошибка: в слове "${a.w}" коров ${a.c}, но недостаточно неподтверждённых букв.`);
-            return;
+            showError(`⚠️ Внимание: в слове "${a.w}" коров ${a.c}, но недостаточно неподтверждённых букв. Возможно, данные противоречивы.`);
+            hasError = true;
+            break;
         }
     }
+    if (!hasError) clearError();
 
     // Обновление интерфейса
     updateSolution();
     renderAlphabet();
     renderHistory();
-    clearError();
 }
 
 // ------------------- ОТРИСОВКА -------------------
@@ -256,12 +265,13 @@ function renderAlphabet() {
     for (let ch of alphabet) {
         const div = document.createElement("div");
         div.className = "letter";
-        if (excluded.has(ch)) {
-            div.classList.add("gray");
-        } else if (correct.includes(ch)) {
+        // Приоритет: зелёный → жёлтый → серый
+        if (correct.includes(ch)) {
             div.classList.add("green");
         } else if (present.has(ch)) {
             div.classList.add("yellow");
+        } else if (excluded.has(ch)) {
+            div.classList.add("gray");
         }
         div.innerText = ch;
         alphabetDiv.appendChild(div);
