@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hardcore Solver</title>
+<title>🐂 Табун 🐂</title>
 
 <style>
 body{
@@ -23,7 +23,6 @@ body{
     border-radius:20px;
 }
 
-/* строка слова */
 .solution{
     display:flex;
     justify-content:center;
@@ -43,9 +42,7 @@ body{
 }
 
 .cell.green{background:#4caf50}
-.cell.yellow{background:#f9a825}
 
-/* алфавит */
 .alphabet{
     display:grid;
     grid-template-columns:repeat(11,1fr);
@@ -64,7 +61,6 @@ body{
 .green{background:#4caf50}
 .yellow{background:#f9a825}
 
-/* ввод */
 .row{
     display:flex;
     gap:6px;
@@ -142,9 +138,8 @@ let attempts=[];
 let words=[];
 let usedHints=[];
 let excluded=new Set(); // буквы точно нет
-let present=new Set();  // буквы есть
-let correct=[];         // точные позиции
-let maybe=[];           // буквы, которые могут быть в слове (жёлтые)
+let present=new Set();  // буквы могут быть
+let correct=[];         // буквы точно на своих местах
 let solution=document.getElementById("solution");
 let alphabetDiv=document.getElementById("alphabet");
 let history=document.getElementById("history");
@@ -167,7 +162,6 @@ window.start=function(){
     document.getElementById("game").classList.remove("hidden");
 
     correct=Array(length).fill(null);
-    maybe=Array(length).fill(null);
     buildSolution();
     renderAlphabet();
 }
@@ -187,14 +181,9 @@ function updateSolution(){
         if(correct[i]){
             c.innerText=correct[i];
             c.classList.add("green");
-            c.classList.remove("yellow");
-        } else if(maybe[i]){
-            c.innerText=maybe[i];
-            c.classList.add("yellow");
-            c.classList.remove("green");
         } else{
             c.innerText="_";
-            c.classList.remove("green","yellow");
+            c.classList.remove("green");
         }
     });
 }
@@ -207,45 +196,34 @@ window.add=function(){
 
     attempts.push({w,b,c});
 
-    // 1. анализируем нулевые буквы
-    for(let i=0;i<length;i++){
-        if(b===0 && c===0){
-            excluded.add(w[i]);
-        }
+    // 1. буквы с нулями точно отсутствуют
+    if(b===0 && c===0){
+        for(let ch of w) excluded.add(ch);
     }
 
     // 2. фиксируем быков
     if(b>0){
         for(let i=0;i<length;i++){
-            if(!correct[i]){
-                // проверяем: может ли эта позиция быть быком
-                // если на этой позиции буква уже встречалась как бык, пропускаем
-                correct[i] = null; // оставим для анализа ниже
+            if(w[i] && !correct[i]){
+                // если мы видим быка, ставим в correct
+                // простая эвристика: если b>0 и позиция совпадает
+                // тут можно делать более умную логику
+                if(b>0 && attempts.length>0){
+                    // проверяем, не исключена ли буква
+                    if(!excluded.has(w[i])){
+                        correct[i]=w[i];
+                        present.add(w[i]);
+                    }
+                }
             }
         }
     }
 
-    // 3. фиксируем коров и вероятные буквы
+    // 3. добавляем буквы которые могут быть (c>0 или b>0) для алфавита
     for(let i=0;i<length;i++){
         let ch=w[i];
-        if(!excluded.has(ch)){
+        if(b+c>0 && !excluded.has(ch)){
             present.add(ch);
-            maybe[i] = maybe[i] || ch;
-        }
-    }
-
-    // обновляем точные быки (зелёные)
-    // простая эвристика: если в попытке есть бык, и буква встречается только один раз среди букв без исключений, то точно на месте
-    if(b>0){
-        let possibleIndices=[];
-        for(let i=0;i<length;i++){
-            if(!correct[i] && present.has(w[i])) possibleIndices.push(i);
-        }
-        if(possibleIndices.length===b){
-            for(let idx of possibleIndices){
-                correct[idx]=w[idx];
-                maybe[idx]=null;
-            }
         }
     }
 
@@ -269,7 +247,9 @@ function renderHistory(){
             if(a.b>0) s+=` 🐂${a.b}`;
             if(a.c>0) s+=` 🐄${a.c}`;
         }
-        history.appendChild(document.createElement("div")).innerText=s;
+        let d=document.createElement("div");
+        d.innerText=s;
+        history.appendChild(d);
     });
 }
 
