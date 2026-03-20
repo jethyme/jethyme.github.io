@@ -113,7 +113,7 @@ input, select {
     <button onclick="showCustomInput()">✍ Ввести своё слово</button>
     <div class="input-group">
         <label>📊 Попытки:</label>
-        <input type="number" id="attemptInput" placeholder="∞ (неограниченно)" value="" step="1" min="1" style="width: 100px;">
+        <input type="number" id="attemptInput" placeholder="∞ (неограниченно)" value="" step="1" min="1" style="width: 200px;">
     </div>
     <div id="dictLoader" class="loading-indicator">📚 Загрузка словарей...</div>
 </div>
@@ -410,7 +410,7 @@ function setupGame() {
 
     if (isSharedGame) {
         const infoDiv = document.getElementById("info");
-        infoDiv.innerHTML = `🎁 Слово из ${wordLength} букв. ` +
+        infoDiv.innerHTML = `🎁 Слово из ${wordLength} букв.</br>` +
             (maxAttempts > 0 ? `Осталось попыток: ${remainingAttempts}` : "Попытки не ограничены");
     }
 }
