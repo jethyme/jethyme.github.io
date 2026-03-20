@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 Табун 🐂</title>
+<title>Hardcore Solver</title>
 <style>
 body{
     font-family:sans-serif;
@@ -94,7 +94,7 @@ input{
 </head>
 <body>
 <div class="container">
-<h2>🐂 Табун 🐂</h2>
+<h2>🧠 Hardcore Solver</h2>
 <div id="start">
 <input id="len" type="number" placeholder="Длина слова">
 <button onclick="start()">Старт</button>
@@ -127,11 +127,10 @@ document.addEventListener("DOMContentLoaded",()=>{
 const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
 let length=0;
 let attempts=[];
-let words=[]; 
 let usedHints=[];
-let excluded=new Set(); // буквы точно нет
-let present=new Set();  // буквы которые могут быть
-let correct=[];         // буквы на своих местах
+let excluded=new Set();
+let present=new Set();
+let correct=[];
 let solution=document.getElementById("solution");
 let alphabetDiv=document.getElementById("alphabet");
 let history=document.getElementById("history");
@@ -139,8 +138,8 @@ let wordInput=document.getElementById("word");
 let bullsInput=document.getElementById("bulls");
 let cowsInput=document.getElementById("cows");
 let lenInput=document.getElementById("len");
+let words=[];
 
-// словарь для подсказок
 async function loadWords(){
     const r=await fetch("singular.txt");
     words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase());
@@ -190,26 +189,38 @@ function recalc(){
             for(let ch of a.w) excluded.add(ch);
         }
     }
-    // шаг2: устанавливаем точные быки
+
+    // шаг 2: ищем быки (точные позиции) и возможные буквы
     for(let a of attempts){
-        if(a.b>0){
-            for(let i=0;i<length;i++){
-                let ch=a.w[i];
-                if(!correct[i] && !excluded.has(ch)){
-                    let countBulls=0;
-                    for(let j=0;j<length;j++){
-                        if(a.w[j]===ch && i===j) countBulls++;
-                    }
-                    if(countBulls>0) correct[i]=ch;
-                    if(countBulls>0) present.add(ch);
-                }
+        // позиции быков, если очевидно
+        let counts={};
+        for(let i=0;i<length;i++){
+            let ch=a.w[i];
+            if(!excluded.has(ch)){
+                counts[ch]=(counts[ch]||0)+1;
             }
         }
-    }
-    // шаг3: буквы, которые могут быть в слове
-    for(let a of attempts){
-        if(a.b+a.c>0){
-            for(let ch of a.w){
+        if(a.b>0){
+            // если на позиции i буква встречается в нескольких попытках и совпадает только здесь → бык
+            let unknownPositions=[];
+            for(let i=0;i<length;i++){
+                let ch=a.w[i];
+                if(!excluded.has(ch) && !correct[i]){
+                    unknownPositions.push({i,ch});
+                }
+            }
+            // простой вывод: если a.b===1 и есть 1 неизвестная позиция буквы, то она бык
+            if(a.b===1 && unknownPositions.length===1){
+                correct[unknownPositions[0].i]=unknownPositions[0].ch;
+            }
+            // отмечаем возможные буквы
+            for(let i=0;i<length;i++){
+                let ch=a.w[i];
+                if(!excluded.has(ch)) present.add(ch);
+            }
+        } else if(a.b+a.c>0){
+            for(let i=0;i<length;i++){
+                let ch=a.w[i];
                 if(!excluded.has(ch)) present.add(ch);
             }
         }
@@ -273,11 +284,11 @@ function renderAlphabet(){
 
 function fits(word){
     if(word.length!==length) return false;
-    for(let l of word){
-        if(excluded.has(l)) return false;
-    }
     for(let i=0;i<length;i++){
         if(correct[i] && word[i]!==correct[i]) return false;
+    }
+    for(let l of excluded){
+        if(word.includes(l)) return false;
     }
     return true;
 }
