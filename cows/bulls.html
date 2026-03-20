@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Решатель Быков и Коров</title>
+
+<style>
+:root { --cell-size: 42px; }
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+    color: white;
+    text-align: center;
+}
+
+.container {
+    background: #2f2f4f;
+    padding: 25px;
+    border-radius: 20px;
+    width: fit-content;
+    margin: auto;
+}
+
+input {
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    margin: 5px;
+    text-align: center;
+}
+
+button {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: none;
+    background: #5865f2;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover { background: #4752c4; }
+
+.hidden { display: none; }
+
+/* алфавит */
+.alphabet {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 6px;
+    margin-top: 15px;
+}
+
+.letter {
+    background: #3c3c5f;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.letter.disabled {
+    background: #555;
+    opacity: 0.4;
+}
+
+/* история */
+.history {
+    margin-top: 15px;
+    text-align: left;
+}
+
+/* ошибки */
+.error {
+    color: #ff6b6b;
+    text-align: center;
+}
+
+.input-error {
+    outline: 2px solid #ff6b6b;
+}
+
+/* shake */
+.shake {
+    animation: shake 0.3s;
+}
+@keyframes shake {
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🧠 Решатель Быков и Коров</h2>
+
+<div>
+    <input id="lengthInput" type="number" placeholder="Длина слова">
+    <button onclick="start()">Начать</button>
+</div>
+
+<div id="game" class="hidden">
+
+    <div>
+        <input id="wordInput" placeholder="Слово">
+        <input id="bullsInput" type="number" placeholder="🐂">
+        <input id="cowsInput" type="number" placeholder="🐄">
+        <button onclick="addAttempt()">OK</button>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <button onclick="getHint()">💡 Подсказка</button>
+    <div id="hint"></div>
+
+    <div class="alphabet" id="alphabet"></div>
+
+    <div class="history" id="history"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const alphabet = "абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
+let excluded = new Set();
+let attempts = [];
+let wordLength = 0;
+let words = [];
+let usedHints = [];
+
+async function loadWords(){
+    const r = await fetch("singular.txt");
+    words = (await r.text()).split("\n").map(w=>w.trim());
+}
+
+function start(){
+    wordLength = parseInt(lengthInput.value);
+    if(!wordLength) return;
+
+    document.getElementById("game").classList.remove("hidden");
+
+    renderAlphabet();
+}
+
+function renderAlphabet(){
+    const el = document.getElementById("alphabet");
+    el.innerHTML = "";
+
+    alphabet.forEach(l=>{
+        const d = document.createElement("div");
+        d.className = "letter";
+        if(excluded.has(l)) d.classList.add("disabled");
+        d.innerText = l;
+        el.appendChild(d);
+    });
+}
+
+function showError(msg){
+    const e = document.getElementById("error");
+    e.innerText = msg;
+    e.classList.remove("hidden");
+
+    wordInput.classList.add("shake");
+    wordInput.classList.add("input-error");
+
+    setTimeout(()=>wordInput.classList.remove("shake"),300);
+}
+
+function clearError(){
+    error.classList.add("hidden");
+    wordInput.classList.remove("input-error");
+}
+
+function addAttempt(){
+    const word = wordInput.value.trim().toLowerCase();
+    const bulls = parseInt(bullsInput.value);
+    const cows = parseInt(cowsInput.value);
+
+    if(word.length !== wordLength){
+        showError("Неверная длина");
+        return;
+    }
+
+    clearError();
+
+    attempts.push({word,bulls,cows});
+
+    if(bulls===0 && cows===0){
+        word.split("").forEach(l=>excluded.add(l));
+    }
+
+    renderAlphabet();
+    renderHistory();
+
+    wordInput.value="";
+    bullsInput.value="";
+    cowsInput.value="";
+}
+
+function renderHistory(){
+    const el = document.getElementById("history");
+    el.innerHTML = "";
+
+    attempts.forEach(a=>{
+        const d = document.createElement("div");
+        d.innerText = `${a.word} → 🐂${a.bulls} 🐄${a.cows}`;
+        el.appendChild(d);
+    });
+}
+
+function fits(word){
+    if(word.length !== wordLength) return false;
+
+    for(let l of word){
+        if(excluded.has(l)) return false;
+    }
+
+    for(let a of attempts){
+        let b=0,c=0;
+        let s=a.word;
+
+        let sRem=[], wRem=[];
+        for(let i=0;i<word.length;i++){
+            if(word[i]===s[i]) b++;
+            else{
+                sRem.push(s[i]);
+                wRem.push(word[i]);
+            }
+        }
+
+        let count={};
+        sRem.forEach(x=>count[x]=(count[x]||0)+1);
+        wRem.forEach(x=>{
+            if(count[x]>0){ c++; count[x]--; }
+        });
+
+        if(b!==a.bulls || c!==a.cows) return false;
+    }
+
+    return true;
+}
+
+function getHint(){
+    const filtered = words.filter(w=>fits(w) && !usedHints.includes(w));
+
+    if(!filtered.length){
+        hint.innerText="Нет вариантов";
+        return;
+    }
+
+    const best = filtered[Math.floor(Math.random()*filtered.length)];
+
+    hint.innerText = best;
+
+    usedHints.push(best);
+}
+
+loadWords();
+
+</script>
+
+</body>
+</html>
