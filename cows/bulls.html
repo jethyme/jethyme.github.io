@@ -3,21 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐂 Табун 🐂</title>
+<title>🐂 🐂 🐂</title>
 <style>
 body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
 .container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
 .solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px;}
-.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold;}
+.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold; cursor:pointer; transition:0.1s;}
 .cell.green{background:#4caf50}
+.cell.red{background:#f44336}
 .alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
-.letter{ padding:6px; border-radius:5px; background:#5865f2; font-weight:bold; transition:0.1s;}
+.letter{ padding:6px; border-radius:5px; background:#5865f2; font-weight:bold; transition:0.1s; cursor:pointer;}
+.letter:hover{ filter:brightness(0.9); }
 .gray{background:#555; opacity:0.4}
 .green{background:#4caf50}
 .yellow{background:#f9a825}
+.red{background:#f44336}
 .row{ display:flex; gap:6px; margin-top:10px;}
 .row input{flex:1}
 button{ margin-top:10px; padding:10px; border:none; border-radius:10px; background:#5865f2; color:white; cursor:pointer;}
+button:hover{ filter:brightness(0.9); }
 input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .hidden{display:none}
 .word-entry{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:5px;}
@@ -40,7 +44,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div id="solution" class="solution"></div>
 
 <div class="row">
-<input id="word" placeholder="Слово">
+<input id="word" placeholder="Слово (красные буквы = нажмите на клетку)">
 </div>
 
 <div class="row">
@@ -70,6 +74,8 @@ let usedHints = [];
 let correct = [];             // точные позиции (зелёные)
 let present = new Set();      // буквы, которые точно есть (жёлтые)
 let excluded = new Set();     // буквы, которых нет (серые)
+let redLetters = new Set();   // буквы, отмеченные красным (предполагаемые)
+let redPositions = [];        // массив с красными буквами на конкретных позициях (для подсказки)
 
 // DOM
 const solutionDiv = document.getElementById("solution");
@@ -120,6 +126,24 @@ function getBullsCows(guess, target) {
         }
     }
     return { bulls, cows };
+}
+
+// Проверка соответствия слова всем ограничениям (попытки + красные буквы)
+function wordMatches(word) {
+    // Проверка попыток
+    for (let a of attempts) {
+        const { bulls, cows } = getBullsCows(a.w, word);
+        if (bulls !== a.b || cows !== a.c) return false;
+    }
+    // Проверка красных позиций
+    for (let i = 0; i < length; i++) {
+        if (redPositions[i] && word[i] !== redPositions[i]) return false;
+    }
+    // Проверка красных букв (должны быть в слове)
+    for (let ch of redLetters) {
+        if (!word.includes(ch)) return false;
+    }
+    return true;
 }
 
 // ------------------- ОСНОВНАЯ ЛОГИКА -------------------
@@ -185,11 +209,9 @@ function recalc() {
                 if (correct[i] !== null && correct[i] === a.w[i]) covered++;
             }
             if (covered === a.b) {
-                // Все быки учтены → остальные буквы в этой попытке исключаем,
-                // но только если они не являются зелёными (на любой позиции)
                 for (let i = 0; i < length; i++) {
                     let ch = a.w[i];
-                    if (correct.includes(ch)) continue; // зелёную не трогаем
+                    if (correct.includes(ch)) continue;
                     excluded.add(ch);
                 }
             }
@@ -205,7 +227,19 @@ function recalc() {
         }
     }
 
-    // 6. Проверка на явные ошибки (не блокирует, только предупреждает)
+    // 6. Убираем красные буквы, которые оказались исключены
+    for (let ch of redLetters) {
+        if (excluded.has(ch)) {
+            redLetters.delete(ch);
+        }
+    }
+    for (let i = 0; i < length; i++) {
+        if (redPositions[i] && (excluded.has(redPositions[i]) || correct[i])) {
+            redPositions[i] = null;
+        }
+    }
+
+    // 7. Проверка на явные ошибки
     let hasError = false;
     for (let a of attempts) {
         if (a.b + a.c === 0) continue;
@@ -243,6 +277,8 @@ function buildSolution() {
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.innerText = "_";
+        cell.dataset.pos = i;
+        cell.onclick = () => toggleRedPosition(i);
         solutionDiv.appendChild(cell);
     }
 }
@@ -253,9 +289,15 @@ function updateSolution() {
         if (correct[i]) {
             cells[i].innerText = correct[i];
             cells[i].classList.add("green");
+            cells[i].classList.remove("red");
+        } else if (redPositions[i]) {
+            cells[i].innerText = redPositions[i];
+            cells[i].classList.add("red");
+            cells[i].classList.remove("green");
         } else {
             cells[i].innerText = "_";
             cells[i].classList.remove("green");
+            cells[i].classList.remove("red");
         }
     }
 }
@@ -265,17 +307,52 @@ function renderAlphabet() {
     for (let ch of alphabet) {
         const div = document.createElement("div");
         div.className = "letter";
-        // Приоритет: зелёный → жёлтый → серый
+        // Приоритет: зелёный → красный → жёлтый → серый
         if (correct.includes(ch)) {
             div.classList.add("green");
+        } else if (redLetters.has(ch)) {
+            div.classList.add("red");
         } else if (present.has(ch)) {
             div.classList.add("yellow");
         } else if (excluded.has(ch)) {
             div.classList.add("gray");
         }
         div.innerText = ch;
+        div.onclick = () => toggleRedLetter(ch);
         alphabetDiv.appendChild(div);
     }
+}
+
+function toggleRedLetter(ch) {
+    if (correct.includes(ch)) return; // нельзя изменить зелёную
+    if (redLetters.has(ch)) {
+        redLetters.delete(ch);
+    } else {
+        redLetters.add(ch);
+        // Если буква была исключена, убираем из исключённых (она может быть в слове)
+        excluded.delete(ch);
+    }
+    recalc();
+}
+
+function toggleRedPosition(pos) {
+    if (correct[pos]) return; // нельзя изменить зелёную
+    const letter = prompt("Введите букву для этой позиции (или оставьте пустым для удаления):", redPositions[pos] || "");
+    if (letter === null) return;
+    const trimmed = letter.trim().toLowerCase();
+    if (trimmed === "") {
+        redPositions[pos] = null;
+    } else if (/^[а-яё]$/.test(trimmed)) {
+        redPositions[pos] = trimmed;
+        // Добавляем букву в красные буквы, если её там ещё нет
+        redLetters.add(trimmed);
+        // Убираем из исключённых
+        excluded.delete(trimmed);
+    } else {
+        showError("Введите одну русскую букву");
+        return;
+    }
+    recalc();
 }
 
 function renderHistory() {
@@ -318,6 +395,8 @@ window.start = function() {
     correct = Array(length).fill(null);
     present.clear();
     excluded.clear();
+    redLetters.clear();
+    redPositions = Array(length).fill(null);
 
     startDiv.classList.add("hidden");
     gameDiv.classList.remove("hidden");
@@ -358,31 +437,58 @@ window.hint = function() {
         showError("Словарь ещё не загружен, подсказка недоступна");
         return;
     }
+    
+    // Получаем все слова нужной длины
     let candidates = dictionary.filter(word => word.length === length);
+    
+    // Фильтруем по попыткам
     for (let a of attempts) {
         candidates = candidates.filter(word => {
             const { bulls, cows } = getBullsCows(a.w, word);
             return bulls === a.b && cows === a.c;
         });
     }
+    
+    // Фильтруем по красным позициям
+    for (let i = 0; i < length; i++) {
+        if (redPositions[i]) {
+            candidates = candidates.filter(word => word[i] === redPositions[i]);
+        }
+    }
+    
+    // Фильтруем по красным буквам (должны быть в слове)
+    for (let ch of redLetters) {
+        candidates = candidates.filter(word => word.includes(ch));
+    }
+    
     if (candidates.length === 0) {
         showError("Нет подходящих слов в словаре (возможно, загадано слово не из словаря)");
         return;
     }
+    
     candidates = candidates.filter(w => !usedHints.includes(w));
     if (candidates.length === 0) {
+        // Если все варианты уже использованы, показываем любой
         candidates = dictionary.filter(word => word.length === length && (() => {
             for (let a of attempts) {
                 const { bulls, cows } = getBullsCows(a.w, word);
                 if (bulls !== a.b || cows !== a.c) return false;
             }
+            for (let i = 0; i < length; i++) {
+                if (redPositions[i] && word[i] !== redPositions[i]) return false;
+            }
+            for (let ch of redLetters) {
+                if (!word.includes(ch)) return false;
+            }
             return true;
         })());
     }
+    
     if (candidates.length === 0) {
         showError("Нет новых вариантов для подсказки");
         return;
     }
+    
     const randomWord = candidates[Math.floor(Math.random() * candidates.length)];
     wordInput.value = randomWord;
     usedHints.push(randomWord);
