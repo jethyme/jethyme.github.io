@@ -3,194 +3,228 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Быки и Коровы — Solver</title>
+<title>Hardcore Solver</title>
 <style>
-:root { --cell-size:48px; }
-body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1e1e2f,#2b2b45); color:white; margin:0; padding:20px 10px; text-align:center; }
-.container { background:#2f2f4f; width:fit-content; max-width:95vw; min-width:320px; margin:auto; padding:25px; border-radius:20px; box-shadow:0 20px 50px rgba(0,0,0,0.4);}
-button { padding:10px 14px; font-size:14px; border-radius:10px; border:none; cursor:pointer; background:#5865f2; color:white; margin:2px; }
-button:hover { background:#4752c4; } button:disabled { background:#555; cursor:not-allowed; }
-input { padding:8px; border-radius:8px; border:none; margin:2px; text-align:center; font-size:16px; }
-.hidden { display:none; }
-.history { margin-top:20px; display:flex; flex-direction:column; gap:8px; }
-.word-row { display:flex; justify-content:flex-start; align-items:center; gap:6px; flex-wrap:wrap; }
-.word-box { display:inline-block; min-width:var(--cell-size); height:var(--cell-size); border-radius:8px; background:#3c3c5f; line-height:var(--cell-size); font-weight:bold; text-transform:uppercase; }
-.result { font-size:16px; white-space:nowrap; }
-.alphabet { display:flex; flex-wrap:wrap; justify-content:center; margin-top:10px; gap:4px; }
-.alphabet .letter { width:var(--cell-size); height:var(--cell-size); line-height:var(--cell-size); border-radius:8px; background:#3c3c5f; font-weight:bold; text-transform:uppercase; }
-.alphabet .green { background:#4caf50; }
-.alphabet .yellow { background:#ffeb3b; color:black; }
-.alphabet .gray { background:#555; }
-.error { color:#ff6b6b; font-size:14px; margin-top:6px; text-align:center; }
-.input-error { outline:2px solid #ff6b6b; }
-.shake { animation:shake 0.3s; }
-@keyframes shake { 0%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} 100%{transform:translateX(0);} }
-@media(max-width:600px){ :root{--cell-size:36px;} button,input{width:100%; font-size:16px;} .word-row{gap:4px;} }
+body{ font-family:sans-serif; background:#1e1e2f; color:white; text-align:center; margin:0; padding:10px;}
+.container{ max-width:520px; margin:auto; background:#2f2f4f; padding:20px; border-radius:20px;}
+.solution{ display:flex; justify-content:center; gap:5px; margin-bottom:10px;}
+.cell{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#444; border-radius:6px; font-weight:bold;}
+.cell.green{background:#4caf50}
+.alphabet{ display:grid; grid-template-columns:repeat(11,1fr); gap:4px; margin-top:10px;}
+.letter{ padding:6px; border-radius:5px; background:#444; font-weight:bold; }
+.gray{background:#555; opacity:0.4}
+.green{background:#4caf50}
+.yellow{background:#f9a825}
+.row{ display:flex; gap:6px; margin-top:10px;}
+.row input{flex:1}
+button{ margin-top:10px; padding:10px; border:none; border-radius:10px; background:#5865f2; color:white; cursor:pointer;}
+input{ padding:10px; border-radius:10px; border:none; text-align:center;}
+.hidden{display:none}
+.word-entry{ display:flex; align-items:center; gap:8px; justify-content:center; margin-top:5px;}
+.word-entry button{ padding:2px 6px; font-size:12px; background:#f44336;}
+.error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
+@media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
 </style>
 </head>
 <body>
 <div class="container">
-<h2>🐂 Быки и Коровы — Solver 🐄</h2>
-
-<div id="startBlock">
-<label>Длина слова:</label>
-<input type="number" id="lengthInput" min="1" style="width:60px;">
-<button onclick="start()">Начать</button>
+<h2>🧠 Hardcore Solver</h2>
+<div id="start">
+<input id="len" type="number" placeholder="Длина слова">
+<button onclick="start()">Старт</button>
 </div>
 
 <div id="game" class="hidden">
-<div>
-<input type="text" id="wordInput" placeholder="Введите слово">
-<input type="number" id="bullsInput" placeholder="🐂" style="width:50px;">
-<input type="number" id="cowsInput" placeholder="🐄" style="width:50px;">
-<button onclick="addAttempt()">Добавить</button>
-<button onclick="getHint()">Подсказка</button>
-<button onclick="restart()">Новая игра</button>
+<div id="solution" class="solution"></div>
+
+<div class="row">
+<input id="word" placeholder="Слово">
 </div>
+
+<div class="row">
+<input id="bulls" type="number" placeholder="🐂">
+<input id="cows" type="number" placeholder="🐄">
+</div>
+
+<button onclick="add()">Добавить</button>
+<button onclick="hint()">💡 Подсказка</button>
+<button onclick="restart()">🔄 Новая игра</button>
+
 <div id="error" class="error hidden"></div>
-<p>Длина слова: <span id="lenText"></span></p>
-<div class="alphabet" id="alphabet"></div>
-<div class="history" id="history"></div>
+<div id="alphabet" class="alphabet"></div>
+<div id="history"></div>
 </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded",()=>{
-const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
-let wordLength=0, attempts=[], excluded=new Set(), greenPos={}, yellowSet=new Set(), words=[], usedHints=[];
 
-const alphabetEl=document.getElementById("alphabet"),
-      error=document.getElementById("error"),
-      wordInput=document.getElementById("wordInput"),
-      bullsInput=document.getElementById("bullsInput"),
-      cowsInput=document.getElementById("cowsInput"),
-      historyEl=document.getElementById("history"),
-      lenText=document.getElementById("lenText"),
-      lengthInput=document.getElementById("lengthInput");
+const alphabet="абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
+let length=0, attempts=[], usedHints=[], excluded=new Set(), present=new Set(), correct=[], words=[];
+
+const solution=document.getElementById("solution");
+const alphabetDiv=document.getElementById("alphabet");
+const history=document.getElementById("history");
+const wordInput=document.getElementById("word");
+const bullsInput=document.getElementById("bulls");
+const cowsInput=document.getElementById("cows");
+const lenInput=document.getElementById("len");
+const errorDiv=document.getElementById("error");
 
 async function loadWords(){
     const r=await fetch("singular.txt");
-    words=(await r.text()).split("\n").map(w=>w.trim()).filter(Boolean);
+    words=(await r.text()).split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
 }
 loadWords();
 
 function showError(msg){
-    error.innerText=msg;
-    error.classList.remove("hidden");
+    errorDiv.innerText=msg;
+    errorDiv.classList.remove("hidden");
     wordInput.classList.add("input-error");
     wordInput.classList.remove("shake");
     void wordInput.offsetWidth;
     wordInput.classList.add("shake");
 }
+
 function clearError(){
-    error.classList.add("hidden");
+    errorDiv.classList.add("hidden");
     wordInput.classList.remove("input-error");
 }
 
 window.start=function(){
-    wordLength=parseInt(lengthInput.value);
-    if(!wordLength){ showError("Введите длину слова"); return; }
-    document.getElementById("startBlock").classList.add("hidden");
+    length=parseInt(lenInput.value);
+    if(!length){ showError("Введите длину слова"); return; }
+    document.getElementById("start").classList.add("hidden");
     document.getElementById("game").classList.remove("hidden");
-    lenText.innerText=wordLength;
+    correct=Array(length).fill(null);
+    buildSolution();
     renderAlphabet();
 }
 
-window.restart=function(){ location.reload(); }
+function buildSolution(){
+    solution.innerHTML="";
+    for(let i=0;i<length;i++){
+        const d=document.createElement("div");
+        d.className="cell";
+        d.innerText="_";
+        solution.appendChild(d);
+    }
+}
 
-function addAttempt(){
-    let word=wordInput.value.trim().toLowerCase();
-    let bulls=parseInt(bullsInput.value);
-    let cows=parseInt(cowsInput.value);
-    if(isNaN(bulls)) bulls=0;
-    if(isNaN(cows)) cows=0;
-    if(word.length!==wordLength){ showError("Неверная длина"); return; }
-    clearError();
-    attempts.push({word,bulls,cows});
-    updateKnowledge();
-    renderHistory();
+function updateSolution(){
+    [...solution.children].forEach((c,i)=>{
+        if(correct[i]){
+            c.innerText=correct[i];
+            c.classList.add("green");
+        } else{
+            c.innerText="_";
+            c.classList.remove("green");
+        }
+    });
+}
+
+function recalc(){
+    excluded.clear(); present.clear(); correct=Array(length).fill(null);
+
+    // шаг 1: буквы с нулями точно отсутствуют
+    for(let a of attempts){
+        if(a.b===0 && a.c===0){
+            for(let ch of a.w) excluded.add(ch);
+        }
+    }
+
+    // шаг 2: ищем точные позиции (быки) и буквы, которые точно могут быть
+    let countsPerPosition = Array(length).fill(null).map(()=>new Map());
+    for(let a of attempts){
+        let unmatchedIndexes=[];
+        for(let i=0;i<length;i++){
+            let ch=a.w[i];
+            if(!excluded.has(ch)){
+                countsPerPosition[i].set(ch,(countsPerPosition[i].get(ch)||0)+1);
+                unmatchedIndexes.push({i,ch});
+            }
+        }
+        if(a.b>0){
+            // если на позиции i буква встречается только здесь → бык
+            if(a.b===1 && unmatchedIndexes.length===1){
+                correct[unmatchedIndexes[0].i]=unmatchedIndexes[0].ch;
+            }
+        }
+        if(a.b+a.c>0){
+            unmatchedIndexes.forEach(x=>present.add(x.ch));
+        }
+    }
+
+    updateSolution();
     renderAlphabet();
+    renderHistory();
+}
+
+window.add=function(){
+    let w=wordInput.value.trim().toLowerCase();
+    let b=parseInt(bullsInput.value)||0;
+    let c=parseInt(cowsInput.value)||0;
+    if(w.length!==length){ showError("Неверная длина"); return; }
+    clearError();
+    attempts.push({w,b,c});
+    recalc();
     wordInput.value=""; bullsInput.value=""; cowsInput.value="";
 }
 
-function updateKnowledge(){
-    excluded=new Set(); greenPos={}; yellowSet=new Set();
-    // серые
-    attempts.forEach(a=>{
-        if(a.bulls===0 && a.cows===0){ a.word.split("").forEach(l=>excluded.add(l)); }
-    });
-    // анализ по позициям
-    for(let i=0;i<wordLength;i++){
-        let possible=[];
-        attempts.forEach(a=>{
-            if(a.bulls>0 || a.cows>0) possible.push(a.word[i]);
-        });
-        // если только одна буква возможна на этой позиции
-        let count={};
-        possible.forEach(l=>count[l]=(count[l]||0)+1);
-        for(let l in count){
-            if(count[l]===possible.length && !excluded.has(l)) greenPos[i]=l;
+function renderHistory(){
+    history.innerHTML="";
+    attempts.forEach((a,i)=>{
+        let s="";
+        if(a.b===0 && a.c===0){
+            s=a.w+" ❌";
+        } else {
+            s=a.w;
+            if(a.b>0) s+=` 🐂${a.b}`;
+            if(a.c>0) s+=` 🐄${a.c}`;
         }
-    }
-    // желтые буквы
-    attempts.forEach(a=>{
-        if(a.bulls>0 || a.cows>0){
-            a.word.split("").forEach(l=>{
-                if(!Object.values(greenPos).includes(l) && !excluded.has(l)) yellowSet.add(l);
-            });
-        }
+        let div=document.createElement("div");
+        div.className="word-entry";
+        let text=document.createElement("span");
+        text.innerText=s;
+        let btn=document.createElement("button");
+        btn.innerText="✖";
+        btn.onclick=()=>{ attempts.splice(i,1); recalc(); }
+        div.appendChild(text); div.appendChild(btn);
+        history.appendChild(div);
     });
 }
 
 function renderAlphabet(){
-    alphabetEl.innerHTML="";
+    alphabetDiv.innerHTML="";
     alphabet.forEach(l=>{
         const d=document.createElement("div");
         d.className="letter";
         if(excluded.has(l)) d.classList.add("gray");
-        else if(Object.values(greenPos).includes(l)) d.classList.add("green");
-        else if(yellowSet.has(l)) d.classList.add("yellow");
+        else if(correct.includes(l)) d.classList.add("green");
+        else if(present.has(l)) d.classList.add("yellow");
         d.innerText=l;
-        alphabetEl.appendChild(d);
+        alphabetDiv.appendChild(d);
     });
 }
 
-function renderHistory(){
-    historyEl.innerHTML="";
-    attempts.forEach((a,idx)=>{
-        const row=document.createElement("div"); row.className="word-row";
-        const wordBox=document.createElement("span"); wordBox.className="word-box";
-        let displayWord=a.word.split("").map((l,i)=>greenPos[i]===l ? l : "_").join("");
-        if(a.bulls===0 && a.cows===0) displayWord+=" ❌";
-        wordBox.innerText=displayWord;
-        const res=document.createElement("span"); res.className="result";
-        let s=[]; if(a.bulls>0) s.push("🐂"+a.bulls); if(a.cows>0) s.push("🐄"+a.cows); res.innerText=s.join(" ");
-        const removeBtn=document.createElement("button"); removeBtn.innerText="❌";
-        removeBtn.onclick=()=>{ attempts.splice(idx,1); updateKnowledge(); renderHistory(); renderAlphabet(); }
-        row.appendChild(wordBox); row.appendChild(res); row.appendChild(removeBtn);
-        historyEl.appendChild(row);
-    });
+function fits(word){
+    if(word.length!==length) return false;
+    for(let i=0;i<length;i++) if(correct[i] && word[i]!==correct[i]) return false;
+    for(let l of excluded) if(word.includes(l)) return false;
+    return true;
 }
 
-window.getHint=function(){
-    let candidates=words.filter(w=>w.length===wordLength && !attempts.some(a=>{
-        let {bulls,cows}=compareWord(w,a.word);
-        return bulls!==a.bulls || cows!==a.cows;
-    }) && !usedHints.includes(w));
+window.hint=function(){
+    clearError();
+    let candidates=words.filter(w=>fits(w) && !usedHints.includes(w));
     if(!candidates.length){ showError("Нет вариантов"); return; }
-    let freq={}; candidates.forEach(w=>new Set(w).forEach(l=>freq[l]=(freq[l]||0)+1));
-    let bestWord=null,bestScore=-1;
-    candidates.forEach(w=>{ let score=0; new Set(w).forEach(l=>score+=freq[l]||0); if(score>bestScore){ bestScore=score; bestWord=w; }});
-    wordInput.value=bestWord;
-    usedHints.push(bestWord);
+    let best=candidates[Math.floor(Math.random()*candidates.length)];
+    wordInput.value=best;
+    usedHints.push(best);
 }
 
-function compareWord(secret, guess){
-    let bulls=0,cows=0,sRem=[],gRem=[];
-    for(let i=0;i<secret.length;i++){ if(secret[i]===guess[i]) bulls++; else { sRem.push(secret[i]); gRem.push(guess[i]); } }
-    let count={}; sRem.forEach(c=>count[c]=(count[c]||0)+1); gRem.forEach(c=>{ if(count[c]>0){ cows++; count[c]--; }});
-    return {bulls,cows};
-}
+window.restart=function(){ location.reload(); }
+
 });
 </script>
 </body>
