@@ -392,7 +392,7 @@ function setupGame() {
 
     if (isSharedGame) {
         const infoDiv = document.getElementById("info");
-        infoDiv.innerHTML = `🎁 Игра с загаданным словом друга (${wordLength} букв). ${maxAttempts > 0 ? "Осталось попыток: " + remainingAttempts : "Попытки не ограничены"}`;
+        infoDiv.innerHTML = `🎁 Загадано слово: ${wordLength} букв.</br> ${maxAttempts > 0 ? "Осталось попыток: " + remainingAttempts : "Попытки не ограничены"}`;
     }
 }
 
