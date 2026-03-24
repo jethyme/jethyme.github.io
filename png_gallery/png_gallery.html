@@ -2,124 +2,29 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PNG-коллаж из Яндекс.Диска</title>
+    <title>PNG коллаж с Яндекс.Диска (исправлено)</title>
     <style>
-        * {
-            user-select: none;
-        }
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: #0a0a12;
-            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
-        }
-        canvas {
-            display: block;
-            cursor: grab;
-        }
-        canvas:active {
-            cursor: grabbing;
-        }
+        body { margin:0; overflow:hidden; background:#0a0a12; font-family: system-ui; }
+        canvas { display:block; cursor:grab; }
+        canvas:active { cursor:grabbing; }
         #ui {
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(12px);
-            padding: 12px 18px;
-            border-radius: 32px;
-            color: white;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            z-index: 100;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            pointer-events: auto;
+            position:fixed; top:16px; left:16px; background:rgba(0,0,0,0.7); backdrop-filter:blur(12px);
+            padding:10px 18px; border-radius:32px; display:flex; gap:12px; z-index:100;
+            color:white; font-size:13px; border:1px solid #3a3a4a;
         }
         #ui input, #ui button {
-            background: rgba(20,20,30,0.9);
-            border: 1px solid #3a3a4a;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 24px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: 0.2s;
-            font-weight: 500;
-        }
-        #ui input {
-            cursor: text;
-            width: 140px;
-            background: #1e1e2a;
-        }
-        #ui button:hover {
-            background: #3a3a4a;
-            border-color: #6a6a8a;
-        }
-        #ui .separator {
-            width: 1px;
-            height: 24px;
-            background: #3a3a4a;
-            margin: 0 4px;
-        }
-        .status {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(8px);
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-size: 12px;
-            color: #ccc;
-            font-family: monospace;
-            pointer-events: none;
-            z-index: 100;
+            background:#1e1e2a; border:1px solid #5a5a7a; color:white; padding:4px 10px;
+            border-radius:24px; cursor:pointer;
         }
         .load-panel {
-            position: fixed;
-            top: 80px;
-            left: 16px;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(12px);
-            padding: 12px 18px;
-            border-radius: 32px;
-            display: flex;
-            gap: 10px;
-            z-index: 100;
-            border: 1px solid rgba(255,255,255,0.2);
-            pointer-events: auto;
+            position:fixed; top:80px; left:16px; background:rgba(0,0,0,0.7); backdrop-filter:blur(12px);
+            padding:10px 18px; border-radius:32px; display:flex; gap:10px; z-index:100;
+            border:1px solid #3a3a4a;
         }
-        .load-panel input {
-            width: 260px;
-            background: #1e1e2a;
-            border: 1px solid #3a3a4a;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 24px;
-            font-size: 13px;
-        }
-        .load-panel button {
-            background: #2d4a6e;
-            border: none;
-            color: white;
-            padding: 6px 16px;
-            border-radius: 24px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .load-panel button:active {
-            background: #1f3a55;
-        }
-        @media (max-width: 640px) {
-            #ui, .load-panel { transform: scale(0.85); transform-origin: top left; }
-            .load-panel input { width: 180px; }
-        }
+        .load-panel input { width:260px; background:#1e1e2a; border:1px solid #5a5a7a; color:white; padding:4px 10px; border-radius:24px; }
+        .load-panel button { background:#2d4a6e; border:none; padding:4px 14px; border-radius:24px; cursor:pointer; color:white; }
+        .status { position:fixed; bottom:16px; left:16px; background:#000000aa; backdrop-filter:blur(8px); padding:6px 12px; border-radius:40px; font-size:12px; color:#ddd; z-index:100; }
+        @media (max-width:640px){ .load-panel input{width:180px;} }
     </style>
 </head>
 <body>
@@ -128,44 +33,33 @@
     <input id="seedInput" type="text">
     <button id="applySeedBtn">применить</button>
     <button id="regenBtn">🎲 новая расстановка</button>
-    <div class="separator"></div>
-    <span>🖱️ тяни объекты → seed обновляется</span>
 </div>
 <div class="load-panel">
-    <input id="folderUrl" type="text" placeholder="Ссылка на публичную папку Яндекс.Диска" value="https://disk.yandex.ru/d/xxxxx">
-    <button id="loadYandexBtn">📂 загрузить PNG из папки</button>
+    <input id="folderUrl" type="text" placeholder="Ссылка на папку Яндекс.Диска">
+    <button id="loadYandexBtn">📂 загрузить PNG</button>
+    <button id="manualUrlsBtn" style="background:#4a2e6e;">➕ вручную</button>
 </div>
-<div class="status" id="statusMsg">⏳ ожидание загрузки...</div>
-
+<div class="status" id="statusMsg">⏳ вставьте ссылку на папку и нажмите загрузить</div>
 <canvas id="c"></canvas>
 
 <script>
-    // ---------- глобальные переменные ----------
     const canvas = document.getElementById('c');
     const ctx = canvas.getContext('2d');
-    let images = [];         // массив объектов Image с масками
-    let placed = [];         // { x, y, w, h, img }
-    let camera = { x: 0, y: 0, zoom: 1 };
-    let dragging = false;
-    let dragType = null;     // 'cam' or 'obj'
-    let dragStart = { x: 0, y: 0 };
-    let draggingObj = null;
+    let images = [];
+    let placed = [];
+    let camera = { x:0, y:0, zoom:1 };
     let rand = null;
     let currentSeed = null;
+    let draggingObj = null, dragType = null, isDragging = false, dragStartWorld = null;
 
-    // вспомогательные функции
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        canvas.width = innerWidth; canvas.height = innerHeight;
         draw();
     }
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-        draw();
-    });
+    window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // ---------- RNG (mulberry32) ----------
+    // RNG
     function mulberry32(seedVal) {
         return function() {
             let t = seedVal += 0x6D2B79F5;
@@ -175,503 +69,340 @@
         };
     }
 
-    // ---------- создание маски (альфа-канал) для точной коллизии ----------
+    // маска
     function createMask(img, scaleFactor = 0.3) {
         const w = Math.max(1, Math.floor(img.width * scaleFactor));
         const h = Math.max(1, Math.floor(img.height * scaleFactor));
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = w;
-        offCanvas.height = h;
-        const offCtx = offCanvas.getContext('2d');
-        offCtx.drawImage(img, 0, 0, w, h);
-        const imgData = offCtx.getImageData(0, 0, w, h).data;
-        const mask = new Uint8Array(w * h);
-        for (let i = 0; i < w * h; i++) {
-            mask[i] = imgData[i * 4 + 3] > 15 ? 1 : 0;
-        }
+        const off = document.createElement('canvas');
+        off.width = w; off.height = h;
+        const octx = off.getContext('2d');
+        octx.drawImage(img, 0, 0, w, h);
+        const data = octx.getImageData(0, 0, w, h).data;
+        const mask = new Uint8Array(w*h);
+        for(let i=0;i<w*h;i++) mask[i] = data[i*4+3] > 15 ? 1 : 0;
         return { mask, w, h, scale: scaleFactor };
     }
 
-    // ---------- пиксельная коллизия (только непрозрачные части) ----------
-    function pixelCollision(a, b, gap = 4) {
-        // быстрая AABB с зазором
-        if (a.x + a.w + gap < b.x || a.x > b.x + b.w + gap ||
-            a.y + a.h + gap < b.y || a.y > b.y + b.h + gap) {
-            return false;
-        }
-        const ma = a.img.mask;
-        const mb = b.img.mask;
-        const x0 = Math.max(a.x, b.x);
-        const y0 = Math.max(a.y, b.y);
-        const x1 = Math.min(a.x + a.w, b.x + b.w);
-        const y1 = Math.min(a.y + a.h, b.y + b.h);
-        const step = 2; // шаг для производительности
-        for (let y = y0; y < y1; y += step) {
-            for (let x = x0; x < x1; x += step) {
-                const ax = Math.floor((x - a.x) * ma.scale);
-                const ay = Math.floor((y - a.y) * ma.scale);
-                const bx = Math.floor((x - b.x) * mb.scale);
-                const by = Math.floor((y - b.y) * mb.scale);
-                if (ax >= 0 && ax < ma.w && ay >= 0 && ay < ma.h &&
-                    bx >= 0 && bx < mb.w && by >= 0 && by < mb.h) {
-                    if (ma.mask[ay * ma.w + ax] && mb.mask[by * mb.w + bx]) {
-                        return true;
-                    }
-                }
-            }
+    // пиксельная коллизия
+    function pixelCollision(a, b, gap=3) {
+        if(a.x+a.w+gap < b.x || a.x > b.x+b.w+gap || a.y+a.h+gap < b.y || a.y > b.y+b.h+gap) return false;
+        const ma = a.img.mask, mb = b.img.mask;
+        const x0 = Math.max(a.x,b.x), y0 = Math.max(a.y,b.y);
+        const x1 = Math.min(a.x+a.w,b.x+b.w), y1 = Math.min(a.y+a.h,b.y+b.h);
+        for(let y=y0; y<y1; y+=2) for(let x=x0; x<x1; x+=2) {
+            const ax = Math.floor((x-a.x)*ma.scale), ay = Math.floor((y-a.y)*ma.scale);
+            const bx = Math.floor((x-b.x)*mb.scale), by = Math.floor((y-b.y)*mb.scale);
+            if(ax>=0 && ax<ma.w && ay>=0 && ay<ma.h && bx>=0 && bx<mb.w && by>=0 && by<mb.h)
+                if(ma.mask[ay*ma.w+ax] && mb.mask[by*mb.w+bx]) return true;
         }
         return false;
     }
 
-    // ---------- ГЕНЕРАЦИЯ (улучшенное раздвигание без наложений) ----------
-    function generatePositions(seedValue) {
-        if (!images.length) return [];
-        rand = mulberry32(seedValue);
-        const items = images.map(img => ({
-            x: (rand() - 0.5) * 1800,   // начальный разброс
-            y: (rand() - 0.5) * 1800,
-            w: img.width,
-            h: img.height,
-            img: img
+    // генерация позиций
+    function generatePositions(seedVal) {
+        if(!images.length) return [];
+        rand = mulberry32(seedVal);
+        let items = images.map(img => ({
+            x: (rand()-0.5)*1800, y: (rand()-0.5)*1800, w: img.width, h: img.height, img
         }));
-
-        // ---- ФАЗА 1: агрессивное отталкивание (много проходов) ----
-        const ITER_PUSH = 380;
-        let anyCollision = true;
-        let pushForce = 5.2;
-        for (let iter = 0; iter < ITER_PUSH && anyCollision; iter++) {
-            anyCollision = false;
-            for (let i = 0; i < items.length; i++) {
-                for (let j = i + 1; j < items.length; j++) {
-                    if (pixelCollision(items[i], items[j], 3)) {
-                        anyCollision = true;
-                        const dx = items[i].x - items[j].x;
-                        const dy = items[i].y - items[j].y;
-                        const len = Math.hypot(dx, dy) || 0.01;
-                        const nx = dx / len;
-                        const ny = dy / len;
-                        const force = pushForce * (1 + (Math.random() * 0.3));
-                        items[i].x += nx * force;
-                        items[i].y += ny * force;
-                        items[j].x -= nx * force;
-                        items[j].y -= ny * force;
-                    }
-                }
-            }
-            // постепенно уменьшаем силу к концу
-            if (iter > ITER_PUSH * 0.7) pushForce *= 0.98;
-        }
-
-        // ---- ФАЗА 2: мягкое притяжение к центру (чтобы сгруппировать, но без новых коллизий) ----
-        const CENTER_PULL = 0.988;
-        for (let pullIter = 0; pullIter < 110; pullIter++) {
-            let moved = false;
-            for (let a of items) {
-                const oldX = a.x, oldY = a.y;
-                a.x *= CENTER_PULL;
-                a.y *= CENTER_PULL;
-                if (items.some(b => b !== a && pixelCollision(a, b, 2))) {
-                    a.x = oldX;
-                    a.y = oldY;
-                } else {
-                    moved = true;
-                }
-            }
-            if (!moved) break;
-        }
-
-        // ---- ФАЗА 3: финальная "распаковка" - ещё немного раздвинуть прилипшие ----
-        for (let iter = 0; iter < 90; iter++) {
+        // отталкивание
+        for(let iter=0; iter<400; iter++) {
             let any = false;
-            for (let i = 0; i < items.length; i++) {
-                for (let j = i+1; j < items.length; j++) {
-                    if (pixelCollision(items[i], items[j], 3)) {
-                        any = true;
-                        const dx = items[i].x - items[j].x;
-                        const dy = items[i].y - items[j].y;
-                        const len = Math.hypot(dx, dy) || 1;
-                        const nx = dx / len;
-                        const ny = dy / len;
-                        const f = 1.4;
-                        items[i].x += nx * f;
-                        items[i].y += ny * f;
-                        items[j].x -= nx * f;
-                        items[j].y -= ny * f;
-                    }
+            for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++) {
+                if(pixelCollision(items[i], items[j], 4)) {
+                    any = true;
+                    const dx = items[i].x - items[j].x, dy = items[i].y - items[j].y;
+                    const len = Math.hypot(dx,dy) || 0.01;
+                    const nx = dx/len, ny = dy/len;
+                    const force = 4.5 * (1 - iter/500);
+                    items[i].x += nx*force; items[i].y += ny*force;
+                    items[j].x -= nx*force; items[j].y -= ny*force;
                 }
             }
-            if (!any) break;
+            if(!any) break;
         }
-
-        // центрирование всей группы (смещаем так, чтобы центр масс оказался в (0,0))
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (let p of items) {
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x + p.w);
-            maxY = Math.max(maxY, p.y + p.h);
+        // притяжение к центру
+        for(let iter=0; iter<100; iter++) {
+            let moved = false;
+            for(let a of items) {
+                const oldX = a.x, oldY = a.y;
+                a.x *= 0.988; a.y *= 0.988;
+                if(items.some(b => b!==a && pixelCollision(a,b,3))) { a.x = oldX; a.y = oldY; }
+                else moved = true;
+            }
+            if(!moved) break;
         }
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        for (let p of items) {
-            p.x -= centerX;
-            p.y -= centerY;
+        // центрирование
+        let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+        for(let p of items) {
+            minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x+p.w); maxY = Math.max(maxY, p.y+p.h);
         }
+        const centerX = (minX+maxX)/2, centerY = (minY+maxY)/2;
+        for(let p of items) { p.x -= centerX; p.y -= centerY; }
         return items;
     }
 
-    // ---------- подгонка камеры под все объекты с отступами ----------
     function fitToScreen() {
-        if (!placed.length) return;
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (let p of placed) {
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x + p.w);
-            maxY = Math.max(maxY, p.y + p.h);
+        if(!placed.length) return;
+        let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+        for(let p of placed) {
+            minX = Math.min(minX,p.x); minY = Math.min(minY,p.y);
+            maxX = Math.max(maxX,p.x+p.w); maxY = Math.max(maxY,p.y+p.h);
         }
-        const contentW = maxX - minX;
-        const contentH = maxY - minY;
-        if (contentW <= 0 || contentH <= 0) return;
-        const padding = 40; // отступы от краёв
-        const scaleX = (canvas.width - padding * 2) / contentW;
-        const scaleY = (canvas.height - padding * 2) / contentH;
-        camera.zoom = Math.min(scaleX, scaleY) * 0.92;
-        // центрируем камеру на центре группы
-        const centerObjX = (minX + maxX) / 2;
-        const centerObjY = (minY + maxY) / 2;
-        camera.x = centerObjX;
-        camera.y = centerObjY;
+        const w = maxX-minX, h = maxY-minY;
+        if(w<=0||h<=0) return;
+        const scaleX = (canvas.width-80)/w, scaleY = (canvas.height-80)/h;
+        camera.zoom = Math.min(scaleX, scaleY)*0.92;
+        camera.x = (minX+maxX)/2;
+        camera.y = (minY+maxY)/2;
         draw();
     }
 
-    // ---------- сохранение позиций в localStorage по seed ----------
-    function savePositionsToStorage(seedVal, positions) {
+    function saveState(seedVal, positions) {
         const key = `collage_${seedVal}`;
-        const data = positions.map(p => ({ x: p.x, y: p.y, w: p.w, h: p.h, src: p.img.src }));
+        const data = positions.map(p => ({ x:p.x, y:p.y, w:p.w, h:p.h, src:p.img.src }));
         localStorage.setItem(key, JSON.stringify(data));
     }
-
-    // загрузка позиций из localStorage
-    function loadPositionsFromStorage(seedVal) {
+    function loadState(seedVal) {
         const key = `collage_${seedVal}`;
         const raw = localStorage.getItem(key);
-        if (!raw) return null;
+        if(!raw) return null;
         try {
             const saved = JSON.parse(raw);
-            if (!Array.isArray(saved)) return null;
-            // сопоставляем с текущими загруженными изображениями по src
+            if(!Array.isArray(saved)) return null;
             const restored = [];
-            for (let savedItem of saved) {
-                const foundImg = images.find(img => img.src === savedItem.src);
-                if (foundImg) {
-                    restored.push({
-                        x: savedItem.x,
-                        y: savedItem.y,
-                        w: savedItem.w,
-                        h: savedItem.h,
-                        img: foundImg
-                    });
-                }
+            for(let s of saved) {
+                const found = images.find(img => img.src === s.src);
+                if(found) restored.push({ x:s.x, y:s.y, w:s.w, h:s.h, img:found });
             }
             return restored.length === images.length ? restored : null;
         } catch(e) { return null; }
     }
 
-    // обновление URL и сохранение позиций после изменений (перетаскивание)
-    function updateStateAndUrl(newPlaced) {
-        if (!newPlaced) newPlaced = placed;
-        const newSeed = Math.floor(Math.random() * 2_147_483_647);
-        currentSeed = newSeed;
-        document.getElementById('seedInput').value = newSeed;
-        // сохраняем новые позиции
-        savePositionsToStorage(newSeed, newPlaced);
-        // обновляем URL без перезагрузки страницы
-        const url = new URL(window.location);
-        url.searchParams.set('seed', newSeed);
-        window.history.pushState({}, '', url);
-        placed = newPlaced;
-        draw();
-    }
-
-    // инициализация по seed: либо восстановить из storage, либо сгенерировать
-    function applySeedAndRestore(seedValue) {
-        if (!images.length) return;
-        currentSeed = seedValue;
-        const stored = loadPositionsFromStorage(seedValue);
-        if (stored && stored.length === images.length) {
-            placed = stored;
-            console.log('восстановлено из localStorage');
-        } else {
-            // генерируем новую уникальную расстановку
-            placed = generatePositions(seedValue);
-            savePositionsToStorage(seedValue, placed);
-        }
-        fitToScreen();
-        draw();
-    }
-
-    // регенерация (с новым рандомным seed)
-    function regenerate() {
-        if (!images.length) return;
-        const freshSeed = Math.floor(Math.random() * 2_147_483_647);
-        document.getElementById('seedInput').value = freshSeed;
-        currentSeed = freshSeed;
-        placed = generatePositions(freshSeed);
-        savePositionsToStorage(freshSeed, placed);
-        // обновляем URL
-        const url = new URL(window.location);
-        url.searchParams.set('seed', freshSeed);
-        window.history.pushState({}, '', url);
-        fitToScreen();
-        draw();
-    }
-
-    // применить seed из поля ввода
-    function applySeedFromInput() {
-        const seedVal = parseInt(document.getElementById('seedInput').value);
-        if (isNaN(seedVal)) return;
+    function applySeed(seedVal) {
+        if(!images.length) return;
         currentSeed = seedVal;
-        const url = new URL(window.location);
-        url.searchParams.set('seed', seedVal);
-        window.history.pushState({}, '', url);
-        applySeedAndRestore(seedVal);
-    }
-
-    // ---------- ЗАГРУЗКА ИЗ ЯНДЕКС ДИСКА ----------
-    async function fetchYandexDiskImages(publicUrl) {
-        // извлекаем public key из ссылки вида https://disk.yandex.ru/d/xxxxx или https://yadi.sk/d/...
-        let key = '';
-        const matchD = publicUrl.match(/disk\.yandex\.(ru|by|kz|com)\/d\/([a-zA-Z0-9_-]+)/);
-        const matchYadi = publicUrl.match(/yadi\.sk\/d\/([a-zA-Z0-9_-]+)/);
-        if (matchD) key = matchD[2];
-        else if (matchYadi) key = matchYadi[1];
+        const stored = loadState(seedVal);
+        if(stored) placed = stored;
         else {
-            // пробуем считать что ввели просто ключ
-            key = publicUrl.trim();
+            placed = generatePositions(seedVal);
+            saveState(seedVal, placed);
         }
-        if (!key) throw new Error('Не удалось извлечь ключ публичной папки. Пример: https://disk.yandex.ru/d/AbCdEfG');
-        
+        fitToScreen();
+        draw();
+    }
+
+    function regenerate() {
+        if(!images.length) return;
+        const newSeed = Math.floor(Math.random() * 2_147_483_647);
+        document.getElementById('seedInput').value = newSeed;
+        applySeed(newSeed);
+        const url = new URL(location);
+        url.searchParams.set('seed', newSeed);
+        history.pushState({}, '', url);
+    }
+
+    function updateSeedAndUrlFromDrag() {
+        const newSeed = Math.floor(Math.random() * 2_147_483_647);
+        document.getElementById('seedInput').value = newSeed;
+        saveState(newSeed, placed);
+        const url = new URL(location);
+        url.searchParams.set('seed', newSeed);
+        history.pushState({}, '', url);
+        currentSeed = newSeed;
+    }
+
+    // --- загрузка из Яндекс.Диска с отладкой ---
+    async function loadFromYandexDisk(publicUrl) {
+        let key = '';
+        const match = publicUrl.match(/disk\.yandex\.(ru|by|kz|com)\/d\/([a-zA-Z0-9_-]+)/);
+        if(match) key = match[2];
+        else key = publicUrl.trim();
+        if(!key) throw new Error('Не удалось извлечь ключ папки');
+
         const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerText = '📡 получаем список файлов...';
-        
-        // 1) получаем список файлов в папке
-        const listUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(key)}&path=/`;
-        const listResp = await fetch(listUrl);
-        if (!listResp.ok) throw new Error(`Ошибка API: ${listResp.status}`);
-        const listData = await listResp.json();
-        if (!listData._embedded || !listData._embedded.items) throw new Error('Нет файлов в папке');
-        
-        const items = listData._embedded.items;
-        const pngFiles = items.filter(f => f.name.toLowerCase().endsWith('.png') && f.type === 'file');
-        if (!pngFiles.length) throw new Error('В папке нет PNG файлов');
-        
-        statusDiv.innerText = `🖼️ найдено ${pngFiles.length} PNG, загружаем...`;
-        
-        // 2) для каждого PNG получаем ссылку на скачивание и грузим изображение
-        const loadedImages = [];
-        for (let file of pngFiles) {
-            try {
-                const downloadUrlReq = `https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(key)}&path=${encodeURIComponent(file.path)}`;
-                const dlResp = await fetch(downloadUrlReq);
-                const dlData = await dlResp.json();
-                const directUrl = dlData.href;
-                if (!directUrl) throw new Error('нет ссылки');
-                const img = new Image();
-                img.crossOrigin = "Anonymous"; // для корректной работы canvas
-                await new Promise((resolve, reject) => {
-                    img.onload = () => {
-                        img.mask = createMask(img, 0.28);
-                        loadedImages.push(img);
-                        resolve();
-                    };
-                    img.onerror = () => reject(new Error(`не загрузилось ${file.name}`));
-                    img.src = directUrl;
-                });
-            } catch (err) {
-                console.warn(`ошибка загрузки ${file.name}:`, err);
-            }
-        }
-        if (loadedImages.length === 0) throw new Error('Не удалось загрузить ни одного PNG');
-        statusDiv.innerText = `✅ загружено ${loadedImages.length} изображений`;
-        return loadedImages;
-    }
-
-    // главная загрузка из диска
-    async function loadFromYandex() {
-        const inputUrl = document.getElementById('folderUrl').value;
-        if (!inputUrl) {
-            alert('Введите ссылку на публичную папку Яндекс.Диска');
-            return;
-        }
+        statusDiv.innerText = `📡 запрос к API... ключ: ${key}`;
+        const listUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(key)}`;
+        let resp;
         try {
-            document.getElementById('statusMsg').innerText = '⏳ соединение с Яндекс.Диском...';
-            const imgs = await fetchYandexDiskImages(inputUrl);
-            if (imgs.length) {
-                images = imgs;
-                // после загрузки картинок: инициализируем seed из URL или новый
-                const urlParams = new URLSearchParams(window.location.search);
-                let seedFromUrl = urlParams.get('seed');
-                if (seedFromUrl && !isNaN(parseInt(seedFromUrl))) {
-                    currentSeed = parseInt(seedFromUrl);
-                    document.getElementById('seedInput').value = currentSeed;
-                    applySeedAndRestore(currentSeed);
-                } else {
-                    const fresh = Math.floor(Math.random() * 2_147_483_647);
-                    currentSeed = fresh;
-                    document.getElementById('seedInput').value = fresh;
-                    placed = generatePositions(fresh);
-                    savePositionsToStorage(fresh, placed);
-                    const url = new URL(window.location);
-                    url.searchParams.set('seed', fresh);
-                    window.history.pushState({}, '', url);
-                    fitToScreen();
-                    draw();
-                }
-                document.getElementById('statusMsg').innerHTML = `🎨 готово, картинок: ${images.length} | тяни мышкой → seed меняется`;
+            resp = await fetch(listUrl);
+        } catch(e) {
+            throw new Error(`Сетевая ошибка: ${e.message}`);
+        }
+        if(!resp.ok) {
+            const errText = await resp.text();
+            console.error('API ответ:', errText);
+            throw new Error(`API вернул ${resp.status}. Возможно, папка не поддерживает API. Попробуйте другую папку с включённым API.`);
+        }
+        const data = await resp.json();
+        if(!data._embedded || !data._embedded.items) throw new Error('В ответе нет файлов');
+        const pngFiles = data._embedded.items.filter(f => f.name.toLowerCase().endsWith('.png') && f.type === 'file');
+        if(!pngFiles.length) throw new Error('В папке нет PNG файлов');
+        statusDiv.innerText = `🖼️ найдено ${pngFiles.length} PNG, загружаем...`;
+
+        const loaded = [];
+        for(let file of pngFiles) {
+            try {
+                const dlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(key)}&path=${encodeURIComponent(file.path)}`);
+                const dlData = await dlResp.json();
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                await new Promise((resolve, reject) => {
+                    img.onload = () => { img.mask = createMask(img, 0.28); loaded.push(img); resolve(); };
+                    img.onerror = () => reject(new Error(`не загрузилось ${file.name}`));
+                    img.src = dlData.href;
+                });
+            } catch(err) { console.warn(file.name, err); }
+        }
+        if(!loaded.length) throw new Error('Не удалось загрузить ни одного PNG');
+        return loaded;
+    }
+
+    async function onLoadFromYandex() {
+        const url = document.getElementById('folderUrl').value;
+        if(!url) { alert('Введите ссылку на публичную папку'); return; }
+        try {
+            document.getElementById('statusMsg').innerText = '⏳ загрузка с Яндекс.Диска...';
+            const imgs = await loadFromYandexDisk(url);
+            images = imgs;
+            // сброс состояния
+            const urlParams = new URLSearchParams(location.search);
+            let seedFromUrl = urlParams.get('seed');
+            if(seedFromUrl && !isNaN(parseInt(seedFromUrl))) {
+                currentSeed = parseInt(seedFromUrl);
+                document.getElementById('seedInput').value = currentSeed;
+                applySeed(currentSeed);
             } else {
-                throw new Error('нет изображений');
-            }
-        } catch (err) {
-            console.error(err);
-            document.getElementById('statusMsg').innerHTML = `❌ ошибка: ${err.message}`;
-            alert('Ошибка загрузки: ' + err.message);
-        }
-    }
-
-    // ---------- ОТРИСОВКА ----------
-    function draw() {
-        if (!ctx) return;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = '#0a0a12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.setTransform(
-            camera.zoom, 0, 0, camera.zoom,
-            canvas.width / 2 - camera.x * camera.zoom,
-            canvas.height / 2 - camera.y * camera.zoom
-        );
-        for (let p of placed) {
-            ctx.drawImage(p.img, p.x, p.y, p.w, p.h);
-        }
-        // легкий контур для перетаскиваемого объекта (визуальная обратная связь)
-        if (draggingObj && dragType === 'obj') {
-            ctx.save();
-            ctx.strokeStyle = '#ffaa44';
-            ctx.lineWidth = 3 / camera.zoom;
-            ctx.shadowBlur = 0;
-            ctx.strokeRect(draggingObj.x, draggingObj.y, draggingObj.w, draggingObj.h);
-            ctx.restore();
-        }
-    }
-
-    // ---------- ОБРАБОТЧИКИ МЫШИ ДЛЯ ПЕРЕТАСКИВАНИЯ + ОБНОВЛЕНИЕ SEED ----------
-    function getMouseWorldPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const screenX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const screenY = (e.clientY - rect.top) * (canvas.height / rect.height);
-        const worldX = (screenX - canvas.width / 2) / camera.zoom + camera.x;
-        const worldY = (screenY - canvas.height / 2) / camera.zoom + camera.y;
-        return { x: worldX, y: worldY };
-    }
-
-    let isDragging = false;
-    let dragObjTemp = null;
-    let dragStartWorld = null;
-
-    canvas.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        const world = getMouseWorldPos(e);
-        // ищем объект под курсором
-        let clickedObj = null;
-        for (let i = placed.length-1; i >= 0; i--) {
-            const p = placed[i];
-            if (world.x >= p.x && world.x <= p.x + p.w && world.y >= p.y && world.y <= p.y + p.h) {
-                clickedObj = p;
-                break;
-            }
-        }
-        if (clickedObj) {
-            dragType = 'obj';
-            draggingObj = clickedObj;
-            dragStartWorld = { x: world.x - draggingObj.x, y: world.y - draggingObj.y };
-            isDragging = true;
-            canvas.style.cursor = 'grabbing';
-        } else {
-            dragType = 'cam';
-            dragStartWorld = { x: world.x, y: world.y };
-            isDragging = true;
-            canvas.style.cursor = 'grabbing';
-        }
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const world = getMouseWorldPos(e);
-        if (dragType === 'cam') {
-            const dx = world.x - dragStartWorld.x;
-            const dy = world.y - dragStartWorld.y;
-            camera.x -= dx;
-            camera.y -= dy;
-            dragStartWorld = { x: world.x, y: world.y };
-            draw();
-        } else if (dragType === 'obj' && draggingObj) {
-            const newX = world.x - dragStartWorld.x;
-            const newY = world.y - dragStartWorld.y;
-            // проверка коллизий при перетаскивании (мягкая)
-            let canMove = true;
-            const tempObj = { ...draggingObj, x: newX, y: newY };
-            for (let other of placed) {
-                if (other !== draggingObj && pixelCollision(tempObj, other, 5)) {
-                    canMove = false;
-                    break;
-                }
-            }
-            if (canMove) {
-                draggingObj.x = newX;
-                draggingObj.y = newY;
+                const fresh = Math.floor(Math.random()*2_147_483_647);
+                document.getElementById('seedInput').value = fresh;
+                placed = generatePositions(fresh);
+                saveState(fresh, placed);
+                currentSeed = fresh;
+                const url = new URL(location);
+                url.searchParams.set('seed', fresh);
+                history.pushState({}, '', url);
+                fitToScreen();
                 draw();
             }
+            document.getElementById('statusMsg').innerHTML = `✅ загружено ${images.length} изображений`;
+        } catch(err) {
+            console.error(err);
+            document.getElementById('statusMsg').innerHTML = `❌ ошибка: ${err.message}`;
+            alert('Ошибка: ' + err.message);
+        }
+    }
+
+    // ручной ввод URL картинок (для отладки)
+    function manualUrls() {
+        let urls = prompt('Введите прямые ссылки на PNG (через запятую или каждый с новой строки):', 'https://example.com/1.png, https://example.com/2.png');
+        if(!urls) return;
+        const list = urls.split(/[,\n]+/).map(s=>s.trim()).filter(s=>s);
+        if(!list.length) return;
+        Promise.all(list.map(src => new Promise((res,rej)=>{
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = ()=>{ img.mask = createMask(img,0.28); res(img); };
+            img.onerror = ()=>rej(src);
+            img.src = src;
+        }))).then(imgs=>{
+            images = imgs;
+            const fresh = Math.floor(Math.random()*2_147_483_647);
+            document.getElementById('seedInput').value = fresh;
+            placed = generatePositions(fresh);
+            saveState(fresh, placed);
+            currentSeed = fresh;
+            fitToScreen();
+            draw();
+            document.getElementById('statusMsg').innerHTML = `🖼️ ручная загрузка: ${images.length} шт.`;
+        }).catch(e=>alert(`Не удалось загрузить: ${e}`));
+    }
+
+    // --- отрисовка и управление камерой ---
+    function draw() {
+        if(!ctx) return;
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.setTransform(camera.zoom,0,0,camera.zoom, canvas.width/2 - camera.x*camera.zoom, canvas.height/2 - camera.y*camera.zoom);
+        for(let p of placed) ctx.drawImage(p.img, p.x, p.y, p.w, p.h);
+        if(draggingObj && dragType==='obj') {
+            ctx.strokeStyle = '#ffaa44';
+            ctx.lineWidth = 3/camera.zoom;
+            ctx.strokeRect(draggingObj.x, draggingObj.y, draggingObj.w, draggingObj.h);
+        }
+    }
+
+    function getMouseWorld(e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = (e.clientX - rect.left) * (canvas.width/rect.width);
+        const sy = (e.clientY - rect.top) * (canvas.height/rect.height);
+        const wx = (sx - canvas.width/2)/camera.zoom + camera.x;
+        const wy = (sy - canvas.height/2)/camera.zoom + camera.y;
+        return { x:wx, y:wy };
+    }
+
+    canvas.addEventListener('mousedown', (e)=>{
+        e.preventDefault();
+        const world = getMouseWorld(e);
+        let clicked = null;
+        for(let i=placed.length-1; i>=0; i--) {
+            const p = placed[i];
+            if(world.x>=p.x && world.x<=p.x+p.w && world.y>=p.y && world.y<=p.y+p.h) { clicked=p; break; }
+        }
+        if(clicked) {
+            dragType='obj';
+            draggingObj=clicked;
+            dragStartWorld = { x: world.x - draggingObj.x, y: world.y - draggingObj.y };
+        } else {
+            dragType='cam';
+            dragStartWorld = { x: world.x, y: world.y };
+        }
+        isDragging=true;
+        canvas.style.cursor='grabbing';
+    });
+    canvas.addEventListener('mousemove', (e)=>{
+        if(!isDragging) return;
+        const world = getMouseWorld(e);
+        if(dragType==='cam') {
+            camera.x -= world.x - dragStartWorld.x;
+            camera.y -= world.y - dragStartWorld.y;
+            dragStartWorld = { x: world.x, y: world.y };
+            draw();
+        } else if(dragType==='obj' && draggingObj) {
+            const newX = world.x - dragStartWorld.x;
+            const newY = world.y - dragStartWorld.y;
+            let can = true;
+            const temp = { ...draggingObj, x:newX, y:newY };
+            for(let other of placed) if(other!==draggingObj && pixelCollision(temp,other,5)) { can=false; break; }
+            if(can) { draggingObj.x=newX; draggingObj.y=newY; draw(); }
         }
     });
-
-    function endDragAndSave() {
-        if (isDragging && dragType === 'obj' && draggingObj) {
-            // после перемещения объекта сохраняем новое состояние в storage с новым seed
-            updateStateAndUrl(placed);
-        }
-        isDragging = false;
-        dragType = null;
-        draggingObj = null;
-        canvas.style.cursor = 'grab';
-    }
-    canvas.addEventListener('mouseup', endDragAndSave);
-    canvas.addEventListener('mouseleave', endDragAndSave);
-
-    // колесо масштаба
-    canvas.addEventListener('wheel', (e) => {
+    canvas.addEventListener('mouseup', ()=>{
+        if(isDragging && dragType==='obj' && draggingObj) updateSeedAndUrlFromDrag();
+        isDragging=false; dragType=null; draggingObj=null;
+        canvas.style.cursor='grab';
+    });
+    canvas.addEventListener('wheel', (e)=>{
         e.preventDefault();
-        const worldBefore = getMouseWorldPos(e);
-        const delta = e.deltaY > 0 ? 0.92 : 1.08;
-        camera.zoom *= delta;
+        const before = getMouseWorld(e);
+        camera.zoom *= (e.deltaY<0 ? 1.08 : 0.92);
         camera.zoom = Math.min(8, Math.max(0.2, camera.zoom));
-        const worldAfter = getMouseWorldPos(e);
-        camera.x += (worldBefore.x - worldAfter.x);
-        camera.y += (worldBefore.y - worldAfter.y);
+        const after = getMouseWorld(e);
+        camera.x += before.x - after.x;
+        camera.y += before.y - after.y;
         draw();
     });
 
-    // инициализация интерфейса
-    document.getElementById('applySeedBtn').onclick = () => applySeedFromInput();
-    document.getElementById('regenBtn').onclick = () => regenerate();
-    document.getElementById('loadYandexBtn').onclick = () => loadFromYandex();
+    document.getElementById('applySeedBtn').onclick = () => {
+        const val = parseInt(document.getElementById('seedInput').value);
+        if(!isNaN(val)) applySeed(val);
+    };
+    document.getElementById('regenBtn').onclick = regenerate;
+    document.getElementById('loadYandexBtn').onclick = onLoadFromYandex;
+    document.getElementById('manualUrlsBtn').onclick = manualUrls;
 
-    // стартовый текст и установка курсора
-    canvas.style.cursor = 'grab';
-    document.getElementById('statusMsg').innerHTML = '📁 вставьте ссылку на папку Яндекс.Диска и нажмите "загрузить"';
-
-    // предзагрузка примера не нужна, пользователь сам выбирает папку.
-    // но оставим возможность загрузить демо-ссылку если захочется: пустая заглушка
-    console.log('ready — ждём папку с PNG');
+    canvas.style.cursor='grab';
 </script>
 </body>
 </html>
