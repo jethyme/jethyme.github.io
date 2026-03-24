@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>PNG коллаж с Яндекс.Диска (исправлено)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG Коллаж | Яндекс.Диск</title>
     <style>
         body { margin:0; overflow:hidden; background:#0a0a12; font-family: system-ui; }
         canvas { display:block; cursor:grab; }
@@ -16,33 +17,28 @@
             background:#1e1e2a; border:1px solid #5a5a7a; color:white; padding:4px 10px;
             border-radius:24px; cursor:pointer;
         }
-        .load-panel {
-            position:fixed; top:80px; left:16px; background:rgba(0,0,0,0.7); backdrop-filter:blur(12px);
-            padding:10px 18px; border-radius:32px; display:flex; gap:10px; z-index:100;
-            border:1px solid #3a3a4a;
+        .status {
+            position:fixed; bottom:16px; left:16px; background:#000000aa; backdrop-filter:blur(8px);
+            padding:6px 12px; border-radius:40px; font-size:12px; color:#ddd; z-index:100;
         }
-        .load-panel input { width:260px; background:#1e1e2a; border:1px solid #5a5a7a; color:white; padding:4px 10px; border-radius:24px; }
-        .load-panel button { background:#2d4a6e; border:none; padding:4px 14px; border-radius:24px; cursor:pointer; color:white; }
-        .status { position:fixed; bottom:16px; left:16px; background:#000000aa; backdrop-filter:blur(8px); padding:6px 12px; border-radius:40px; font-size:12px; color:#ddd; z-index:100; }
-        @media (max-width:640px){ .load-panel input{width:180px;} }
     </style>
 </head>
 <body>
 <div id="ui">
     <span>🔑 seed:</span>
-    <input id="seedInput" type="text">
+    <input id="seedInput" type="text" style="width:100px;">
     <button id="applySeedBtn">применить</button>
     <button id="regenBtn">🎲 новая расстановка</button>
 </div>
-<div class="load-panel">
-    <input id="folderUrl" type="text" placeholder="Ссылка на папку Яндекс.Диска">
-    <button id="loadYandexBtn">📂 загрузить PNG</button>
-    <button id="manualUrlsBtn" style="background:#4a2e6e;">➕ вручную</button>
-</div>
-<div class="status" id="statusMsg">⏳ вставьте ссылку на папку и нажмите загрузить</div>
+<div class="status" id="statusMsg">⏳ загрузка...</div>
 <canvas id="c"></canvas>
 
 <script>
+    // ========== НАСТРОЙКИ (замените на свои) ==========
+    const YANDEX_TOKEN = 'ваш_oauth_токен';      // вставьте токен
+    const YANDEX_FOLDER = '/disk/Мои картинки';  // путь к папке на Диске
+
+    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     const canvas = document.getElementById('c');
     const ctx = canvas.getContext('2d');
     let images = [];
@@ -59,7 +55,7 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // RNG
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     function mulberry32(seedVal) {
         return function() {
             let t = seedVal += 0x6D2B79F5;
@@ -69,8 +65,8 @@
         };
     }
 
-    // маска
-    function createMask(img, scaleFactor = 0.3) {
+    // Создание маски для точной коллизии
+    function createMask(img, scaleFactor = 0.28) {
         const w = Math.max(1, Math.floor(img.width * scaleFactor));
         const h = Math.max(1, Math.floor(img.height * scaleFactor));
         const off = document.createElement('canvas');
@@ -83,7 +79,7 @@
         return { mask, w, h, scale: scaleFactor };
     }
 
-    // пиксельная коллизия
+    // Пиксельная коллизия с зазором
     function pixelCollision(a, b, gap=3) {
         if(a.x+a.w+gap < b.x || a.x > b.x+b.w+gap || a.y+a.h+gap < b.y || a.y > b.y+b.h+gap) return false;
         const ma = a.img.mask, mb = b.img.mask;
@@ -98,14 +94,15 @@
         return false;
     }
 
-    // генерация позиций
+    // ========== ГЕНЕРАЦИЯ ПОЗИЦИЙ ==========
     function generatePositions(seedVal) {
         if(!images.length) return [];
         rand = mulberry32(seedVal);
         let items = images.map(img => ({
             x: (rand()-0.5)*1800, y: (rand()-0.5)*1800, w: img.width, h: img.height, img
         }));
-        // отталкивание
+
+        // 1. Агрессивное отталкивание
         for(let iter=0; iter<400; iter++) {
             let any = false;
             for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++) {
@@ -114,15 +111,16 @@
                     const dx = items[i].x - items[j].x, dy = items[i].y - items[j].y;
                     const len = Math.hypot(dx,dy) || 0.01;
                     const nx = dx/len, ny = dy/len;
-                    const force = 4.5 * (1 - iter/500);
+                    const force = 4.8 * (1 - iter/500);
                     items[i].x += nx*force; items[i].y += ny*force;
                     items[j].x -= nx*force; items[j].y -= ny*force;
                 }
             }
             if(!any) break;
         }
-        // притяжение к центру
-        for(let iter=0; iter<100; iter++) {
+
+        // 2. Притяжение к центру
+        for(let iter=0; iter<120; iter++) {
             let moved = false;
             for(let a of items) {
                 const oldX = a.x, oldY = a.y;
@@ -132,7 +130,8 @@
             }
             if(!moved) break;
         }
-        // центрирование
+
+        // 3. Центрирование
         let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
         for(let p of items) {
             minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
@@ -159,6 +158,7 @@
         draw();
     }
 
+    // ========== СОХРАНЕНИЕ ПОЗИЦИЙ ==========
     function saveState(seedVal, positions) {
         const key = `collage_${seedVal}`;
         const data = positions.map(p => ({ x:p.x, y:p.y, w:p.w, h:p.h, src:p.img.src }));
@@ -170,7 +170,6 @@
         if(!raw) return null;
         try {
             const saved = JSON.parse(raw);
-            if(!Array.isArray(saved)) return null;
             const restored = [];
             for(let s of saved) {
                 const found = images.find(img => img.src === s.src);
@@ -213,60 +212,59 @@
         currentSeed = newSeed;
     }
 
-    // --- загрузка из Яндекс.Диска с отладкой ---
-    async function loadFromYandexDisk(publicUrl) {
-        let key = '';
-        const match = publicUrl.match(/disk\.yandex\.(ru|by|kz|com)\/d\/([a-zA-Z0-9_-]+)/);
-        if(match) key = match[2];
-        else key = publicUrl.trim();
-        if(!key) throw new Error('Не удалось извлечь ключ папки');
-
+    // ========== ЗАГРУЗКА ИЗ ЯНДЕКС ДИСКА (через OAuth) ==========
+    async function loadImagesFromYandex() {
         const statusDiv = document.getElementById('statusMsg');
-        statusDiv.innerText = `📡 запрос к API... ключ: ${key}`;
-        const listUrl = `https://cloud-api.yandex.net/v1/disk/public/resources?public_key=${encodeURIComponent(key)}`;
-        let resp;
+        statusDiv.innerText = '📡 получение списка файлов...';
         try {
-            resp = await fetch(listUrl);
-        } catch(e) {
-            throw new Error(`Сетевая ошибка: ${e.message}`);
-        }
-        if(!resp.ok) {
-            const errText = await resp.text();
-            console.error('API ответ:', errText);
-            throw new Error(`API вернул ${resp.status}. Возможно, папка не поддерживает API. Попробуйте другую папку с включённым API.`);
-        }
-        const data = await resp.json();
-        if(!data._embedded || !data._embedded.items) throw new Error('В ответе нет файлов');
-        const pngFiles = data._embedded.items.filter(f => f.name.toLowerCase().endsWith('.png') && f.type === 'file');
-        if(!pngFiles.length) throw new Error('В папке нет PNG файлов');
-        statusDiv.innerText = `🖼️ найдено ${pngFiles.length} PNG, загружаем...`;
-
-        const loaded = [];
-        for(let file of pngFiles) {
-            try {
-                const dlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key=${encodeURIComponent(key)}&path=${encodeURIComponent(file.path)}`);
+            // 1. Получаем список файлов в папке
+            const listUrl = `https://cloud-api.yandex.net/v1/disk/resources?path=${encodeURIComponent(YANDEX_FOLDER)}&limit=1000`;
+            const listResp = await fetch(listUrl, {
+                headers: { 'Authorization': `OAuth ${YANDEX_TOKEN}` }
+            });
+            if (!listResp.ok) {
+                const errData = await listResp.json();
+                throw new Error(`Ошибка API: ${errData.message || listResp.status}`);
+            }
+            const listData = await listResp.json();
+            const items = listData._embedded?.items || [];
+            const pngFiles = items.filter(f => f.type === 'file' && f.name.toLowerCase().endsWith('.png'));
+            if (!pngFiles.length) throw new Error('В папке нет PNG файлов');
+            
+            statusDiv.innerText = `🖼️ найдено ${pngFiles.length} PNG, загружаем...`;
+            
+            // 2. Для каждого PNG получаем ссылку на скачивание и загружаем изображение
+            const loaded = [];
+            for (let file of pngFiles) {
+                const dlResp = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${encodeURIComponent(file.path)}`, {
+                    headers: { 'Authorization': `OAuth ${YANDEX_TOKEN}` }
+                });
                 const dlData = await dlResp.json();
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 await new Promise((resolve, reject) => {
-                    img.onload = () => { img.mask = createMask(img, 0.28); loaded.push(img); resolve(); };
+                    img.onload = () => {
+                        img.mask = createMask(img);
+                        loaded.push(img);
+                        resolve();
+                    };
                     img.onerror = () => reject(new Error(`не загрузилось ${file.name}`));
                     img.src = dlData.href;
                 });
-            } catch(err) { console.warn(file.name, err); }
+            }
+            return loaded;
+        } catch(err) {
+            console.error(err);
+            statusDiv.innerText = `❌ ошибка: ${err.message}`;
+            throw err;
         }
-        if(!loaded.length) throw new Error('Не удалось загрузить ни одного PNG');
-        return loaded;
     }
 
-    async function onLoadFromYandex() {
-        const url = document.getElementById('folderUrl').value;
-        if(!url) { alert('Введите ссылку на публичную папку'); return; }
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    async function init() {
         try {
-            document.getElementById('statusMsg').innerText = '⏳ загрузка с Яндекс.Диска...';
-            const imgs = await loadFromYandexDisk(url);
+            const imgs = await loadImagesFromYandex();
             images = imgs;
-            // сброс состояния
             const urlParams = new URLSearchParams(location.search);
             let seedFromUrl = urlParams.get('seed');
             if(seedFromUrl && !isNaN(parseInt(seedFromUrl))) {
@@ -285,40 +283,13 @@
                 fitToScreen();
                 draw();
             }
-            document.getElementById('statusMsg').innerHTML = `✅ загружено ${images.length} изображений`;
+            document.getElementById('statusMsg').innerHTML = `✅ загружено ${images.length} PNG из Яндекс.Диска`;
         } catch(err) {
-            console.error(err);
-            document.getElementById('statusMsg').innerHTML = `❌ ошибка: ${err.message}`;
-            alert('Ошибка: ' + err.message);
+            document.getElementById('statusMsg').innerHTML = `⚠️ ошибка: ${err.message}. Проверьте токен и путь к папке.`;
         }
     }
 
-    // ручной ввод URL картинок (для отладки)
-    function manualUrls() {
-        let urls = prompt('Введите прямые ссылки на PNG (через запятую или каждый с новой строки):', 'https://example.com/1.png, https://example.com/2.png');
-        if(!urls) return;
-        const list = urls.split(/[,\n]+/).map(s=>s.trim()).filter(s=>s);
-        if(!list.length) return;
-        Promise.all(list.map(src => new Promise((res,rej)=>{
-            const img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.onload = ()=>{ img.mask = createMask(img,0.28); res(img); };
-            img.onerror = ()=>rej(src);
-            img.src = src;
-        }))).then(imgs=>{
-            images = imgs;
-            const fresh = Math.floor(Math.random()*2_147_483_647);
-            document.getElementById('seedInput').value = fresh;
-            placed = generatePositions(fresh);
-            saveState(fresh, placed);
-            currentSeed = fresh;
-            fitToScreen();
-            draw();
-            document.getElementById('statusMsg').innerHTML = `🖼️ ручная загрузка: ${images.length} шт.`;
-        }).catch(e=>alert(`Не удалось загрузить: ${e}`));
-    }
-
-    // --- отрисовка и управление камерой ---
+    // ========== ОТРИСОВКА И УПРАВЛЕНИЕ ==========
     function draw() {
         if(!ctx) return;
         ctx.setTransform(1,0,0,1,0,0);
@@ -399,10 +370,9 @@
         if(!isNaN(val)) applySeed(val);
     };
     document.getElementById('regenBtn').onclick = regenerate;
-    document.getElementById('loadYandexBtn').onclick = onLoadFromYandex;
-    document.getElementById('manualUrlsBtn').onclick = manualUrls;
 
     canvas.style.cursor='grab';
+    init();
 </script>
 </body>
 </html>
