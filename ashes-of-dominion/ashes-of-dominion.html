@@ -709,11 +709,27 @@
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
                 subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || [])
             }));
-            // Обновляем статусы задач на основе подзадач
+            // Обновляем статусы и исполнителей задач на основе подзадач
             tasks.forEach(task => {
                 task.status = calculateTaskStatus(task.subtasks);
+                task.assignees = calculateTaskAssignees(task.subtasks);
             });
             renderTasks();
+        }
+        
+        // Собирает всех исполнителей из подзадач рекурсивно
+        function calculateTaskAssignees(subtasks) {
+            const allAssignees = new Set();
+            const collectAssignees = (nodes) => {
+                for (const n of nodes) {
+                    if (n.assignees) {
+                        n.assignees.forEach(a => allAssignees.add(String(a)));
+                    }
+                    if (n.children) collectAssignees(n.children);
+                }
+            };
+            collectAssignees(subtasks || []);
+            return Array.from(allAssignees);
         }
 
         // Вычисляет статус задачи как МИНИМАЛЬНЫЙ среди всех подзадач
@@ -748,48 +764,32 @@
             return minStatus;
         }
 
-        // Поднимает подзадачи до указанного статуса (если они раньше)
-        function elevateSubtasksStatus(subtasks, targetStatus) {
-            const targetOrder = STATUS_ORDER[targetStatus];
-            
-            const elevate = (nodes) => nodes.map(n => {
-                const currentOrder = STATUS_ORDER[n.status];
-                // Если подзадача раньше целевого статуса — поднимаем
-                const newStatus = currentOrder < targetOrder ? targetStatus : n.status;
-                
-                return {
-                    ...n,
-                    status: newStatus,
-                    children: n.children ? elevate(n.children) : []
-                };
-            });
-            
-            return elevate(subtasks);
-        }
-
         async function saveTask(taskData) {
             if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
             
             const task = tasks.find(t => t.id === taskData.id);
             let newSubtasks = taskData.subtasks;
             
-            // Если меняем статус задачи на более поздний — поднимаем подзадачи
+            // Если меняем статус задачи на более поздний — поднимаем подзадачи того же статуса
             if (task && taskData.status !== task.status) {
                 const oldOrder = STATUS_ORDER[task.status];
                 const newOrder = STATUS_ORDER[taskData.status];
                 
                 if (newOrder > oldOrder) {
-                    // Двигаем вперёд — поднимаем подзадачи
-                    newSubtasks = elevateSubtasksStatus(taskData.subtasks, taskData.status);
+                    // Двигаем вперёд — поднимаем подзадачи с тем же статусом
+                    newSubtasks = elevateSameStatusSubtasks(taskData.subtasks, task.status, taskData.status);
                 }
             }
+            
+            // Пересчитываем исполнителей из подзадач
+            const newAssignees = calculateTaskAssignees(newSubtasks);
             
             if (taskData.id) {
                 await sbClient.from('tasks').update({
                     title: taskData.title,
                     priority: taskData.priority,
                     status: taskData.status,
-                    assignees: taskData.assignees.join(','),
+                    assignees: newAssignees.join(','),
                     subtasks: JSON.stringify(newSubtasks)
                 }).eq('id', taskData.id);
             } else {
@@ -797,13 +797,26 @@
                     title: taskData.title,
                     priority: taskData.priority,
                     status: taskData.status,
-                    assignees: taskData.assignees.join(','),
+                    assignees: newAssignees.join(','),
                     subtasks: JSON.stringify(newSubtasks)
                 }]);
             }
             await loadTasks();
             showToast('Сохранено', 'success');
             return true;
+        }
+        
+        // Поднимает только подзадачи с указанным статусом на новый статус
+        function elevateSameStatusSubtasks(subtasks, oldStatus, newStatus) {
+            const elevate = (nodes) => nodes.map(n => {
+                const newChildren = n.children ? elevate(n.children) : [];
+                // Поднимаем только если текущий статус совпадает с oldStatus
+                if (n.status === oldStatus) {
+                    return { ...n, status: newStatus, children: newChildren };
+                }
+                return { ...n, children: newChildren };
+            });
+            return elevate(subtasks);
         }
 
         async function deleteTask(id) {
@@ -823,17 +836,20 @@
             
             let newSubtasks = task.subtasks;
             
-            // Если двигаем вперёд — поднимаем подзадачи
+            // Если двигаем вперёд — поднимаем подзадачи того же статуса
             if (newOrder > oldOrder) {
-                newSubtasks = elevateSubtasksStatus(task.subtasks, newStatus);
+                newSubtasks = elevateSameStatusSubtasks(task.subtasks, task.status, newStatus);
             }
+            
+            const newAssignees = calculateTaskAssignees(newSubtasks);
             
             task.status = newStatus;
             task.subtasks = newSubtasks;
             
             await sbClient.from('tasks').update({
                 status: newStatus,
-                subtasks: JSON.stringify(newSubtasks)
+                subtasks: JSON.stringify(newSubtasks),
+                assignees: newAssignees.join(',')
             }).eq('id', taskId);
             await loadTasks();
         }
@@ -962,9 +978,9 @@
                     <div><span class="status-badge status-${task.status}">${STATUS_LABELS[task.status]}</span></div>
                     <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                     <div class="task-actions">
-                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">+</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">✏️</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">✕</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">➕</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">📝</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">🗑️</button>` : ''}
                     </div>
                 </div>
                 <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
@@ -991,9 +1007,9 @@
                         <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
                         <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">✏️</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">+</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">✕</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">➕</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">📝</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">🗑️</button>` : ''}
                         </div>
                     </div>
                     ${isExpanded && hasChildren ? `<div class="subtask-children-${sub.id}">${renderSubtaskTree(sub.children, taskId, level + 1)}</div>` : ''}
@@ -1004,86 +1020,175 @@
         function renderKanban() {
             const columns = { queue: [], progress: [], review: [], done: [] };
             
+            // Строим плоский список всех задач и подзадач с их иерархией
+            const flatItems = [];
+            
             tasks.filter(matchesFilters).forEach(task => {
-                columns[task.status].push({
+                // Добавляем задачу
+                flatItems.push({
                     type: 'task',
-                    task: task
+                    item: task,
+                    parentId: null,
+                    breadcrumb: null,
+                    depth: 0
                 });
                 
-                // Добавляем подзадачи того же статуса что и задача
-                const sameStatusSubtasks = getSubtasksByStatus(task.subtasks, task.status);
-                sameStatusSubtasks.forEach(sub => {
-                    columns[task.status].push({
-                        type: 'subtask',
-                        task: task,
-                        subtask: sub,
-                        parentTaskId: task.id
+                // Рекурсивно добавляем все подзадачи
+                const addSubtasks = (subtasks, parentId, breadcrumb, depth) => {
+                    subtasks.forEach(sub => {
+                        const subBreadcrumb = breadcrumb ? `${breadcrumb} › ${task.title}` : task.title;
+                        flatItems.push({
+                            type: 'subtask',
+                            item: sub,
+                            parentId: parentId,
+                            parentTaskId: task.id,
+                            breadcrumb: subBreadcrumb,
+                            depth: depth
+                        });
+                        if (sub.children) {
+                            addSubtasks(sub.children, sub.id, subBreadcrumb, depth + 1);
+                        }
                     });
-                });
+                };
+                
+                addSubtasks(task.subtasks, task.id, null, 1);
             });
             
+            // Группируем по статусу
+            flatItems.forEach(item => {
+                columns[item.item.status].push(item);
+            });
+            
+            // Рендерим колонки
             Object.keys(columns).forEach(status => {
                 const container = document.getElementById(`${status}Tasks`);
-                container.innerHTML = columns[status].map(item => {
-                    if (item.type === 'task') {
-                        return renderKanbanTask(item.task);
-                    } else {
-                        return renderKanbanSubtask(item.subtask, item.task);
-                    }
-                }).join('');
+                container.innerHTML = renderKanbanColumn(columns[status]);
             });
         }
-
-        // Получает подзадачи указанного статуса (рекурсивно)
-        function getSubtasksByStatus(subtasks, status) {
-            let result = [];
-            for (const sub of subtasks) {
-                if (sub.status === status) {
-                    result.push(sub);
+        
+        function renderKanbanColumn(items) {
+            // Находим задачи с nested подзадачами того же статуса
+            const taskIds = new Set(items.filter(i => i.type === 'task').map(i => i.item.id));
+            
+            let html = '';
+            let i = 0;
+            
+            while (i < items.length) {
+                const item = items[i];
+                
+                if (item.type === 'task') {
+                    // Проверяем, есть ли nested подзадачи того же статуса
+                    const nestedItems = [];
+                    let j = i + 1;
+                    while (j < items.length && items[j].type === 'subtask' && 
+                           items[j].item.status === item.item.status && items[j].depth === 1) {
+                        nestedItems.push(items[j]);
+                        j++;
+                    }
+                    
+                    if (nestedItems.length > 0) {
+                        html += renderKanbanTaskNested(item.item, nestedItems);
+                        i = j;
+                        continue;
+                    }
                 }
-                if (sub.children) {
-                    result = result.concat(getSubtasksByStatus(sub.children, status));
+                
+                // Обычная карточка
+                if (item.type === 'task') {
+                    html += renderKanbanCard(item.item, null, null, 0);
+                } else {
+                    html += renderKanbanCard(item.item, item.parentTaskId, item.breadcrumb, item.depth);
                 }
+                i++;
             }
-            return result;
+            
+            return html || '<div class="kanban-empty">Пусто</div>';
         }
-
-        function renderKanbanTask(task) {
+        
+        function renderKanbanCard(item, parentTaskId, breadcrumb, depth) {
+            const assigneeNames = (item.assignees || []).map(id => { 
+                const a = assignees.find(x => x.id == id); 
+                return a ? a.name : id; 
+            });
+            
+            const isTask = !parentTaskId;
+            const cardClass = isTask ? 'kanban-card' : 'kanban-child';
+            const dragHandler = isTask ? 
+                `ondragstart="handleTaskDragStart(event, ${item.id})"` :
+                `ondragstart="handleSubtaskDragStart(event, ${parentTaskId}, ${item.id})"`;
+            
+            const depthColors = ['', 'rgba(233, 69, 96, 0.15)', 'rgba(233, 69, 96, 0.25)', 'rgba(233, 69, 96, 0.35)'];
+            const bgColor = depth > 0 ? depthColors[Math.min(depth, 3)] : '';
+            
+            return `
+                <div class="${cardClass}" draggable="${canEdit}" ${dragHandler} ondragend="handleDragEnd(event)" 
+                     style="${bgColor ? 'background: ' + bgColor + ';' : ''}">
+                    <div class="kanban-card-header">
+                        ${breadcrumb ? `<div class="breadcrumb">${breadcrumb}</div>` : ''}
+                        <div class="title" title="${item.title}">${item.title}</div>
+                        <div class="meta">
+                            <span class="priority-badge priority-${item.priority || 'medium'}">${PRIORITY_LABELS[item.priority || 'medium']}</span>
+                        </div>
+                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                    </div>
+                    ${isTask && canEdit ? `
+                    <div class="kanban-card-actions">
+                        <button class="btn-icon" onclick="openSubtaskModal(${item.id}, null, null)" title="Добавить подзадачу">➕</button>
+                        <button class="btn-icon" onclick="editTask(${item.id})" title="Редактировать">📝</button>
+                        <button class="btn-icon" onclick="deleteTask(${item.id})" title="Удалить">🗑️</button>
+                    </div>` : ''}
+                    ${!isTask && canEdit ? `
+                    <div class="kanban-card-actions">
+                        <button class="btn-icon" onclick="openSubtaskModal(${parentTaskId}, null, ${item.id})" title="Добавить дочернюю">➕</button>
+                        <button class="btn-icon" onclick="openSubtaskModal(${parentTaskId}, ${item.id})" title="Редактировать">📝</button>
+                        <button class="btn-icon" onclick="deleteSubtask(${parentTaskId}, ${item.id})" title="Удалить">🗑️</button>
+                    </div>` : ''}
+                </div>
+            `;
+        }
+        
+        function renderKanbanTaskNested(task, nestedItems) {
             const assigneeNames = task.assignees.map(id => { 
                 const a = assignees.find(x => x.id == id); 
                 return a ? a.name : id; 
             });
             
             return `
-                <div class="kanban-card" draggable="${canEdit}"
+                <div class="kanban-card kanban-card-nested" draggable="${canEdit}"
                      ondragstart="handleTaskDragStart(event, ${task.id})"
                      ondragend="handleDragEnd(event)">
                     <div class="kanban-card-header">
-                        <div class="title">${task.title}</div>
+                        <div class="title" title="${task.title}">${task.title}</div>
                         <div class="meta">
                             <span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span>
                         </div>
                         <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                     </div>
-                </div>
-            `;
-        }
-
-        function renderKanbanSubtask(sub, task) {
-            const assigneeNames = (sub.assignees || []).map(id => { 
-                const a = assignees.find(x => x.id == id); 
-                return a ? a.name : id; 
-            });
-            
-            return `
-                <div class="kanban-child" draggable="${canEdit}"
-                     ondragstart="handleSubtaskDragStart(event, ${task.id}, ${sub.id})"
-                     ondragend="handleDragEnd(event)">
-                    <div class="name" title="${sub.title}">${sub.title}</div>
-                    <div class="meta">
-                        <span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span>
+                    <div class="kanban-children">
+                        ${nestedItems.map(sub => `
+                            <div class="kanban-child" draggable="${canEdit}"
+                                 ondragstart="handleSubtaskDragStart(event, ${task.id}, ${sub.item.id})"
+                                 ondragend="handleDragEnd(event)">
+                                <div class="name" title="${sub.item.title}">${sub.item.title}</div>
+                                <div class="meta">
+                                    <span class="priority-badge priority-${sub.item.priority || 'medium'}">${PRIORITY_LABELS[sub.item.priority || 'medium']}</span>
+                                </div>
+                                <div class="assignees-list">${(sub.item.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; }).map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                                ${canEdit ? `
+                                <div class="kanban-child-actions">
+                                    <button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, ${sub.item.id})" title="Добавить дочернюю">➕</button>
+                                    <button class="btn-icon" onclick="openSubtaskModal(${task.id}, ${sub.item.id})" title="Редактировать">📝</button>
+                                    <button class="btn-icon" onclick="deleteSubtask(${task.id}, ${sub.item.id})" title="Удалить">🗑️</button>
+                                </div>` : ''}
+                            </div>
+                        `).join('')}
                     </div>
-                    <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                    ${canEdit ? `
+                    <div class="kanban-card-actions">
+                        <button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">➕</button>
+                        <button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">📝</button>
+                        <button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">🗑️</button>
+                    </div>` : ''}
                 </div>
             `;
         }
