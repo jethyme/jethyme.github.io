@@ -201,55 +201,60 @@
             margin-bottom: 12px;
             font-size: 0.9em;
         }
-        .kanban-task {
+        .kanban-card {
             background: #16213e;
             border-radius: 6px;
             margin-bottom: 10px;
             overflow: hidden;
+            cursor: grab;
         }
-        .kanban-task-header {
+        .kanban-card.dragging { opacity: 0.5; }
+        .kanban-card-header {
             padding: 10px 12px;
             background: #1a4a7a;
             display: flex;
-            justify-content: space-between;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 10px;
-        }
-        .kanban-task-header .title { font-weight: 500; font-size: 0.9em; flex: 1; }
-        .kanban-task-header .meta { display: flex; gap: 5px; flex-shrink: 0; }
-        .kanban-task-header .assignees { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
-        .kanban-subtasks { padding: 8px 12px; }
-        .kanban-subtask {
-            display: grid;
-            grid-template-columns: 1fr 70px 90px;
             gap: 8px;
-            align-items: center;
-            padding: 8px 10px;
+        }
+        .kanban-card-header .title { 
+            font-weight: 500; 
+            font-size: 0.9em; 
+            flex: 1;
+            min-width: 100px;
+        }
+        .kanban-card-header .meta { display: flex; gap: 5px; flex-shrink: 0; }
+        .kanban-card-header .assignees { 
+            display: flex; 
+            gap: 4px; 
+            flex-shrink: 0; 
+            flex-wrap: wrap; 
+        }
+        .kanban-children { 
+            padding: 8px 12px; 
             background: #0f3460;
-            border-radius: 4px;
+        }
+        .kanban-child {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
             margin-bottom: 6px;
+            background: #16213e;
+            border-radius: 4px;
             font-size: 0.85em;
             cursor: grab;
         }
-        .kanban-subtask:last-child { margin-bottom: 0; }
-        .kanban-subtask.dragging { opacity: 0.5; }
-        .kanban-subtask .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .kanban-subtask .task-ref {
-            font-size: 0.75em;
-            color: #888;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .kanban-child:last-child { margin-bottom: 0; }
+        .kanban-child.dragging { opacity: 0.5; }
+        .kanban-child .name { 
+            flex: 1; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
             white-space: nowrap;
+            min-width: 0;
         }
-        .kanban-subtask select {
-            padding: 4px 6px;
-            font-size: 0.75em;
-            background: #16213e;
-            border: 1px solid #1a4a7a;
-            color: #eee;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+        .kanban-child .meta { display: flex; gap: 5px; flex-shrink: 0; }
         .modal {
             display: none;
             position: fixed;
@@ -576,11 +581,13 @@
         let tasks = [], assignees = [], currentUser = null, canEdit = false;
         let expandedTasks = new Set();
         let expandedSubtasks = new Set();
-        let draggedSubtaskRef = null;
+        let draggedItem = null; // { type: 'task'|'subtask', taskId, subtaskId }
         let filterAssignee = '', filterPriority = '', filterStatus = '';
 
-        // Порядок статусов от низкого к высокому
+        // Порядок статусов: 0=самый ранний, 3=самый поздний
         const STATUS_ORDER = { queue: 0, progress: 1, review: 2, done: 3 };
+        const STATUS_LABELS = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+        const PRIORITY_LABELS = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
@@ -710,6 +717,7 @@
         }
 
         // Вычисляет статус задачи как МИНИМАЛЬНЫЙ среди всех подзадач
+        // Если подзадач нет — 'queue'
         function calculateTaskStatus(subtasks) {
             if (!subtasks || subtasks.length === 0) return 'queue';
             
@@ -740,22 +748,57 @@
             return minStatus;
         }
 
+        // Поднимает подзадачи до указанного статуса (если они раньше)
+        function elevateSubtasksStatus(subtasks, targetStatus) {
+            const targetOrder = STATUS_ORDER[targetStatus];
+            
+            const elevate = (nodes) => nodes.map(n => {
+                const currentOrder = STATUS_ORDER[n.status];
+                // Если подзадача раньше целевого статуса — поднимаем
+                const newStatus = currentOrder < targetOrder ? targetStatus : n.status;
+                
+                return {
+                    ...n,
+                    status: newStatus,
+                    children: n.children ? elevate(n.children) : []
+                };
+            });
+            
+            return elevate(subtasks);
+        }
+
         async function saveTask(taskData) {
             if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
+            
+            const task = tasks.find(t => t.id === taskData.id);
+            let newSubtasks = taskData.subtasks;
+            
+            // Если меняем статус задачи на более поздний — поднимаем подзадачи
+            if (task && taskData.status !== task.status) {
+                const oldOrder = STATUS_ORDER[task.status];
+                const newOrder = STATUS_ORDER[taskData.status];
+                
+                if (newOrder > oldOrder) {
+                    // Двигаем вперёд — поднимаем подзадачи
+                    newSubtasks = elevateSubtasksStatus(taskData.subtasks, taskData.status);
+                }
+            }
+            
             if (taskData.id) {
                 await sbClient.from('tasks').update({
                     title: taskData.title,
                     priority: taskData.priority,
+                    status: taskData.status,
                     assignees: taskData.assignees.join(','),
-                    subtasks: JSON.stringify(taskData.subtasks)
+                    subtasks: JSON.stringify(newSubtasks)
                 }).eq('id', taskData.id);
             } else {
                 await sbClient.from('tasks').insert([{
                     title: taskData.title,
                     priority: taskData.priority,
-                    status: 'queue',
+                    status: taskData.status,
                     assignees: taskData.assignees.join(','),
-                    subtasks: JSON.stringify(taskData.subtasks)
+                    subtasks: JSON.stringify(newSubtasks)
                 }]);
             }
             await loadTasks();
@@ -770,14 +813,43 @@
             showToast('Удалено', 'success');
         }
 
-        async function updateSubtaskStatus(taskId, subtaskId, status) {
+        async function updateTaskStatus(taskId, newStatus) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const oldOrder = STATUS_ORDER[task.status];
+            const newOrder = STATUS_ORDER[newStatus];
+            
+            let newSubtasks = task.subtasks;
+            
+            // Если двигаем вперёд — поднимаем подзадачи
+            if (newOrder > oldOrder) {
+                newSubtasks = elevateSubtasksStatus(task.subtasks, newStatus);
+            }
+            
+            task.status = newStatus;
+            task.subtasks = newSubtasks;
+            
+            await sbClient.from('tasks').update({
+                status: newStatus,
+                subtasks: JSON.stringify(newSubtasks)
+            }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function updateSubtaskStatus(taskId, subtaskId, newStatus) {
             if (!canEdit) return;
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             
             const updateInTree = (nodes) => nodes.map(n => {
-                if (n.id === subtaskId) return { ...n, status };
-                if (n.children) return { ...n, children: updateInTree(n.children) };
+                if (n.id === subtaskId) {
+                    return { ...n, status: newStatus };
+                }
+                if (n.children) {
+                    return { ...n, children: updateInTree(n.children) };
+                }
                 return n;
             });
             
@@ -876,17 +948,18 @@
         }
 
         function renderTaskRow(task) {
-            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
-            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
-            const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+            const assigneeNames = task.assignees.map(id => { 
+                const a = assignees.find(x => x.id == id); 
+                return a ? a.name : id; 
+            });
             const isExpanded = expandedTasks.has(task.id);
             
             return `
                 <div class="task-row" id="task-${task.id}">
                     <div class="expand-btn" onclick="toggleTask(${task.id})">${isExpanded ? '▼' : '▶'}</div>
                     <div class="task-title">${task.title}</div>
-                    <div><span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span></div>
-                    <div><span class="status-badge status-${task.status}">${statusLabels[task.status]}</span></div>
+                    <div><span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
+                    <div><span class="status-badge status-${task.status}">${STATUS_LABELS[task.status]}</span></div>
                     <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">+</button>` : ''}
@@ -902,19 +975,20 @@
 
         function renderSubtaskTree(subtasks, taskId, level) {
             if (!subtasks || subtasks.length === 0) return '';
-            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
-            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
             return subtasks.map(sub => {
                 const hasChildren = sub.children && sub.children.length > 0;
-                const subAssignees = (sub.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+                const subAssignees = (sub.assignees || []).map(id => { 
+                    const a = assignees.find(x => x.id == id); 
+                    return a ? a.name : id; 
+                });
                 const isExpanded = expandedSubtasks.has(sub.id);
                 return `
                     <div class="subtask-row" style="padding-left:${15 + level * 20}px">
                         <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${isExpanded && hasChildren ? '▼' : '▶'}</div>
                         <div style="width:20px"></div>
                         <div class="task-title">${sub.title}</div>
-                        <div><span class="priority-badge priority-${sub.priority || 'medium'}">${priorityLabels[sub.priority || 'medium']}</span></div>
-                        <div><span class="status-badge status-${sub.status}">${statusLabels[sub.status]}</span></div>
+                        <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
+                        <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
                         <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         <div class="task-actions">
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">✏️</button>` : ''}
@@ -928,55 +1002,88 @@
         }
 
         function renderKanban() {
-            // Собираем все подзадачи из всех задач
-            const allSubtasks = [];
-            tasks.filter(matchesFilters).forEach(task => {
-                const flatten = (nodes, parentTitle) => {
-                    for (const sub of nodes) {
-                        allSubtasks.push({
-                            ...sub,
-                            taskTitle: task.title,
-                            taskId: task.id
-                        });
-                        if (sub.children) flatten(sub.children, task.title);
-                    }
-                };
-                flatten(task.subtasks, task.title);
-            });
-            
-            // Группируем по статусам
             const columns = { queue: [], progress: [], review: [], done: [] };
-            allSubtasks.forEach(sub => {
-                columns[sub.status].push(sub);
+            
+            tasks.filter(matchesFilters).forEach(task => {
+                columns[task.status].push({
+                    type: 'task',
+                    task: task
+                });
+                
+                // Добавляем подзадачи того же статуса что и задача
+                const sameStatusSubtasks = getSubtasksByStatus(task.subtasks, task.status);
+                sameStatusSubtasks.forEach(sub => {
+                    columns[task.status].push({
+                        type: 'subtask',
+                        task: task,
+                        subtask: sub,
+                        parentTaskId: task.id
+                    });
+                });
             });
             
             Object.keys(columns).forEach(status => {
                 const container = document.getElementById(`${status}Tasks`);
-                container.innerHTML = columns[status].map(sub => renderKanbanSubtask(sub)).join('');
+                container.innerHTML = columns[status].map(item => {
+                    if (item.type === 'task') {
+                        return renderKanbanTask(item.task);
+                    } else {
+                        return renderKanbanSubtask(item.subtask, item.task);
+                    }
+                }).join('');
             });
         }
 
-        function renderKanbanSubtask(sub) {
-            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
-            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
+        // Получает подзадачи указанного статуса (рекурсивно)
+        function getSubtasksByStatus(subtasks, status) {
+            let result = [];
+            for (const sub of subtasks) {
+                if (sub.status === status) {
+                    result.push(sub);
+                }
+                if (sub.children) {
+                    result = result.concat(getSubtasksByStatus(sub.children, status));
+                }
+            }
+            return result;
+        }
+
+        function renderKanbanTask(task) {
+            const assigneeNames = task.assignees.map(id => { 
+                const a = assignees.find(x => x.id == id); 
+                return a ? a.name : id; 
+            });
             
             return `
-                <div class="kanban-subtask" draggable="${canEdit}"
-                     ondragstart="handleSubtaskDragStart(event, ${sub.taskId}, ${sub.id})"
-                     ondragend="handleSubtaskDragEnd(event)">
-                    <div style="min-width:0;">
-                        <div class="name" title="${sub.title}">${sub.title}</div>
-                        <div class="task-ref" title="${sub.taskTitle}">← ${sub.taskTitle}</div>
+                <div class="kanban-card" draggable="${canEdit}"
+                     ondragstart="handleTaskDragStart(event, ${task.id})"
+                     ondragend="handleDragEnd(event)">
+                    <div class="kanban-card-header">
+                        <div class="title">${task.title}</div>
+                        <div class="meta">
+                            <span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span>
+                        </div>
+                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                     </div>
-                    <span class="priority-badge priority-${sub.priority || 'medium'}">${priorityLabels[sub.priority || 'medium']}</span>
-                    <select onchange="updateSubtaskStatus(${sub.taskId}, ${sub.id}, this.value)" 
-                            style="cursor:pointer;"
-                            title="Изменить статус">
-                        <option value="queue" ${sub.status === 'queue' ? 'selected' : ''}>В очереди</option>
-                        <option value="progress" ${sub.status === 'progress' ? 'selected' : ''}>В работе</option>
-                        <option value="review" ${sub.status === 'review' ? 'selected' : ''}>На проверке</option>
-                        <option value="done" ${sub.status === 'done' ? 'selected' : ''}>Готово</option>
-                    </select>
+                </div>
+            `;
+        }
+
+        function renderKanbanSubtask(sub, task) {
+            const assigneeNames = (sub.assignees || []).map(id => { 
+                const a = assignees.find(x => x.id == id); 
+                return a ? a.name : id; 
+            });
+            
+            return `
+                <div class="kanban-child" draggable="${canEdit}"
+                     ondragstart="handleSubtaskDragStart(event, ${task.id}, ${sub.id})"
+                     ondragend="handleDragEnd(event)">
+                    <div class="name" title="${sub.title}">${sub.title}</div>
+                    <div class="meta">
+                        <span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span>
+                    </div>
+                    <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                 </div>
             `;
         }
@@ -1131,15 +1238,22 @@
             closeSubtaskModal();
         });
 
-        // Drag'n'drop для подзадач
+        // Drag'n'drop
+        function handleTaskDragStart(e, taskId) { 
+            if (!canEdit) return; 
+            draggedItem = { type: 'task', taskId }; 
+            e.currentTarget.classList.add('dragging'); 
+        }
+        
         function handleSubtaskDragStart(e, taskId, subtaskId) { 
             if (!canEdit) return; 
-            draggedSubtaskRef = { taskId, subtaskId }; 
-            e.target.classList.add('dragging'); 
+            draggedItem = { type: 'subtask', taskId, subtaskId }; 
+            e.currentTarget.classList.add('dragging'); 
         }
-        function handleSubtaskDragEnd(e) { 
-            e.target.classList.remove('dragging'); 
-            draggedSubtaskRef = null;
+        
+        function handleDragEnd(e) { 
+            if (e.currentTarget) e.currentTarget.classList.remove('dragging'); 
+            draggedItem = null;
             document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over')); 
         }
         
@@ -1151,9 +1265,13 @@
             e.preventDefault(); 
             e.currentTarget.classList.remove('drag-over'); 
             
-            if (draggedSubtaskRef) {
-                await updateSubtaskStatus(draggedSubtaskRef.taskId, draggedSubtaskRef.subtaskId, status);
-                draggedSubtaskRef = null;
+            if (draggedItem) {
+                if (draggedItem.type === 'task') {
+                    await updateTaskStatus(draggedItem.taskId, status);
+                } else if (draggedItem.type === 'subtask') {
+                    await updateSubtaskStatus(draggedItem.taskId, draggedItem.subtaskId, status);
+                }
+                draggedItem = null;
             }
         }
 
