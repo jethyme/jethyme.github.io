@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashes of Dominion - Задачи</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #e94560;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: #e94560;
+            font-size: 2.5em;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #ff6b6b;
+        }
+
+        .btn-secondary {
+            background: #0f3460;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #1a4a7a;
+        }
+
+        .btn-secondary.active {
+            background: #e94560;
+        }
+
+        /* Список задач */
+        .task-list {
+            background: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .task-item {
+            border-bottom: 1px solid #1a4a7a;
+        }
+
+        .task-header {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 50px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .task-header:hover {
+            background: #1a4a7a;
+        }
+
+        .task-header .title {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .task-header .status {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-todo { background: #4a4a6a; }
+        .status-progress { background: #2196f3; }
+        .status-review { background: #ff9800; }
+        .status-done { background: #4caf50; }
+
+        .task-header .assignees {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .assignee {
+            background: #e94560;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+
+        .task-header .toggle-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+
+        .task-item.expanded .toggle-btn {
+            transform: rotate(180deg);
+        }
+
+        .task-details {
+            display: none;
+            padding: 20px;
+            background: #16213e;
+        }
+
+        .task-item.expanded .task-details {
+            display: block;
+        }
+
+        .subtasks {
+            margin-top: 15px;
+            padding-left: 20px;
+        }
+
+        .subtask {
+            display: grid;
+            grid-template-columns: 1fr 100px 80px;
+            padding: 10px;
+            background: #0f3460;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        .comments-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #1a4a7a;
+        }
+
+        .comment {
+            background: #0f3460;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .comment-author {
+            font-weight: bold;
+            color: #e94560;
+            margin-bottom: 5px;
+        }
+
+        .add-comment {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .add-comment input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #eee;
+        }
+
+        /* Канбан доска */
+        .kanban-board {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .kanban-board.active {
+            display: grid;
+        }
+
+        .kanban-column {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .kanban-column h3 {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e94560;
+            margin-bottom: 15px;
+        }
+
+        .kanban-card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .kanban-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .kanban-card .title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .kanban-card .assignees {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            color: #e94560;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .task-list.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏰 Ashes of Dominion</h1>
+            <p>Система управления задачами</p>
+        </header>
+
+        <div class="controls">
+            <div class="view-toggle">
+                <button class="btn-secondary active" onclick="setView('list')">📋 Список</button>
+                <button class="btn-secondary" onclick="setView('kanban')">📊 Канбан</button>
+            </div>
+            <button class="btn-primary" onclick="openAddModal()">+ Добавить задачу</button>
+        </div>
+
+        <!-- Список задач -->
+        <div id="taskList" class="task-list">
+            <div class="task-header" style="background: #1a4a7a;">
+                <span>Задача</span>
+                <span>Статус</span>
+                <span>Исполнители</span>
+                <span></span>
+            </div>
+            <div id="tasksContainer"></div>
+        </div>
+
+        <!-- Канбан доска -->
+        <div id="kanbanBoard" class="kanban-board">
+            <div class="kanban-column" data-status="todo">
+                <h3>📝 К выполнению</h3>
+                <div id="todoTasks"></div>
+            </div>
+            <div class="kanban-column" data-status="progress">
+                <h3>🔄 В работе</h3>
+                <div id="progressTasks"></div>
+            </div>
+            <div class="kanban-column" data-status="review">
+                <h3>👀 На проверке</h3>
+                <div id="reviewTasks"></div>
+            </div>
+            <div class="kanban-column" data-status="done">
+                <h3>✅ Готово</h3>
+                <div id="doneTasks"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления/редактирования -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Добавить задачу</h2>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <div class="form-group">
+                    <label>Название задачи</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="taskDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select id="taskStatus">
+                        <option value="todo">К выполнению</option>
+                        <option value="progress">В работе</option>
+                        <option value="review">На проверке</option>
+                        <option value="done">Готово</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Исполнители (через запятую)</label>
+                    <input type="text" id="taskAssignees" placeholder="Иван, Петр, Анна">
+                </div>
+                <div class="form-group">
+                    <label>Подзадачи (через точку с запятой)</label>
+                    <textarea id="taskSubtasks" placeholder="Подзадача 1; Подзадача 2; Подзадача 3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase конфигурация
+        const SUPABASE_URL = 'https://nrrqiedzcwmgzqkmaret.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_1edDcYXXILaZ27t7oMEWMA_KIt2Ivck';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let tasks = [];
+        let currentView = 'list';
+
+        // Загрузка данных из Supabase
+        async function loadTasks() {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                console.error('Ошибка загрузки:', error);
+                alert('Ошибка загрузки задач: ' + error.message);
+                return;
+            }
+            
+            tasks = data.map(task => ({
+                ...task,
+                assignees: task.assignees ? task.assignees.split(',').map(a => a.trim()).filter(a => a) : [],
+                subtasks: typeof task.subtasks === 'string' ? JSON.parse(task.subtasks || '[]') : (task.subtasks || []),
+                comments: typeof task.comments === 'string' ? JSON.parse(task.comments || '[]') : (task.comments || [])
+            }));
+            
+            renderTasks();
+        }
+
+        // Сохранение задачи (создание или обновление)
+        async function saveTask(taskData) {
+            if (taskData.id) {
+                const { error } = await supabase
+                    .from('tasks')
+                    .update({
+                        title: taskData.title,
+                        description: taskData.description,
+                        status: taskData.status,
+                        assignees: taskData.assignees.join(', '),
+                        subtasks: JSON.stringify(taskData.subtasks),
+                        comments: JSON.stringify(taskData.comments)
+                    })
+                    .eq('id', taskData.id);
+                
+                if (error) {
+                    console.error('Ошибка обновления:', error);
+                    alert('Ошибка обновления: ' + error.message);
+                    return false;
+                }
+            } else {
+                const { data, error } = await supabase
+                    .from('tasks')
+                    .insert([{
+                        title: taskData.title,
+                        description: taskData.description,
+                        status: taskData.status,
+                        assignees: taskData.assignees.join(', '),
+                        subtasks: JSON.stringify(taskData.subtasks),
+                        comments: JSON.stringify(taskData.comments)
+                    }])
+                    .select();
+                
+                if (error) {
+                    console.error('Ошибка создания:', error);
+                    alert('Ошибка создания: ' + error.message);
+                    return false;
+                }
+            }
+            
+            await loadTasks();
+            return true;
+        }
+
+        // Удаление задачи
+        async function deleteTaskFromDb(id) {
+            const { error } = await supabase
+                .from('tasks')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Ошибка удаления:', error);
+                alert('Ошибка удаления: ' + error.message);
+                return false;
+            }
+            
+            await loadTasks();
+            return true;
+        }
+
+        // Добавление комментария
+        async function addCommentToDb(taskId, comment) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return false;
+            
+            task.comments.push(comment);
+            
+            const { error } = await supabase
+                .from('tasks')
+                .update({ comments: JSON.stringify(task.comments) })
+                .eq('id', taskId);
+            
+            if (error) {
+                console.error('Ошибка добавления комментария:', error);
+                alert('Ошибка: ' + error.message);
+                return false;
+            }
+            
+            await loadTasks();
+            return true;
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+        });
+
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            container.innerHTML = tasks.map(task => createTaskHTML(task)).join('');
+            renderKanban();
+        }
+
+        function createTaskHTML(task) {
+            const statusLabels = {
+                todo: 'К выполнению',
+                progress: 'В работе',
+                review: 'На проверке',
+                done: 'Готово'
+            };
+
+            return `
+                <div class="task-item" id="task-${task.id}">
+                    <div class="task-header" onclick="toggleTask(${task.id})">
+                        <span class="title">${task.title}</span>
+                        <span class="status">
+                            <span class="status-badge status-${task.status}">${statusLabels[task.status]}</span>
+                        </span>
+                        <span class="assignees">
+                            ${task.assignees.map(a => `<span class="assignee">${a}</span>`).join('')}
+                        </span>
+                        <span class="toggle-btn">▼</span>
+                    </div>
+                    <div class="task-details">
+                        <p><strong>Описание:</strong> ${task.description || 'Нет описания'}</p>
+                        ${task.subtasks.length > 0 ? `
+                            <div class="subtasks">
+                                <strong>Подзадачи:</strong>
+                                ${task.subtasks.map(sub => `
+                                    <div class="subtask">
+                                        <span>${sub.title}</span>
+                                        <span class="status-badge status-${sub.status}">${statusLabels[sub.status]}</span>
+                                        <span>${sub.assignee}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="comments-section">
+                            <strong>Комментарии:</strong>
+                            ${task.comments.length > 0 ? task.comments.map(c => `
+                                <div class="comment">
+                                    <div class="comment-author">${c.author} <small>(${c.date})</small></div>
+                                    <div>${c.text}</div>
+                                </div>
+                            `).join('') : '<p>Нет комментариев</p>'}
+                            <div class="add-comment">
+                                <input type="text" placeholder="Добавить комментарий..." 
+                                       onkeypress="if(event.key==='Enter') addComment(${task.id}, this)">
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn-secondary" onclick="editTask(${task.id})">Редактировать</button>
+                            <button class="btn-secondary" onclick="deleteTask(${task.id})">Удалить</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderKanban() {
+            const columns = { todo: [], progress: [], review: [], done: [] };
+            
+            tasks.forEach(task => {
+                columns[task.status].push(task);
+            });
+
+            Object.keys(columns).forEach(status => {
+                const column = document.getElementById(`${status}Tasks`);
+                column.innerHTML = columns[status].map(task => `
+                    <div class="kanban-card" onclick="editTask(${task.id})">
+                        <div class="title">${task.title}</div>
+                        <div class="assignees">
+                            ${task.assignees.map(a => `<span class="assignee">${a}</span>`).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        function toggleTask(id) {
+            const task = document.getElementById(`task-${id}`);
+            task.classList.toggle('expanded');
+        }
+
+        function setView(view) {
+            currentView = view;
+            const taskList = document.getElementById('taskList');
+            const kanbanBoard = document.getElementById('kanbanBoard');
+            const buttons = document.querySelectorAll('.view-toggle .btn-secondary');
+
+            if (view === 'list') {
+                taskList.classList.remove('hidden');
+                kanbanBoard.classList.remove('active');
+                buttons[0].classList.add('active');
+                buttons[1].classList.remove('active');
+            } else {
+                taskList.classList.add('hidden');
+                kanbanBoard.classList.add('active');
+                buttons[0].classList.remove('active');
+                buttons[1].classList.add('active');
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Добавить задачу';
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+        }
+
+        function editTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            document.getElementById('modalTitle').textContent = 'Редактировать задачу';
+            document.getElementById('taskId').value = task.id;
+            document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskDescription').value = task.description;
+            document.getElementById('taskStatus').value = task.status;
+            document.getElementById('taskAssignees').value = task.assignees.join(', ');
+            document.getElementById('taskSubtasks').value = task.subtasks.map(s => s.title).join('; ');
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        async function addComment(taskId, input) {
+            const text = input.value.trim();
+            if (!text) return;
+
+            const comment = {
+                author: 'Вы',
+                text: text,
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            const success = await addCommentToDb(taskId, comment);
+            if (success) {
+                input.value = '';
+            }
+        }
+
+        document.getElementById('taskForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('taskId').value;
+            const title = document.getElementById('taskTitle').value;
+            const description = document.getElementById('taskDescription').value;
+            const status = document.getElementById('taskStatus').value;
+            const assignees = document.getElementById('taskAssignees').value.split(',').map(a => a.trim()).filter(a => a);
+            const subtasksText = document.getElementById('taskSubtasks').value;
+            const subtasks = subtasksText.split(';').map(s => s.trim()).filter(s => s).map(s => ({
+                title: s,
+                status: 'todo',
+                assignee: ''
+            }));
+
+            const taskData = {
+                id: id ? parseInt(id) : null,
+                title,
+                description,
+                status,
+                assignees,
+                subtasks,
+                comments: id ? tasks.find(t => t.id == id)?.comments || [] : []
+            };
+
+            const success = await saveTask(taskData);
+            if (success) {
+                closeModal();
+            }
+        });
+
+        async function deleteTask(id) {
+            if (confirm('Удалить эту задачу?')) {
+                await deleteTaskFromDb(id);
+            }
+        }
+    </script>
+</body>
+</html>
