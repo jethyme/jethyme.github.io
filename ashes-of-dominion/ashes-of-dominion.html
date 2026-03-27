@@ -421,43 +421,43 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0"></script>
     <script>
         // Supabase конфигурация
         const SUPABASE_URL = 'https://nrrqiedzcwmgzqkmaret.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_1edDcYXXILaZ27t7oMEWMA_KIt2Ivck';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let tasks = [];
         let currentView = 'list';
 
         // Загрузка данных из Supabase
         async function loadTasks() {
-            const { data, error } = await supabase
+            const { data, error } = await sbClient
                 .from('tasks')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
+
             if (error) {
                 console.error('Ошибка загрузки:', error);
                 alert('Ошибка загрузки задач: ' + error.message);
                 return;
             }
-            
+
             tasks = data.map(task => ({
                 ...task,
                 assignees: task.assignees ? task.assignees.split(',').map(a => a.trim()).filter(a => a) : [],
                 subtasks: typeof task.subtasks === 'string' ? JSON.parse(task.subtasks || '[]') : (task.subtasks || []),
                 comments: typeof task.comments === 'string' ? JSON.parse(task.comments || '[]') : (task.comments || [])
             }));
-            
+
             renderTasks();
         }
 
         // Сохранение задачи (создание или обновление)
         async function saveTask(taskData) {
             if (taskData.id) {
-                const { error } = await supabase
+                const { error } = await sbClient
                     .from('tasks')
                     .update({
                         title: taskData.title,
@@ -468,14 +468,14 @@
                         comments: JSON.stringify(taskData.comments)
                     })
                     .eq('id', taskData.id);
-                
+
                 if (error) {
                     console.error('Ошибка обновления:', error);
                     alert('Ошибка обновления: ' + error.message);
                     return false;
                 }
             } else {
-                const { data, error } = await supabase
+                const { data, error } = await sbClient
                     .from('tasks')
                     .insert([{
                         title: taskData.title,
@@ -486,31 +486,31 @@
                         comments: JSON.stringify(taskData.comments)
                     }])
                     .select();
-                
+
                 if (error) {
                     console.error('Ошибка создания:', error);
                     alert('Ошибка создания: ' + error.message);
                     return false;
                 }
             }
-            
+
             await loadTasks();
             return true;
         }
 
         // Удаление задачи
         async function deleteTaskFromDb(id) {
-            const { error } = await supabase
+            const { error } = await sbClient
                 .from('tasks')
                 .delete()
                 .eq('id', id);
-            
+
             if (error) {
                 console.error('Ошибка удаления:', error);
                 alert('Ошибка удаления: ' + error.message);
                 return false;
             }
-            
+
             await loadTasks();
             return true;
         }
@@ -519,20 +519,20 @@
         async function addCommentToDb(taskId, comment) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return false;
-            
+
             task.comments.push(comment);
-            
-            const { error } = await supabase
+
+            const { error } = await sbClient
                 .from('tasks')
                 .update({ comments: JSON.stringify(task.comments) })
                 .eq('id', taskId);
-            
+
             if (error) {
                 console.error('Ошибка добавления комментария:', error);
                 alert('Ошибка: ' + error.message);
                 return false;
             }
-            
+
             await loadTasks();
             return true;
         }
