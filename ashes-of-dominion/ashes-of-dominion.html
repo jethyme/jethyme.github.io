@@ -13,7 +13,7 @@
             min-height: 100vh;
             color: #eee;
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
         header {
             text-align: center;
             padding: 20px 0;
@@ -46,6 +46,7 @@
             cursor: pointer;
             font-size: 13px;
             transition: all 0.3s;
+            white-space: nowrap;
         }
         .btn-primary { background: #e94560; color: white; }
         .btn-primary:hover { background: #ff6b6b; }
@@ -53,9 +54,20 @@
         .btn-secondary { background: #0f3460; color: white; }
         .btn-secondary:hover { background: #1a4a7a; }
         .btn-secondary.active { background: #e94560; }
-        .btn-small { padding: 4px 10px; font-size: 12px; }
-        .btn-icon { padding: 2px 8px; font-size: 14px; background: transparent; }
-        .btn-icon:hover { background: #1a4a7a; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            background: #1a4a7a;
+            color: #eee;
+            font-size: 14px;
+            padding: 0;
+        }
+        .btn-icon:hover { background: #e94560; }
         .controls {
             display: flex;
             justify-content: space-between;
@@ -64,13 +76,37 @@
             flex-wrap: wrap;
             gap: 10px;
         }
+        .left-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
         .view-toggle { display: flex; gap: 8px; }
+        .filters {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #0f3460;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .filters select {
+            padding: 6px 10px;
+            border: 1px solid #1a4a7a;
+            border-radius: 5px;
+            background: #16213e;
+            color: #eee;
+            font-size: 13px;
+        }
         .task-list { background: #0f3460; border-radius: 8px; overflow: hidden; }
         .task-row {
             display: grid;
-            grid-template-columns: 40px 1fr 80px 80px 150px 80px;
+            grid-template-columns: 35px 1fr 90px 100px 180px 140px;
             align-items: center;
-            padding: 10px 15px;
+            padding: 12px 15px;
             border-bottom: 1px solid #1a4a7a;
             gap: 10px;
         }
@@ -81,47 +117,65 @@
             font-size: 0.9em;
         }
         .expand-btn {
-            width: 25px; height: 25px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #1a4a7a;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 12px;
+            transition: background 0.3s;
         }
-        .expand-btn:hover { background: #2a5a8a; }
-        .task-title { font-weight: 500; }
+        .expand-btn:hover { background: #e94560; }
+        .task-title { 
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .status-badge {
-            padding: 4px 10px;
+            padding: 5px 10px;
             border-radius: 12px;
-            font-size: 0.8em;
+            font-size: 0.75em;
             font-weight: bold;
             text-align: center;
+            white-space: nowrap;
         }
         .status-queue { background: #4a4a6a; }
         .status-progress { background: #2196f3; }
-        .status-review { background: #ff9800; }
+        .status-review { background: #ff9800; color: #000; }
         .status-done { background: #4caf50; }
         .priority-badge {
-            padding: 4px 10px;
+            padding: 5px 10px;
             border-radius: 12px;
-            font-size: 0.8em;
+            font-size: 0.75em;
             font-weight: bold;
             text-align: center;
+            white-space: nowrap;
         }
         .priority-low { background: #4caf50; color: #000; }
-        .priority-medium { background: #ff9800; color: #000; }
-        .priority-high { background: #f44336; color: #fff; }
-        .priority-critical { background: #9c27b0; color: #fff; }
-        .assignees-list { display: flex; gap: 5px; flex-wrap: wrap; }
-        .assignee-tag { background: #e94560; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
-        .task-actions { display: flex; gap: 5px; }
+        .priority-medium { background: #2196f3; }
+        .priority-high { background: #ff9800; color: #000; }
+        .priority-critical { background: #f44336; }
+        .assignees-list { display: flex; gap: 5px; flex-wrap: wrap; overflow: hidden; }
+        .assignee-tag { 
+            background: #e94560; 
+            padding: 3px 8px; 
+            border-radius: 10px; 
+            font-size: 0.75em;
+            white-space: nowrap;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .task-actions { display: flex; gap: 5px; justify-content: flex-end; }
         .subtask-row {
             display: grid;
-            grid-template-columns: 40px 25px 1fr 80px 80px 150px 80px;
+            grid-template-columns: 35px 25px 1fr 90px 100px 180px 140px;
             align-items: center;
-            padding: 6px 15px;
+            padding: 8px 15px;
             background: #0a2540;
             border-bottom: 1px solid #1a4a7a;
             gap: 10px;
@@ -137,7 +191,7 @@
             background: #0f3460;
             border-radius: 8px;
             padding: 12px;
-            min-height: 300px;
+            min-height: 400px;
         }
         .kanban-column.drag-over { background: #1a4a7a; border: 2px dashed #e94560; }
         .kanban-column h3 {
@@ -145,20 +199,41 @@
             padding: 10px;
             border-bottom: 2px solid #e94560;
             margin-bottom: 12px;
-            font-size: 0.95em;
+            font-size: 0.9em;
         }
-        .kanban-card {
+        .kanban-group {
             background: #16213e;
-            padding: 12px;
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .kanban-group-header {
+            padding: 10px 12px;
+            background: #1a4a7a;
+            cursor: grab;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kanban-group-header.dragging { opacity: 0.5; }
+        .kanban-group-header .title { font-weight: 500; font-size: 0.9em; }
+        .kanban-group-header .meta { display: flex; gap: 5px; }
+        .kanban-subtasks { padding: 8px 12px; }
+        .kanban-subtask {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px;
+            gap: 8px;
+            align-items: center;
+            padding: 6px 8px;
+            background: #0f3460;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 0.85em;
             cursor: grab;
         }
-        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
-        .kanban-card.dragging { opacity: 0.5; }
-        .kanban-card .title { font-weight: 500; margin-bottom: 8px; font-size: 0.95em; }
-        .kanban-card .meta { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-        .kanban-card .assignees { display: flex; gap: 4px; flex-wrap: wrap; }
+        .kanban-subtask:last-child { margin-bottom: 0; }
+        .kanban-subtask.dragging { opacity: 0.5; }
+        .kanban-subtask .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .modal {
             display: none;
             position: fixed;
@@ -211,6 +286,7 @@
             border-radius: 12px;
             cursor: pointer;
             font-size: 0.85em;
+            white-space: nowrap;
         }
         .assignee-checkbox:hover { background: #2a5a8a; }
         .assignee-checkbox.checked { background: #e94560; }
@@ -272,11 +348,39 @@
         </header>
 
         <div class="controls">
-            <div class="view-toggle">
-                <button class="btn-secondary active" onclick="setView('list')">📋 Список</button>
-                <button class="btn-secondary" onclick="setView('kanban')">📊 Канбан</button>
+            <div class="left-controls">
+                <div class="view-toggle">
+                    <button class="btn-secondary active" onclick="setView('list')">📋 Список</button>
+                    <button class="btn-secondary" onclick="setView('kanban')">📊 Канбан</button>
+                </div>
+                <button class="btn-primary" onclick="openAddModal()" id="addTaskBtn" disabled>+ Задача</button>
             </div>
-            <button class="btn-primary" onclick="openAddModal()" id="addTaskBtn" disabled>+ Задача</button>
+        </div>
+
+        <div class="filters">
+            <label>Исполнитель:
+                <select id="filterAssignee" onchange="applyFilters()">
+                    <option value="">Все</option>
+                </select>
+            </label>
+            <label>Приоритет:
+                <select id="filterPriority" onchange="applyFilters()">
+                    <option value="">Все</option>
+                    <option value="low">Низкий</option>
+                    <option value="medium">Средний</option>
+                    <option value="high">Высокий</option>
+                    <option value="critical">Критичный</option>
+                </select>
+            </label>
+            <label>Статус:
+                <select id="filterStatus" onchange="applyFilters()">
+                    <option value="">Все</option>
+                    <option value="queue">В очереди</option>
+                    <option value="progress">В работе</option>
+                    <option value="review">На проверке</option>
+                    <option value="done">Готово</option>
+                </select>
+            </label>
         </div>
 
         <div id="taskList" class="task-list">
@@ -286,7 +390,7 @@
                 <span>Приоритет</span>
                 <span>Статус</span>
                 <span>Исполнители</span>
-                <span></span>
+                <span>Действия</span>
             </div>
             <div id="tasksContainer"></div>
         </div>
@@ -453,7 +557,12 @@
         const SUPABASE_KEY = 'sb_publishable_1edDcYXXILaZ27t7oMEWMA_KIt2Ivck';
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let tasks = [], assignees = [], currentUser = null, canEdit = false, draggedTaskId = null;
+        let tasks = [], assignees = [], currentUser = null, canEdit = false;
+        let expandedTasks = new Set();
+        let expandedSubtasks = new Set();
+        let draggedTaskId = null;
+        let draggedSubtaskId = null;
+        let filterAssignee = '', filterPriority = '', filterStatus = '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             await checkAuth();
@@ -515,6 +624,14 @@
             const { data } = await sbClient.from('assignees').select('*').order('name');
             assignees = data || [];
             renderAssigneesSelect();
+            updateFilterAssignees();
+        }
+
+        function updateFilterAssignees() {
+            const select = document.getElementById('filterAssignee');
+            select.innerHTML = '<option value="">Все</option>' + assignees.map(a => 
+                `<option value="${a.id}">${a.name}</option>`
+            ).join('');
         }
 
         function renderAssigneesSelect(containerId = 'taskAssigneesSelect', selectedIds = []) {
@@ -522,11 +639,9 @@
             container.innerHTML = assignees.map(a => {
                 const checked = selectedIds.includes(String(a.id)) ? 'checked' : '';
                 const checkedClass = checked ? 'checked' : '';
-                return `
-                    <label class="assignee-checkbox ${checkedClass}" onclick="this.classList.toggle('checked')">
-                        <input type="checkbox" value="${a.id}" ${checked}>${a.name}
-                    </label>
-                `;
+                return `<label class="assignee-checkbox ${checkedClass}" onclick="this.classList.toggle('checked')">
+                    <input type="checkbox" value="${a.id}" ${checked}>${a.name}
+                </label>`;
             }).join('');
         }
 
@@ -567,8 +682,7 @@
             tasks = (data || []).map(t => ({
                 ...t,
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
-                subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || []),
-                comments: Array.isArray(t.comments) ? t.comments : (typeof t.comments === 'string' ? JSON.parse(t.comments || '[]') : [])
+                subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || [])
             }));
             renderTasks();
         }
@@ -610,13 +724,29 @@
             await loadTasks();
         }
 
+        async function updateSubtaskStatus(subtaskRef, status) {
+            if (!canEdit) return;
+            const { taskId, subtaskId } = subtaskRef;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const updateInTree = (nodes) => nodes.map(n => {
+                if (n.id === subtaskId) return { ...n, status };
+                if (n.children) return { ...n, children: updateInTree(n.children) };
+                return n;
+            });
+            task.subtasks = updateInTree(task.subtasks);
+            
+            await sbClient.from('tasks').update({ subtasks: JSON.stringify(task.subtasks) }).eq('id', taskId);
+            await loadTasks();
+        }
+
         async function saveSubtask(taskId, subtaskData) {
             if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
             const task = tasks.find(t => t.id === taskId);
             if (!task) return false;
 
             if (subtaskData.id) {
-                // Обновление существующей
                 const updateInTree = (nodes) => nodes.map(n => {
                     if (n.id === subtaskData.id) {
                         return { ...n, title: subtaskData.title, priority: subtaskData.priority, status: subtaskData.status, assignees: subtaskData.assignees };
@@ -626,7 +756,6 @@
                 });
                 task.subtasks = updateInTree(task.subtasks);
             } else {
-                // Новая подзадача
                 const newSubtask = {
                     id: Date.now(),
                     title: subtaskData.title,
@@ -665,31 +794,50 @@
             showToast('Удалено', 'success');
         }
 
+        function applyFilters() {
+            filterAssignee = document.getElementById('filterAssignee').value;
+            filterPriority = document.getElementById('filterPriority').value;
+            filterStatus = document.getElementById('filterStatus').value;
+            renderTasks();
+        }
+
+        function matchesFilters(task) {
+            if (filterAssignee && !task.assignees.includes(filterAssignee)) return false;
+            if (filterPriority && task.priority !== filterPriority) return false;
+            if (filterStatus && task.status !== filterStatus) return false;
+            return true;
+        }
+
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
-            container.innerHTML = tasks.map(task => {
-                const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
-                const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
-                const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
-                return `
-                    <div class="task-row" id="task-${task.id}">
-                        <div class="expand-btn" onclick="toggleTask(${task.id})">▶</div>
-                        <div class="task-title">${task.title}</div>
-                        <div><span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span></div>
-                        <div><span class="status-badge status-${task.status}">${statusLabels[task.status]}</span></div>
-                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
-                        <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)">+</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})">✏️</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})">✕</button>` : ''}
-                        </div>
-                    </div>
-                    <div class="task-subtasks" id="subtasks-${task.id}" style="display:none">
-                        ${renderSubtaskTree(task.subtasks, task.id, 0)}
-                    </div>
-                `;
-            }).join('');
+            const filteredTasks = tasks.filter(matchesFilters);
+            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
             renderKanban();
+        }
+
+        function renderTaskRow(task) {
+            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
+            const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+            const isExpanded = expandedTasks.has(task.id);
+            
+            return `
+                <div class="task-row" id="task-${task.id}">
+                    <div class="expand-btn" onclick="toggleTask(${task.id})">${isExpanded ? '▼' : '▶'}</div>
+                    <div class="task-title">${task.title}</div>
+                    <div><span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span></div>
+                    <div><span class="status-badge status-${task.status}">${statusLabels[task.status]}</span></div>
+                    <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                    <div class="task-actions">
+                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">+</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">✏️</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">✕</button>` : ''}
+                    </div>
+                </div>
+                <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
+                    ${renderSubtaskTree(task.subtasks, task.id, 0)}
+                </div>
+            `;
         }
 
         function renderSubtaskTree(subtasks, taskId, level) {
@@ -699,60 +847,102 @@
             return subtasks.map(sub => {
                 const hasChildren = sub.children && sub.children.length > 0;
                 const subAssignees = (sub.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+                const isExpanded = expandedSubtasks.has(sub.id);
                 return `
                     <div class="subtask-row" style="padding-left:${15 + level * 20}px">
-                        <div class="expand-btn" onclick="toggleSubtask(this, ${sub.id})">${hasChildren ? '▶' : ''}</div>
+                        <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${isExpanded && hasChildren ? '▼' : '▶'}</div>
                         <div style="width:20px"></div>
-                        <div>${sub.title}</div>
+                        <div class="task-title">${sub.title}</div>
                         <div><span class="priority-badge priority-${sub.priority || 'medium'}">${priorityLabels[sub.priority || 'medium']}</span></div>
                         <div><span class="status-badge status-${sub.status}">${statusLabels[sub.status]}</span></div>
                         <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})">✏️</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})">+</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})">✕</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">✏️</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">+</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">✕</button>` : ''}
                         </div>
                     </div>
-                    <div class="subtask-children-${sub.id}" style="display:none">${renderSubtaskTree(sub.children, taskId, level + 1)}</div>
+                    ${isExpanded && hasChildren ? `<div class="subtask-children-${sub.id}">${renderSubtaskTree(sub.children, taskId, level + 1)}</div>` : ''}
                 `;
             }).join('');
         }
 
         function renderKanban() {
             const columns = { queue: [], progress: [], review: [], done: [] };
-            tasks.forEach(t => columns[t.status].push(t));
+            tasks.filter(matchesFilters).forEach(t => columns[t.status].push(t));
+            
             Object.keys(columns).forEach(status => {
-                document.getElementById(`${status}Tasks`).innerHTML = columns[status].map(task => {
-                    const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
-                    const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
-                    const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
-                    return `
-                        <div class="kanban-card" draggable="${canEdit}" ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)">
+                const container = document.getElementById(`${status}Tasks`);
+                container.innerHTML = columns[status].map(task => renderKanbanGroup(task)).join('');
+            });
+        }
+
+        function renderKanbanGroup(task) {
+            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
+            const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+            
+            return `
+                <div class="kanban-group">
+                    <div class="kanban-group-header" draggable="${canEdit}" 
+                         ondragstart="handleTaskDragStart(event, ${task.id})" 
+                         ondragend="handleTaskDragEnd(event)">
+                        <div>
                             <div class="title">${task.title}</div>
                             <div class="meta">
                                 <span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span>
                                 <span class="status-badge status-${task.status}">${statusLabels[task.status]}</span>
                             </div>
-                            <div class="assignees">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         </div>
-                    `;
-                }).join('');
-            });
+                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                    </div>
+                    ${task.subtasks && task.subtasks.length > 0 ? `
+                    <div class="kanban-subtasks">
+                        ${task.subtasks.map(sub => renderKanbanSubtask(sub, task.id)).join('')}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderKanbanSubtask(sub, taskId) {
+            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
+            const subAssignees = (sub.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
+            
+            return `
+                <div class="kanban-subtask" draggable="${canEdit}"
+                     ondragstart="handleSubtaskDragStart(event, ${taskId}, ${sub.id})"
+                     ondragend="handleSubtaskDragEnd(event)">
+                    <div class="name">${sub.title}</div>
+                    <span class="priority-badge priority-${sub.priority || 'medium'}">${priorityLabels[sub.priority || 'medium']}</span>
+                    <select onchange="updateSubtaskStatus({taskId: ${taskId}, subtaskId: ${sub.id}}, this.value)" 
+                            style="padding:3px;font-size:0.8em;background:#16213e;border:1px solid #1a4a7a;color:#eee;border-radius:3px;">
+                        <option value="queue" ${sub.status === 'queue' ? 'selected' : ''}>В очереди</option>
+                        <option value="progress" ${sub.status === 'progress' ? 'selected' : ''}>В работе</option>
+                        <option value="review" ${sub.status === 'review' ? 'selected' : ''}>На проверке</option>
+                        <option value="done" ${sub.status === 'done' ? 'selected' : ''}>Готово</option>
+                    </select>
+                </div>
+            `;
         }
 
         function toggleTask(id) {
-            const subtasks = document.getElementById(`subtasks-${id}`);
-            const btn = subtasks.previousElementSibling.querySelector('.expand-btn');
-            subtasks.style.display = subtasks.style.display === 'none' ? 'block' : 'none';
-            btn.textContent = subtasks.style.display === 'block' ? '▼' : '▶';
+            if (expandedTasks.has(id)) {
+                expandedTasks.delete(id);
+            } else {
+                expandedTasks.add(id);
+            }
+            renderTasks();
         }
 
-        function toggleSubtask(btn, subtaskId) {
-            const children = document.querySelector(`.subtask-children-${subtaskId}`);
-            if (children) {
-                children.style.display = children.style.display === 'none' ? 'block' : 'none';
-                btn.textContent = children.style.display === 'block' ? '▼' : '▶';
+        function toggleSubtask(subtaskId) {
+            if (expandedSubtasks.has(subtaskId)) {
+                expandedSubtasks.delete(subtaskId);
+            } else {
+                expandedSubtasks.add(subtaskId);
             }
+            renderTasks();
         }
 
         function setView(view) {
@@ -790,7 +980,6 @@
             document.getElementById('taskModal').classList.add('active');
         }
 
-        // Подзадачи
         function openSubtaskModal(taskId, subtaskId = null, parentId = null) {
             if (!canEdit) return;
             const task = tasks.find(t => t.id === taskId);
@@ -802,7 +991,6 @@
 
             let subtask = null;
             if (subtaskId) {
-                // Редактирование
                 const findInTree = (nodes) => {
                     for (const n of nodes) {
                         if (n.id === subtaskId) return n;
@@ -813,19 +1001,15 @@
                 subtask = findInTree(task.subtasks);
                 document.getElementById('subtaskModalTitle').textContent = 'Редактировать подзадачу';
             } else if (parentId) {
-                // Дочерняя подзадача
                 document.getElementById('subtaskModalTitle').textContent = 'Дочерняя подзадача';
             } else {
-                // Новая подзадача задачи
                 document.getElementById('subtaskModalTitle').textContent = 'Подзадача';
             }
 
-            // Заполняем форму
             document.getElementById('subtaskTitle').value = subtask ? subtask.title : '';
             document.getElementById('subtaskPriority').value = subtask ? (subtask.priority || 'medium') : (task.priority || 'medium');
             document.getElementById('subtaskStatus').value = subtask ? (subtask.status || 'queue') : 'queue';
             
-            // Исполнители: если редактируем - текущие, если новая - копируем от задачи
             const selectedAssignees = subtask ? (subtask.assignees || []) : task.assignees;
             renderAssigneesSelect('subtaskAssigneesSelect', selectedAssignees);
 
@@ -893,11 +1077,34 @@
             closeSubtaskModal();
         });
 
-        function handleDragStart(e, id) { if (!canEdit) return; draggedTaskId = id; e.target.classList.add('dragging'); }
-        function handleDragEnd(e) { e.target.classList.remove('dragging'); document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over')); }
+        // Drag'n'drop для задач (групп)
+        function handleTaskDragStart(e, id) { if (!canEdit) return; draggedTaskId = id; e.target.classList.add('dragging'); }
+        function handleTaskDragEnd(e) { e.target.classList.remove('dragging'); document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over')); }
+        
+        // Drag'n'drop для подзадач
+        function handleSubtaskDragStart(e, taskId, subtaskId) { 
+            if (!canEdit) return; 
+            draggedSubtaskId = { taskId, subtaskId }; 
+            e.target.classList.add('dragging'); 
+        }
+        function handleSubtaskDragEnd(e) { e.target.classList.remove('dragging'); document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('drag-over')); }
+        
         function handleDragOver(e) { if (!canEdit) return; e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
         function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-        async function handleDrop(e, status) { if (!canEdit) return; e.preventDefault(); e.currentTarget.classList.remove('drag-over'); if (draggedTaskId) { await updateTaskStatus(draggedTaskId, status); draggedTaskId = null; } }
+        
+        async function handleDrop(e, status) { 
+            if (!canEdit) return; 
+            e.preventDefault(); 
+            e.currentTarget.classList.remove('drag-over'); 
+            
+            if (draggedTaskId) { 
+                await updateTaskStatus(draggedTaskId, status); 
+                draggedTaskId = null; 
+            } else if (draggedSubtaskId) {
+                await updateSubtaskStatus(draggedSubtaskId, status);
+                draggedSubtaskId = null;
+            }
+        }
 
         function showToast(msg, type = 'info') {
             const t = document.createElement('div');
