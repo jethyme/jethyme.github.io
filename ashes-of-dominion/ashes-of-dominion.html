@@ -429,7 +429,7 @@
         // Supabase конфигурация
         const SUPABASE_URL = 'https://nrrqiedzcwmgzqkmaret.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_1edDcYXXILaZ27t7oMEWMA_KIt2Ivck';
-        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let tasks = [];
         let currentView = 'list';
