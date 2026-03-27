@@ -104,7 +104,7 @@
         .task-list { background: #0f3460; border-radius: 8px; overflow: hidden; }
         .task-row {
             display: grid;
-            grid-template-columns: 35px 1fr 90px 100px 180px 140px;
+            grid-template-columns: 35px 25px 1fr 90px 100px 180px 140px;
             align-items: center;
             padding: 12px 15px;
             border-bottom: 1px solid #1a4a7a;
@@ -181,6 +181,10 @@
             gap: 10px;
         }
         .subtask-row:last-child { border-bottom: none; }
+        .subtask-children {
+            border-bottom: 1px solid #1a4a7a;
+        }
+        .subtask-children:last-child { border-bottom: none; }
         .kanban-board {
             display: none;
             grid-template-columns: repeat(4, 1fr);
@@ -406,6 +410,7 @@
 
         <div id="taskList" class="task-list">
             <div class="task-row header">
+                <span></span>
                 <span></span>
                 <span>Задача</span>
                 <span>Приоритет</span>
@@ -969,10 +974,12 @@
                 return a ? a.name : id; 
             });
             const isExpanded = expandedTasks.has(task.id);
+            const hasSubtasks = task.subtasks && task.subtasks.length > 0;
             
             return `
                 <div class="task-row" id="task-${task.id}">
-                    <div class="expand-btn" onclick="toggleTask(${task.id})">${isExpanded ? '▼' : '▶'}</div>
+                    <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '▼' : '▶') : ''}</div>
+                    <div></div>
                     <div class="task-title">${task.title}</div>
                     <div><span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
                     <div><span class="status-badge status-${task.status}">${STATUS_LABELS[task.status]}</span></div>
@@ -998,21 +1005,24 @@
                     return a ? a.name : id; 
                 });
                 const isExpanded = expandedSubtasks.has(sub.id);
+                const indent = 15 + level * 25;
                 return `
-                    <div class="subtask-row" style="padding-left:${15 + level * 20}px">
-                        <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${isExpanded && hasChildren ? '▼' : '▶'}</div>
-                        <div style="width:20px"></div>
-                        <div class="task-title">${sub.title}</div>
-                        <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
-                        <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
-                        <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
-                        <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">➕</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">📝</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">🗑️</button>` : ''}
+                    <div class="subtask-children" style="padding-left:${indent}px">
+                        <div class="subtask-row">
+                            <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '▼' : '▶') : ''}</div>
+                            <div></div>
+                            <div class="task-title">${sub.title}</div>
+                            <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
+                            <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
+                            <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                            <div class="task-actions">
+                                ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">➕</button>` : ''}
+                                ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">📝</button>` : ''}
+                                ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">🗑️</button>` : ''}
+                            </div>
                         </div>
+                        ${isExpanded && hasChildren ? renderSubtaskTree(sub.children, taskId, level + 1) : ''}
                     </div>
-                    ${isExpanded && hasChildren ? `<div class="subtask-children-${sub.id}">${renderSubtaskTree(sub.children, taskId, level + 1)}</div>` : ''}
                 `;
             }).join('');
         }
@@ -1113,84 +1123,63 @@
             
             const isTask = !parentTaskId;
             const cardClass = isTask ? 'kanban-card' : 'kanban-child';
-            const dragHandler = isTask ? 
-                `ondragstart="handleTaskDragStart(event, ${item.id})"` :
-                `ondragstart="handleSubtaskDragStart(event, ${parentTaskId}, ${item.id})"`;
+            const clickHandler = isTask ? 'editTask(' + item.id + ')' : 'openSubtaskModal(' + parentTaskId + ',' + item.id + ')';
+            const dragHandler = isTask ? 'handleTaskDragStart(event, ' + item.id + ')' : 'handleSubtaskDragStart(event, ' + parentTaskId + ', ' + item.id + ')';
             
             const depthColors = ['', 'rgba(233, 69, 96, 0.15)', 'rgba(233, 69, 96, 0.25)', 'rgba(233, 69, 96, 0.35)'];
             const bgColor = depth > 0 ? depthColors[Math.min(depth, 3)] : '';
             
-            return `
-                <div class="${cardClass}" draggable="${canEdit}" ${dragHandler} ondragend="handleDragEnd(event)" 
-                     style="${bgColor ? 'background: ' + bgColor + ';' : ''}">
-                    <div class="kanban-card-header">
-                        ${breadcrumb ? `<div class="breadcrumb">${breadcrumb}</div>` : ''}
-                        <div class="title" title="${item.title}">${item.title}</div>
-                        <div class="meta">
-                            <span class="priority-badge priority-${item.priority || 'medium'}">${PRIORITY_LABELS[item.priority || 'medium']}</span>
-                        </div>
-                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
-                    </div>
-                    ${isTask && canEdit ? `
-                    <div class="kanban-card-actions">
-                        <button class="btn-icon" onclick="openSubtaskModal(${item.id}, null, null)" title="Добавить подзадачу">➕</button>
-                        <button class="btn-icon" onclick="editTask(${item.id})" title="Редактировать">📝</button>
-                        <button class="btn-icon" onclick="deleteTask(${item.id})" title="Удалить">🗑️</button>
-                    </div>` : ''}
-                    ${!isTask && canEdit ? `
-                    <div class="kanban-card-actions">
-                        <button class="btn-icon" onclick="openSubtaskModal(${parentTaskId}, null, ${item.id})" title="Добавить дочернюю">➕</button>
-                        <button class="btn-icon" onclick="openSubtaskModal(${parentTaskId}, ${item.id})" title="Редактировать">📝</button>
-                        <button class="btn-icon" onclick="deleteSubtask(${parentTaskId}, ${item.id})" title="Удалить">🗑️</button>
-                    </div>` : ''}
-                </div>
-            `;
+            return '<div class="' + cardClass + '" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
+                   'onclick="' + clickHandler + '" ' +
+                   'ondragstart="' + dragHandler + '" ' +
+                   'ondragend="handleDragEnd(event)" ' +
+                   'style="' + (bgColor ? 'background:' + bgColor + ';' : '') + (canEdit ? 'cursor:pointer;' : '') + '" ' +
+                   'title="' + item.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                '<div class="kanban-card-header">' +
+                    (breadcrumb ? '<div class="breadcrumb">' + breadcrumb + '</div>' : '') +
+                    '<div class="title" title="' + item.title + '">' + item.title + '</div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (item.priority || 'medium') + '">' + PRIORITY_LABELS[item.priority || 'medium'] + '</span></div>' +
+                    '<div class="assignees-list">' + assigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
+                '</div>' +
+            '</div>';
         }
         
         function renderKanbanTaskNested(task, nestedItems) {
-            const assigneeNames = task.assignees.map(id => { 
-                const a = assignees.find(x => x.id == id); 
+            const assigneeNames = task.assignees.map(function(id) { 
+                const a = assignees.find(function(x) { return x.id == id; }); 
                 return a ? a.name : id; 
             });
             
-            return `
-                <div class="kanban-card kanban-card-nested" draggable="${canEdit}"
-                     ondragstart="handleTaskDragStart(event, ${task.id})"
-                     ondragend="handleDragEnd(event)">
-                    <div class="kanban-card-header">
-                        <div class="title" title="${task.title}">${task.title}</div>
-                        <div class="meta">
-                            <span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span>
-                        </div>
-                        <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
-                    </div>
-                    <div class="kanban-children">
-                        ${nestedItems.map(sub => `
-                            <div class="kanban-child" draggable="${canEdit}"
-                                 ondragstart="handleSubtaskDragStart(event, ${task.id}, ${sub.item.id})"
-                                 ondragend="handleDragEnd(event)">
-                                <div class="name" title="${sub.item.title}">${sub.item.title}</div>
-                                <div class="meta">
-                                    <span class="priority-badge priority-${sub.item.priority || 'medium'}">${PRIORITY_LABELS[sub.item.priority || 'medium']}</span>
-                                </div>
-                                <div class="assignees-list">${(sub.item.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; }).map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
-                                ${canEdit ? `
-                                <div class="kanban-child-actions">
-                                    <button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, ${sub.item.id})" title="Добавить дочернюю">➕</button>
-                                    <button class="btn-icon" onclick="openSubtaskModal(${task.id}, ${sub.item.id})" title="Редактировать">📝</button>
-                                    <button class="btn-icon" onclick="deleteSubtask(${task.id}, ${sub.item.id})" title="Удалить">🗑️</button>
-                                </div>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${canEdit ? `
-                    <div class="kanban-card-actions">
-                        <button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">➕</button>
-                        <button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">📝</button>
-                        <button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">🗑️</button>
-                    </div>` : ''}
-                </div>
-            `;
+            var childrenHtml = nestedItems.map(function(sub) {
+                var subAssignees = (sub.item.assignees || []).map(function(id) { 
+                    var a = assignees.find(function(x) { return x.id == id; }); 
+                    return a ? a.name : id; 
+                });
+                return '<div class="kanban-child" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
+                       'onclick="openSubtaskModal(' + task.id + ',' + sub.item.id + ')" ' +
+                       'ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + sub.item.id + ')" ' +
+                       'ondragend="handleDragEnd(event)" ' +
+                       'style="' + (canEdit ? 'cursor:pointer;' : '') + '" ' +
+                       'title="' + sub.item.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                    '<div class="name" title="' + sub.item.title + '">' + sub.item.title + '</div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (sub.item.priority || 'medium') + '">' + PRIORITY_LABELS[sub.item.priority || 'medium'] + '</span></div>' +
+                    '<div class="assignees-list">' + subAssignees.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
+                '</div>';
+            }).join('');
+            
+            return '<div class="kanban-card kanban-card-nested" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
+                   'onclick="editTask(' + task.id + ')" ' +
+                   'ondragstart="handleTaskDragStart(event, ' + task.id + ')" ' +
+                   'ondragend="handleDragEnd(event)" ' +
+                   'style="' + (canEdit ? 'cursor:pointer;' : '') + '" ' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                '<div class="kanban-card-header">' +
+                    '<div class="title" title="' + task.title + '">' + task.title + '</div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                    '<div class="assignees-list">' + assigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
+                '</div>' +
+                '<div class="kanban-children">' + childrenHtml + '</div>' +
+            '</div>';
         }
 
         function toggleTask(id) {
