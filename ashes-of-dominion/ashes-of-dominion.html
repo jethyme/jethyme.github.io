@@ -1001,7 +1001,8 @@
             tasks = (data || []).map(task => ({
                 ...task,
                 assignees: task.assignees ? task.assignees.split(',').filter(a => a) : [],
-                subtasks: typeof task.subtasks === 'string' ? JSON.parse(task.subtasks || '[]') : (task.subtasks || [])
+                subtasks: typeof task.subtasks === 'string' ? JSON.parse(task.subtasks || '[]') : (task.subtasks || []),
+                comments: Array.isArray(task.comments) ? task.comments : (typeof task.comments === 'string' ? JSON.parse(task.comments || '[]') : [])
             }));
             
             renderTasks();
