@@ -714,10 +714,13 @@
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
                 subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || [])
             }));
-            // Обновляем статусы и исполнителей задач на основе подзадач
+            // Обновляем статусы задач на основе подзадач
+            // Assignees обновляем только если есть подзадачи (иначе сохраняем ручные)
             tasks.forEach(task => {
                 task.status = calculateTaskStatus(task.subtasks);
-                task.assignees = calculateTaskAssignees(task.subtasks);
+                if (task.subtasks && task.subtasks.length > 0) {
+                    task.assignees = calculateTaskAssignees(task.subtasks);
+                }
             });
             renderTasks();
         }
