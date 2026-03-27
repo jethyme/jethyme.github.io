@@ -13,7 +13,7 @@
             min-height: 100vh;
             color: #eee;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         header {
             text-align: center;
             padding: 20px 0;
@@ -37,12 +37,7 @@
             border-radius: 15px;
             font-size: 0.85em;
         }
-        .user-badge {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4caf50;
-        }
+        .user-badge { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
         .user-badge.readonly { background: #ff9800; }
         button {
             padding: 8px 16px;
@@ -59,11 +54,7 @@
         .btn-secondary:hover { background: #1a4a7a; }
         .btn-secondary.active { background: #e94560; }
         .btn-small { padding: 4px 10px; font-size: 12px; }
-        .btn-icon {
-            padding: 2px 8px;
-            font-size: 14px;
-            background: transparent;
-        }
+        .btn-icon { padding: 2px 8px; font-size: 14px; background: transparent; }
         .btn-icon:hover { background: #1a4a7a; }
         .controls {
             display: flex;
@@ -77,7 +68,7 @@
         .task-list { background: #0f3460; border-radius: 8px; overflow: hidden; }
         .task-row {
             display: grid;
-            grid-template-columns: 40px 1fr 100px 150px 80px;
+            grid-template-columns: 40px 1fr 80px 80px 150px 80px;
             align-items: center;
             padding: 10px 15px;
             border-bottom: 1px solid #1a4a7a;
@@ -90,8 +81,7 @@
             font-size: 0.9em;
         }
         .expand-btn {
-            width: 25px;
-            height: 25px;
+            width: 25px; height: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -109,25 +99,27 @@
             font-weight: bold;
             text-align: center;
         }
-        .status-todo { background: #4a4a6a; }
+        .status-queue { background: #4a4a6a; }
         .status-progress { background: #2196f3; }
         .status-review { background: #ff9800; }
         .status-done { background: #4caf50; }
-        .assignees-list {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        .assignee-tag {
-            background: #e94560;
-            padding: 2px 8px;
-            border-radius: 10px;
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
             font-size: 0.8em;
+            font-weight: bold;
+            text-align: center;
         }
+        .priority-low { background: #4caf50; color: #000; }
+        .priority-medium { background: #ff9800; color: #000; }
+        .priority-high { background: #f44336; color: #fff; }
+        .priority-critical { background: #9c27b0; color: #fff; }
+        .assignees-list { display: flex; gap: 5px; flex-wrap: wrap; }
+        .assignee-tag { background: #e94560; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
         .task-actions { display: flex; gap: 5px; }
         .subtask-row {
             display: grid;
-            grid-template-columns: 40px 25px 1fr 100px 150px 80px;
+            grid-template-columns: 40px 25px 1fr 80px 80px 150px 80px;
             align-items: center;
             padding: 6px 15px;
             background: #0a2540;
@@ -135,7 +127,6 @@
             gap: 10px;
         }
         .subtask-row:last-child { border-bottom: none; }
-        .subtask-indent { margin-left: 20px; }
         .kanban-board {
             display: none;
             grid-template-columns: repeat(4, 1fr);
@@ -166,6 +157,7 @@
         .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
         .kanban-card.dragging { opacity: 0.5; }
         .kanban-card .title { font-weight: 500; margin-bottom: 8px; font-size: 0.95em; }
+        .kanban-card .meta { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
         .kanban-card .assignees { display: flex; gap: 4px; flex-wrap: wrap; }
         .modal {
             display: none;
@@ -207,6 +199,8 @@
             background: #0f3460;
             border: 1px solid #1a4a7a;
             border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
         }
         .assignee-checkbox {
             display: flex;
@@ -237,11 +231,7 @@
             margin-bottom: 15px;
         }
         .assignees-panel h3 { margin-bottom: 10px; font-size: 1em; color: #e94560; }
-        .add-assignee-row {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
+        .add-assignee-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .add-assignee-row input { flex: 1; }
         .assignee-item {
             display: flex;
@@ -255,8 +245,7 @@
         }
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 20px; right: 20px;
             padding: 12px 20px;
             background: #0f3460;
             border-left: 4px solid #e94560;
@@ -294,6 +283,7 @@
             <div class="task-row header">
                 <span></span>
                 <span>Задача</span>
+                <span>Приоритет</span>
                 <span>Статус</span>
                 <span>Исполнители</span>
                 <span></span>
@@ -302,9 +292,9 @@
         </div>
 
         <div id="kanbanBoard" class="kanban-board">
-            <div class="kanban-column" data-status="todo" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'todo')">
-                <h3>📝 К выполнению</h3>
-                <div id="todoTasks"></div>
+            <div class="kanban-column" data-status="queue" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'queue')">
+                <h3>📝 В очереди</h3>
+                <div id="queueTasks"></div>
             </div>
             <div class="kanban-column" data-status="progress" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'progress')">
                 <h3>🔄 В работе</h3>
@@ -332,9 +322,18 @@
                     <input type="text" id="taskTitle" required>
                 </div>
                 <div class="form-group">
+                    <label>Приоритет</label>
+                    <select id="taskPriority">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                        <option value="critical">Критичный</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Статус</label>
                     <select id="taskStatus">
-                        <option value="todo">К выполнению</option>
+                        <option value="queue">В очереди</option>
                         <option value="progress">В работе</option>
                         <option value="review">На проверке</option>
                         <option value="done">Готово</option>
@@ -346,6 +345,48 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно подзадачи -->
+    <div id="subtaskModal" class="modal">
+        <div class="modal-content">
+            <h2 id="subtaskModalTitle">Подзадача</h2>
+            <form id="subtaskForm">
+                <input type="hidden" id="subtaskTaskId">
+                <input type="hidden" id="subtaskParentId">
+                <input type="hidden" id="subtaskId">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="subtaskTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Приоритет</label>
+                    <select id="subtaskPriority">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                        <option value="critical">Критичный</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select id="subtaskStatus">
+                        <option value="queue">В очереди</option>
+                        <option value="progress">В работе</option>
+                        <option value="review">На проверке</option>
+                        <option value="done">Готово</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Исполнители</label>
+                    <div id="subtaskAssigneesSelect" class="assignees-select"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeSubtaskModal()">Отмена</button>
                     <button type="submit" class="btn-primary">Сохранить</button>
                 </div>
             </form>
@@ -476,12 +517,21 @@
             renderAssigneesSelect();
         }
 
-        function renderAssigneesSelect() {
-            document.getElementById('taskAssigneesSelect').innerHTML = assignees.map(a => `
-                <label class="assignee-checkbox" onclick="this.classList.toggle('checked')">
-                    <input type="checkbox" value="${a.id}">${a.name}
-                </label>
-            `).join('');
+        function renderAssigneesSelect(containerId = 'taskAssigneesSelect', selectedIds = []) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = assignees.map(a => {
+                const checked = selectedIds.includes(String(a.id)) ? 'checked' : '';
+                const checkedClass = checked ? 'checked' : '';
+                return `
+                    <label class="assignee-checkbox ${checkedClass}" onclick="this.classList.toggle('checked')">
+                        <input type="checkbox" value="${a.id}" ${checked}>${a.name}
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function getSelectedAssignees(containerId) {
+            return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(cb => cb.value);
         }
 
         function renderAssigneesList() {
@@ -528,6 +578,7 @@
             if (taskData.id) {
                 await sbClient.from('tasks').update({
                     title: taskData.title,
+                    priority: taskData.priority,
                     status: taskData.status,
                     assignees: taskData.assignees.join(','),
                     subtasks: JSON.stringify(taskData.subtasks)
@@ -535,6 +586,7 @@
             } else {
                 await sbClient.from('tasks').insert([{
                     title: taskData.title,
+                    priority: taskData.priority,
                     status: taskData.status,
                     assignees: taskData.assignees.join(','),
                     subtasks: JSON.stringify(taskData.subtasks)
@@ -558,26 +610,46 @@
             await loadTasks();
         }
 
-        async function addSubtask(taskId, parentId = null) {
-            if (!canEdit) return;
-            const title = prompt('Название подзадачи:');
-            if (!title) return;
+        async function saveSubtask(taskId, subtaskData) {
+            if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
             const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            const newSubtask = { id: Date.now(), title, status: 'todo', children: [] };
-            if (parentId) {
-                const addToParent = (nodes) => nodes.map(n => {
-                    if (n.id === parentId) return { ...n, children: [...(n.children || []), newSubtask] };
-                    if (n.children) return { ...n, children: addToParent(n.children) };
+            if (!task) return false;
+
+            if (subtaskData.id) {
+                // Обновление существующей
+                const updateInTree = (nodes) => nodes.map(n => {
+                    if (n.id === subtaskData.id) {
+                        return { ...n, title: subtaskData.title, priority: subtaskData.priority, status: subtaskData.status, assignees: subtaskData.assignees };
+                    }
+                    if (n.children) return { ...n, children: updateInTree(n.children) };
                     return n;
                 });
-                task.subtasks = addToParent(task.subtasks);
+                task.subtasks = updateInTree(task.subtasks);
             } else {
-                task.subtasks.push(newSubtask);
+                // Новая подзадача
+                const newSubtask = {
+                    id: Date.now(),
+                    title: subtaskData.title,
+                    priority: subtaskData.priority,
+                    status: subtaskData.status,
+                    assignees: subtaskData.assignees,
+                    children: []
+                };
+                if (subtaskData.parentId) {
+                    const addToParent = (nodes) => nodes.map(n => {
+                        if (n.id === subtaskData.parentId) return { ...n, children: [...(n.children || []), newSubtask] };
+                        if (n.children) return { ...n, children: addToParent(n.children) };
+                        return n;
+                    });
+                    task.subtasks = addToParent(task.subtasks);
+                } else {
+                    task.subtasks.push(newSubtask);
+                }
             }
             await sbClient.from('tasks').update({ subtasks: JSON.stringify(task.subtasks) }).eq('id', taskId);
             await loadTasks();
-            showToast('Подзадача добавлена', 'success');
+            showToast('Подзадача сохранена', 'success');
+            return true;
         }
 
         async function deleteSubtask(taskId, subtaskId) {
@@ -596,16 +668,18 @@
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
             container.innerHTML = tasks.map(task => {
-                const statusLabels = { todo: 'К выполнению', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+                const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+                const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
                 const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
                 return `
                     <div class="task-row" id="task-${task.id}">
                         <div class="expand-btn" onclick="toggleTask(${task.id})">▶</div>
                         <div class="task-title">${task.title}</div>
+                        <div><span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span></div>
                         <div><span class="status-badge status-${task.status}">${statusLabels[task.status]}</span></div>
                         <div class="assignees-list">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="addSubtask(${task.id})">+</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)">+</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})">✏️</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})">✕</button>` : ''}
                         </div>
@@ -620,18 +694,22 @@
 
         function renderSubtaskTree(subtasks, taskId, level) {
             if (!subtasks || subtasks.length === 0) return '';
-            const statusLabels = { todo: 'К выполнению', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+            const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+            const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
             return subtasks.map(sub => {
                 const hasChildren = sub.children && sub.children.length > 0;
+                const subAssignees = (sub.assignees || []).map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
                 return `
                     <div class="subtask-row" style="padding-left:${15 + level * 20}px">
                         <div class="expand-btn" onclick="toggleSubtask(this, ${sub.id})">${hasChildren ? '▶' : ''}</div>
                         <div style="width:20px"></div>
                         <div>${sub.title}</div>
+                        <div><span class="priority-badge priority-${sub.priority || 'medium'}">${priorityLabels[sub.priority || 'medium']}</span></div>
                         <div><span class="status-badge status-${sub.status}">${statusLabels[sub.status]}</span></div>
-                        <div class="assignees-list"></div>
+                        <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="addSubtask(${taskId}, ${sub.id})">+</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})">✏️</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})">+</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})">✕</button>` : ''}
                         </div>
                     </div>
@@ -641,14 +719,20 @@
         }
 
         function renderKanban() {
-            const columns = { todo: [], progress: [], review: [], done: [] };
+            const columns = { queue: [], progress: [], review: [], done: [] };
             tasks.forEach(t => columns[t.status].push(t));
             Object.keys(columns).forEach(status => {
                 document.getElementById(`${status}Tasks`).innerHTML = columns[status].map(task => {
+                    const statusLabels = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
+                    const priorityLabels = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
                     const assigneeNames = task.assignees.map(id => { const a = assignees.find(x => x.id == id); return a ? a.name : id; });
                     return `
                         <div class="kanban-card" draggable="${canEdit}" ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)">
                             <div class="title">${task.title}</div>
+                            <div class="meta">
+                                <span class="priority-badge priority-${task.priority || 'medium'}">${priorityLabels[task.priority || 'medium']}</span>
+                                <span class="status-badge status-${task.status}">${statusLabels[task.status]}</span>
+                            </div>
                             <div class="assignees">${assigneeNames.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
                         </div>
                     `;
@@ -684,10 +768,9 @@
             document.getElementById('modalTitle').textContent = 'Задача';
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
-            document.querySelectorAll('#taskAssigneesSelect input').forEach(cb => {
-                cb.checked = false;
-                cb.closest('.assignee-checkbox').classList.remove('checked');
-            });
+            document.getElementById('taskPriority').value = 'medium';
+            document.getElementById('taskStatus').value = 'queue';
+            renderAssigneesSelect('taskAssigneesSelect', []);
             document.getElementById('taskModal').classList.add('active');
         }
 
@@ -701,13 +784,56 @@
             document.getElementById('modalTitle').textContent = 'Редактировать';
             document.getElementById('taskId').value = task.id;
             document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskPriority').value = task.priority || 'medium';
             document.getElementById('taskStatus').value = task.status;
-            document.querySelectorAll('#taskAssigneesSelect input').forEach(cb => {
-                const checked = task.assignees.includes(cb.value);
-                cb.checked = checked;
-                cb.closest('.assignee-checkbox').classList.toggle('checked', checked);
-            });
+            renderAssigneesSelect('taskAssigneesSelect', task.assignees);
             document.getElementById('taskModal').classList.add('active');
+        }
+
+        // Подзадачи
+        function openSubtaskModal(taskId, subtaskId = null, parentId = null) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById('subtaskTaskId').value = taskId;
+            document.getElementById('subtaskParentId').value = parentId || '';
+            document.getElementById('subtaskId').value = subtaskId || '';
+
+            let subtask = null;
+            if (subtaskId) {
+                // Редактирование
+                const findInTree = (nodes) => {
+                    for (const n of nodes) {
+                        if (n.id === subtaskId) return n;
+                        if (n.children) { const found = findInTree(n.children); if (found) return found; }
+                    }
+                    return null;
+                };
+                subtask = findInTree(task.subtasks);
+                document.getElementById('subtaskModalTitle').textContent = 'Редактировать подзадачу';
+            } else if (parentId) {
+                // Дочерняя подзадача
+                document.getElementById('subtaskModalTitle').textContent = 'Дочерняя подзадача';
+            } else {
+                // Новая подзадача задачи
+                document.getElementById('subtaskModalTitle').textContent = 'Подзадача';
+            }
+
+            // Заполняем форму
+            document.getElementById('subtaskTitle').value = subtask ? subtask.title : '';
+            document.getElementById('subtaskPriority').value = subtask ? (subtask.priority || 'medium') : (task.priority || 'medium');
+            document.getElementById('subtaskStatus').value = subtask ? (subtask.status || 'queue') : 'queue';
+            
+            // Исполнители: если редактируем - текущие, если новая - копируем от задачи
+            const selectedAssignees = subtask ? (subtask.assignees || []) : task.assignees;
+            renderAssigneesSelect('subtaskAssigneesSelect', selectedAssignees);
+
+            document.getElementById('subtaskModal').classList.add('active');
+        }
+
+        function closeSubtaskModal() {
+            document.getElementById('subtaskModal').classList.remove('active');
         }
 
         function openAuthModal() { document.getElementById('authModal').classList.add('active'); showAuthTab('login'); }
@@ -740,15 +866,31 @@
             e.preventDefault();
             const id = document.getElementById('taskId').value;
             const task = tasks.find(t => t.id == id);
-            const assignees = Array.from(document.querySelectorAll('#taskAssigneesSelect input:checked')).map(cb => cb.value);
             await saveTask({
                 id: id ? parseInt(id) : null,
                 title: document.getElementById('taskTitle').value,
+                priority: document.getElementById('taskPriority').value,
                 status: document.getElementById('taskStatus').value,
-                assignees,
+                assignees: getSelectedAssignees('taskAssigneesSelect'),
                 subtasks: task ? task.subtasks : []
             });
             closeModal();
+        });
+
+        document.getElementById('subtaskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const taskId = parseInt(document.getElementById('subtaskTaskId').value);
+            const subtaskId = document.getElementById('subtaskId').value;
+            const parentId = document.getElementById('subtaskParentId').value;
+            await saveSubtask(taskId, {
+                id: subtaskId ? parseInt(subtaskId) : null,
+                parentId: parentId ? parseInt(parentId) : null,
+                title: document.getElementById('subtaskTitle').value,
+                priority: document.getElementById('subtaskPriority').value,
+                status: document.getElementById('subtaskStatus').value,
+                assignees: getSelectedAssignees('subtaskAssigneesSelect')
+            });
+            closeSubtaskModal();
         });
 
         function handleDragStart(e, id) { if (!canEdit) return; draggedTaskId = id; e.target.classList.add('dragging'); }
