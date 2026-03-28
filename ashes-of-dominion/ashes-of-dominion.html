@@ -2616,38 +2616,40 @@ async function checkAuth() {
             else {
                 // Если целевой элемент - подзадача, вставляем в тот же массив подзадач
                 if (tgtSubtaskId) {
-                    // Но если перетаскивали задачу - она должна остаться задачей и встать перед/после целевой ЗАДАЧИ
-                    if (source.type === 'task') {
-                        let targetIndex = tasks.findIndex(t => t.id === tgtTaskId);
-                        if (targetIndex === -1) {
-                            listDragItem = null;
-                            return;
-                        }
-                        if (insertBefore) {
-                            tasks.splice(targetIndex, 0, sourceElement);
+                    const result = findSubtaskParentArray(targetTask.subtasks, tgtSubtaskId);
+                    if (result) {
+                        const targetIndexInArray = insertBefore ? result.index : result.index + 1;
+                        
+                        // Если перетаскивали задачу, преобразуем её в подзадачу
+                        if (source.type === 'task') {
+                            const newSubtask = {
+                                id: sourceElement.id,
+                                title: sourceElement.title,
+                                priority: sourceElement.priority || 'medium',
+                                status: sourceElement.status,
+                                assignees: sourceElement.assignees || [],
+                                color: sourceElement.color,
+                                children: sourceElement.subtasks || []
+                            };
+                            result.array.splice(targetIndexInArray, 0, newSubtask);
+                            
+                            // Удаляем задачу из БД
+                            await sbClient.from('tasks').delete().eq('id', source.taskId);
                         } else {
-                            tasks.splice(targetIndex + 1, 0, sourceElement);
-                        }
-                        await saveTaskOrder();
-                    } else {
-                        // Перетаскивали подзадачу - вставляем в тот же уровень
-                        const result = findSubtaskParentArray(targetTask.subtasks, tgtSubtaskId);
-                        if (result) {
-                            const targetIndexInArray = insertBefore ? result.index : result.index + 1;
                             result.array.splice(targetIndexInArray, 0, sourceElement);
-
-                            targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
-                            if (hasSubtasks(targetTask)) {
-                                targetTask.status = calculateTaskStatus(targetTask.subtasks);
-                                targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
-                            }
-
-                            await sbClient.from('tasks').update({
-                                subtasks: JSON.stringify(targetTask.subtasks),
-                                status: targetTask.status,
-                                assignees: targetTask.assignees.join(',')
-                            }).eq('id', tgtTaskId);
                         }
+
+                        targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+                        if (hasSubtasks(targetTask)) {
+                            targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                            targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+                        }
+
+                        await sbClient.from('tasks').update({
+                            subtasks: JSON.stringify(targetTask.subtasks),
+                            status: targetTask.status,
+                            assignees: targetTask.assignees.join(',')
+                        }).eq('id', tgtTaskId);
                     }
                 }
                 // Иначе целевой элемент - задача, вставляем в массив задач
