@@ -261,10 +261,10 @@
             background: rgba(74, 222, 128, 0.15);
         }
         .task-row.drag-insert-before, .subtask-item.drag-insert-before {
-            box-shadow: 0 -3px 0 0 var(--accent) inset;
+            box-shadow: 0 3px 0 0 var(--accent) inset;
         }
         .task-row.drag-insert-after, .subtask-item.drag-insert-after {
-            box-shadow: 0 3px 0 0 var(--accent) inset;
+            box-shadow: 0 -3px 0 0 var(--accent) inset;
         }
 
         .kanban-board {
@@ -2497,7 +2497,8 @@ async function checkAuth() {
             
             const isChild = isDescendant(listDragItem, targetTaskId, targetSubtaskId);
 
-            if (insertType === 'child' && !isSameItem && !isChild) {
+            // Средняя треть + у цели нет подзадач + не тот же элемент = показываем drop-target
+            if (insertType === 'child' && !isSameItem && !isChild && hasSubtasks === false) {
                 target.classList.add('drop-target');
             } else if (insertType === 'before') {
                 target.classList.add('drag-insert-before');
@@ -2559,7 +2560,7 @@ async function checkAuth() {
                     return;
                 }
 
-                // Если вставляем как подзадачу
+                // Если вставляем как подзадачу (средняя треть)
                 if (insertType === 'child') {
                     const targetTask = tasks.find(t => t.id === tgtTaskId);
                     if (!targetTask) {
@@ -2599,7 +2600,7 @@ async function checkAuth() {
 
                     await sbClient.from('tasks').delete().eq('id', source.taskId);
                 }
-                // Иначе меняем порядок
+                // Иначе меняем порядок (верхняя/нижняя треть)
                 else {
                     if (sourceIndex < targetIndex) {
                         targetIndex--;
@@ -2615,7 +2616,7 @@ async function checkAuth() {
                     await saveTaskOrder();
                 }
             }
-            // Для подзадач - вставляем как подзадачу или меняем порядок
+            // Для подзадач - вставляем как подзадачу или делаем задачей
             else if (source.type === 'subtask') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) {
@@ -2637,44 +2638,90 @@ async function checkAuth() {
                     return;
                 }
 
-                // Если вставляем как подзадачу целевой задачи
+                // Если вставляем как подзадачу целевой задачи/подзадачи (средняя треть)
                 if (insertType === 'child') {
-                    targetTask.subtasks = targetTask.subtasks || [];
-                    targetTask.subtasks.unshift(sourceSubtask);
-                }
-                // Иначе вставляем в массив подзадач того же уровня
-                else {
-                    // Находим родительский массив подзадач
-                    let targetArray, targetIndexInArray;
-
+                    // Если есть targetSubtaskId - вставляем в эту подзадачу
                     if (tgtSubtaskId) {
-                        const result = findSubtaskParentArray(targetTask.subtasks, tgtSubtaskId);
-                        if (result) {
-                            targetArray = result.array;
-                            targetIndexInArray = result.index;
-                            if (!insertBefore) targetIndexInArray++;
-                        } else {
-                            targetArray = targetTask.subtasks || [];
-                            targetIndexInArray = targetArray.length;
+                        const targetSub = findSubtaskById(targetTask.subtasks, tgtSubtaskId);
+                        if (targetSub) {
+                            targetSub.children = targetSub.children || [];
+                            targetSub.children.unshift(sourceSubtask);
                         }
                     } else {
-                        targetArray = targetTask.subtasks || [];
-                        targetIndexInArray = insertBefore ? 0 : targetArray.length;
+                        // Иначе вставляем в задачу
+                        targetTask.subtasks = targetTask.subtasks || [];
+                        targetTask.subtasks.unshift(sourceSubtask);
                     }
 
-                    targetArray.splice(targetIndexInArray, 0, sourceSubtask);
+                    targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+                    if (hasSubtasks(targetTask)) {
+                        targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                        targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+                    }
+
+                    await sbClient.from('tasks').update({
+                        subtasks: JSON.stringify(targetTask.subtasks),
+                        status: targetTask.status,
+                        assignees: targetTask.assignees.join(',')
+                    }).eq('id', tgtTaskId);
+                }
+                // Иначе делаем подзадачу задачей (верхняя/нижняя треть)
+                else {
+                    // Если есть targetSubtaskId - значит вставляем после/перед подзадачей
+                    // Но мы делаем её задачей, поэтому просто создаём новую задачу
+                    // и вставляем перед/после целевой задачи
+                    
+                    // Создаем новую задачу из подзадачи
+                    const newTask = {
+                        title: sourceSubtask.title,
+                        priority: sourceSubtask.priority || 'medium',
+                        status: sourceSubtask.status || 'queue',
+                        assignees: sourceSubtask.assignees || [],
+                        color: sourceSubtask.color,
+                        subtasks: sourceSubtask.children || [],
+                        order_index: 0
+                    };
+
+                    // Нормализуем подзадачи новой задачи
+                    newTask.subtasks = normalizeSubtasksTree(newTask.subtasks);
+
+                    // Находим позицию для вставки (всегда относительно задачи, а не подзадачи)
+                    let targetIndex = tasks.findIndex(t => t.id === tgtTaskId);
+                    if (targetIndex === -1) {
+                        targetIndex = 0;
+                    }
+
+                    if (insertBefore) {
+                        tasks.splice(targetIndex, 0, newTask);
+                    } else {
+                        tasks.splice(targetIndex + 1, 0, newTask);
+                    }
+
+                    // Получаем ID новой задачи
+                    const { data, error } = await sbClient.from('tasks').insert([{
+                        title: newTask.title,
+                        priority: newTask.priority,
+                        status: newTask.status,
+                        assignees: newTask.assignees.join(','),
+                        color: newTask.color,
+                        subtasks: JSON.stringify(newTask.subtasks),
+                        order_index: 0
+                    }]).select();
+
+                    if (error) {
+                        console.error(error);
+                        showToast('Ошибка при создании задачи', 'error');
+                    }
+
+                    // Обновляем order_index у всех задач
+                    await saveTaskOrder();
                 }
 
+                // Сохраняем изменения в исходной задаче
                 sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
                 if (hasSubtasks(sourceTask)) {
                     sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
                     sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
-                }
-
-                targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
-                if (hasSubtasks(targetTask)) {
-                    targetTask.status = calculateTaskStatus(targetTask.subtasks);
-                    targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
                 }
 
                 await sbClient.from('tasks').update({
@@ -2682,12 +2729,6 @@ async function checkAuth() {
                     status: sourceTask.status,
                     assignees: sourceTask.assignees.join(',')
                 }).eq('id', source.taskId);
-
-                await sbClient.from('tasks').update({
-                    subtasks: JSON.stringify(targetTask.subtasks),
-                    status: targetTask.status,
-                    assignees: targetTask.assignees.join(',')
-                }).eq('id', tgtTaskId);
             }
 
             listDragItem = null;
