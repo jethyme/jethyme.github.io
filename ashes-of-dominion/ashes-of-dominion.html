@@ -183,10 +183,10 @@
         .status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
         .status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
         .status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
-        .priority-low { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .priority-low { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
         .priority-medium { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
-        .priority-high { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
-        .priority-critical { background: rgba(248, 113, 113, 0.25); color: var(--danger); }
+        .priority-high { background: rgba(251, 146, 60, 0.25); color: #fb923c; }
+        .priority-critical { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
         .status-badge, .priority-badge { cursor: pointer; }
         .clickable-badge {
             padding: 3px 10px;
@@ -199,10 +199,18 @@
             transition: border-color 0.15s;
         }
         .clickable-badge:hover { border-color: rgba(255,255,255,0.3); }
-        .priority-low, .status-queue { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
-        .priority-medium, .status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
-        .priority-high, .status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
-        .priority-critical, .status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .assignee-badge {
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72em;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            border: 1px solid transparent;
+        }
+        .assignee-badge:hover { border-color: rgba(255,255,255,0.3); }
         .assignees-list.clickable { cursor: pointer; }
         .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
@@ -1006,15 +1014,24 @@
             const subtaskId = badge.dataset.subtask ? parseInt(badge.dataset.subtask) : null;
             const currentValue = badge.dataset.value;
 
-            const options = type === 'priority' ? PRIORITY_ORDER.map(p => ({ value: p, label: PRIORITY_LABELS[p] })) : STATUS_LIST.map(s => ({ value: s, label: STATUS_LABELS[s] }));
-
             const dropdown = document.createElement('div');
             dropdown.className = 'badge-dropdown';
-            dropdown.innerHTML = options.map(opt => {
-                const cls = type === 'priority' ? 'priority-' + opt.value : 'status-' + opt.value;
-                const checked = opt.value === currentValue ? '<span class="check">&#10003;</span>' : '';
-                return '<div class="badge-option ' + cls + '" data-value="' + opt.value + '">' + opt.label + checked + '</div>';
-            }).join('');
+
+            if (type === 'assignee') {
+                const selectedIds = currentValue ? currentValue.split(',') : [];
+                dropdown.innerHTML = assignees.map(a => {
+                    const checked = selectedIds.includes(String(a.id)) ? 'checked' : '';
+                    const color = a.color || '#888';
+                    return '<label class="picker-option"><input type="checkbox" value="' + a.id + '" ' + checked + '><span class="assignee-dot-sm" style="background:' + color + '"></span>' + a.name + '</label>';
+                }).join('');
+            } else {
+                const options = type === 'priority' ? PRIORITY_ORDER.map(p => ({ value: p, label: PRIORITY_LABELS[p] })) : STATUS_LIST.map(s => ({ value: s, label: STATUS_LABELS[s] }));
+                dropdown.innerHTML = options.map(opt => {
+                    const cls = type === 'priority' ? 'priority-' + opt.value : 'status-' + opt.value;
+                    const checked = opt.value === currentValue ? '<span class="check">&#10003;</span>' : '';
+                    return '<div class="badge-option ' + cls + '" data-value="' + opt.value + '">' + opt.label + checked + '</div>';
+                }).join('');
+            }
 
             const rect = badge.getBoundingClientRect();
             dropdown.style.position = 'fixed';
@@ -1022,25 +1039,39 @@
             dropdown.style.left = rect.left + 'px';
             document.body.appendChild(dropdown);
 
-            dropdown.querySelectorAll('.badge-option').forEach(opt => {
-                opt.addEventListener('click', async () => {
-                    const newValue = opt.dataset.value;
-                    if (type === 'priority') {
+            if (type === 'assignee') {
+                dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.addEventListener('change', async () => {
+                        const selectedIds = Array.from(dropdown.querySelectorAll('input:checked')).map(i => i.value);
                         if (subtaskId) {
-                            await changeSubtaskPriority(taskId, subtaskId, newValue);
+                            await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
                         } else {
-                            await changeTaskPriority(taskId, newValue);
+                            await updateTaskAssignees(taskId, selectedIds);
                         }
-                    } else {
-                        if (subtaskId) {
-                            await changeSubtaskStatus(taskId, subtaskId, newValue);
-                        } else {
-                            await changeTaskStatus(taskId, newValue);
-                        }
-                    }
-                    dropdown.remove();
+                        dropdown.remove();
+                    });
                 });
-            });
+            } else {
+                dropdown.querySelectorAll('.badge-option').forEach(opt => {
+                    opt.addEventListener('click', async () => {
+                        const newValue = opt.dataset.value;
+                        if (type === 'priority') {
+                            if (subtaskId) {
+                                await changeSubtaskPriority(taskId, subtaskId, newValue);
+                            } else {
+                                await changeTaskPriority(taskId, newValue);
+                            }
+                        } else {
+                            if (subtaskId) {
+                                await changeSubtaskStatus(taskId, subtaskId, newValue);
+                            } else {
+                                await changeTaskStatus(taskId, newValue);
+                            }
+                        }
+                        dropdown.remove();
+                    });
+                });
+            }
 
             setTimeout(() => {
                 const close = (e) => {
@@ -1497,10 +1528,6 @@ async function checkAuth() {
             if (!canEdit) return;
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-            if (hasSubtasks(task)) {
-                showToast('Задачи с подзадачами нельзя назначать', 'error');
-                return;
-            }
             task.assignees = newAssignees || [];
             await sbClient.from('tasks').update({ assignees: task.assignees.join(',') }).eq('id', taskId);
             await loadTasks();
@@ -1527,64 +1554,6 @@ async function checkAuth() {
                 assignees: task.assignees.join(',')
             }).eq('id', taskId);
             await loadTasks();
-        }
-
-        function openAssigneePicker(event, taskId, subtaskId = null) {
-            console.log('openAssigneePicker called', { taskId, subtaskId });
-            if (!canEdit) return;
-            event.stopPropagation();
-            const existing = document.querySelector('.assignee-picker');
-            if (existing) existing.remove();
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) { console.log('task not found'); return; }
-            if (!subtaskId && hasSubtasks(task)) {
-                showToast('Задачи с подзадачами нельзя назначать', 'error');
-                return;
-            }
-            const selected = subtaskId
-                ? (findSubtaskById(task.subtasks, subtaskId)?.assignees || [])
-                : (task.assignees || []);
-
-            const picker = document.createElement('div');
-            picker.className = 'assignee-picker';
-            picker.innerHTML = assignees.map(a => {
-                const checked = selected.includes(String(a.id)) ? 'checked' : '';
-                const color = a.color || '#888';
-                return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked} data-id="${a.id}"><span class="assignee-dot" style="background:${color}"></span>${a.name}</label>`;
-            }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
-
-            // Position picker near the clicked element
-            const rect = event.target.getBoundingClientRect();
-            picker.style.position = 'fixed';
-            picker.style.top = (rect.bottom + 4) + 'px';
-            picker.style.left = rect.left + 'px';
-            document.body.appendChild(picker);
-
-            // Use click events on checkboxes directly
-            picker.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.addEventListener('change', async () => {
-                    const selectedIds = Array.from(picker.querySelectorAll('input:checked')).map(i => i.value);
-                    if (subtaskId) {
-                        await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
-                    } else {
-                        await updateTaskAssignees(taskId, selectedIds);
-                    }
-                });
-            });
-
-            setTimeout(() => {
-                const close = (e) => {
-                    if (!picker.contains(e.target)) {
-                        picker.remove();
-                        document.removeEventListener('click', close);
-                    }
-                };
-                document.addEventListener('click', close);
-            }, 0);
-        }
-
-        function closeAssigneePicker() {
-            document.querySelector('.assignee-picker')?.remove();
         }
 
         async function saveSubtask(taskId, subtaskData) {
@@ -1705,7 +1674,7 @@ async function checkAuth() {
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
                     <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
-                    <div class="assignees-list clickable" data-task-id="${task.id}" data-subtask-id="">${renderAssigneeTags(assigneeIds)}</div>
+                    <div>${canEdit ? renderAssigneeBadge(assigneeIds) : renderAssigneeTags(assigneeIds)}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1851,8 +1820,8 @@ async function checkAuth() {
                        'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
-                        '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                         '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                         '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                         '<div>' + (canEdit ? renderAssigneeBadge(assigneeIds) : renderAssigneeTags(assigneeIds)) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -1914,7 +1883,7 @@ async function checkAuth() {
                 return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
                         '<div class="meta">' + (canEdit ? renderPriorityBadge(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
-                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="' + node.task.id + '">' + renderAssigneeTags(subAssignees) + '</div>' +
+                        '<div>' + (canEdit ? renderAssigneeBadge(subAssignees) : renderAssigneeTags(subAssignees)) + '</div>' +
                     '</div>' + childrenHtml;
             };
 
