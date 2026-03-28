@@ -217,6 +217,14 @@
             text-overflow: ellipsis;
             border: 1px solid;
         }
+        .assignee-placeholder {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            cursor: pointer;
+        }
         .task-actions { display: flex; gap: 4px; justify-content: flex-end; }
         .subtask-item {
             display: grid;
@@ -833,13 +841,17 @@
         }
 
         function renderAssigneeTags(ids) {
-            return (ids || []).map((id, index) => {
+            const tags = (ids || []).map((id, index) => {
                 const a = assignees.find(x => x.id == id);
                 const name = a ? a.name : id;
                 const displayName = getShortName(name);
                 const color = resolveAssigneeColor(a || { id: id, name: name }, index);
                 return '<span class="assignee-tag" style="background:' + color + '33;color:' + color + ';border-color:' + color + '66;">' + displayName + '</span>';
-            }).join('');
+            });
+            if (tags.length === 0) {
+                return '<span class="assignee-placeholder">+</span>';
+            }
+            return tags.join('');
         }
 
         const hasSubtasks = window.hasSubtasks || function hasSubtasks(task) {
@@ -962,8 +974,9 @@
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Delegated event handler for assignee picker
+            // Delegated event handler for clicks
             document.addEventListener('click', (e) => {
+                // Assignee picker
                 const assigneeList = e.target.closest('.assignees-list.clickable');
                 if (assigneeList) {
                     const taskId = assigneeList.dataset.taskId;
@@ -971,6 +984,11 @@
                     if (taskId) {
                         openAssigneePicker(e, parseInt(taskId), subtaskId ? parseInt(subtaskId) : null);
                     }
+                }
+                // Priority/Status badge dropdown
+                const badge = e.target.closest('.clickable-badge');
+                if (badge) {
+                    openBadgeDropdown(e, badge);
                 }
             });
             await checkAuth();
