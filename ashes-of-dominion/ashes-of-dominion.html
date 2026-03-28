@@ -153,19 +153,17 @@
             z-index: 2;
         }
         .expand-btn {
-            width: 26px;
-            height: 26px;
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--muted);
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--surface-2);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: background 0.15s;
-            border: 1px solid var(--border);
+            border-radius: 4px;
         }
-        .expand-btn:hover { background: var(--accent); border-color: var(--accent); }
+        .expand-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
         .task-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .task-meta { display: flex; align-items: center; gap: 6px; font-size: 0.75em; color: var(--muted); }
         .progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; min-width: 50px; }
@@ -1764,7 +1762,7 @@ async function checkAuth() {
             
             return `
                 <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event)" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
-                    <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
+                    <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasks ? '' : 'visibility:hidden'}">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
                     <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
