@@ -2344,7 +2344,7 @@ async function checkAuth() {
                         // Родителя нет в колонке - собираем всех детей этой подзадачи
                         const children = [];
                         const collectChildren = (parentId) => {
-                            items.filter(it => it.type === 'subtask' && it.item.parentSubtaskId === parentId).forEach(s => {
+                            items.filter(it => it.type === 'subtask' && it.item && it.item.parentSubtaskId === parentId).forEach(s => {
                                 children.push(s);
                                 consumedSubtasks.add(s.task.id);
                                 collectChildren(s.task.id);
