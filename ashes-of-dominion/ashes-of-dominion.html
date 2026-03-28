@@ -253,10 +253,10 @@
         .subtask-item.level-3 { border-left: 4px solid var(--success); }
         .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
         .task-row.dragging, .subtask-item.dragging { opacity: 0.5; }
-        .task-row, .subtask-item { cursor: grab; }
+        .task-row, .subtask-item { cursor: grab; position: relative; }
         .task-row:active, .subtask-item:active { cursor: grabbing; }
-        .task-row.drop-target, .subtask-item.drop-target { 
-            outline: 3px solid var(--accent-2); 
+        .task-row.drop-target, .subtask-item.drop-target {
+            outline: 3px solid var(--accent-2);
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
@@ -1864,7 +1864,7 @@ async function checkAuth() {
             const rowStyle = rowStyleParts.join(';');
             
             return `
-                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, ${hasSubtasks ? 'true' : 'false'})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
+                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasks ? 'true' : 'false'})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
                     <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasks ? '' : 'visibility:hidden'}">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
