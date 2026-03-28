@@ -241,11 +241,13 @@
             padding: 8px 14px;
             border-bottom: 1px solid var(--border);
             gap: 10px;
+            transition: background 0.15s;
         }
-        .subtask-item.level-0 { background: rgba(22, 33, 62, 0.8); }
-        .subtask-item.level-1 { background: rgba(20, 30, 58, 0.8); padding-left: 50px; }
-        .subtask-item.level-2 { background: rgba(18, 28, 54, 0.8); padding-left: 75px; }
-        .subtask-item.level-3 { background: rgba(16, 26, 50, 0.8); padding-left: 100px; }
+        .subtask-item:hover { filter: brightness(1.05); }
+        .subtask-item.level-0 { border-left: 4px solid var(--accent); }
+        .subtask-item.level-1 { border-left: 4px solid var(--accent-2); }
+        .subtask-item.level-2 { border-left: 4px solid var(--accent-3); }
+        .subtask-item.level-3 { border-left: 4px solid var(--success); }
 
         .kanban-board {
             display: none;
@@ -1376,6 +1378,17 @@ async function checkAuth() {
                     task.status = task.status || 'queue';
                     task.assignees = task.assignees || [];
                 }
+            });
+            // Expand all subtasks by default
+            tasks.forEach(task => {
+                const collectSubtaskIds = (subtasks) => {
+                    subtasks.forEach(sub => {
+                        expandedSubtasks.add(sub.id);
+                        const children = sub.children || sub.subtasks || [];
+                        collectSubtaskIds(children);
+                    });
+                };
+                collectSubtaskIds(task.subtasks);
             });
             renderTasks();
         }
