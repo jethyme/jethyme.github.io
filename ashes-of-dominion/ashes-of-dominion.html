@@ -188,25 +188,21 @@
         .priority-high { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
         .priority-critical { background: rgba(248, 113, 113, 0.25); color: var(--danger); }
         .status-badge, .priority-badge { cursor: pointer; }
-        .priority-select, .status-select {
-            padding: 3px 8px;
+        .clickable-badge {
+            padding: 3px 10px;
             border-radius: 20px;
             font-size: 0.72em;
             font-weight: 600;
-            background: transparent;
-            border: none;
-            color: inherit;
             cursor: pointer;
-            min-width: 70px;
+            display: inline-block;
+            border: 1px solid transparent;
+            transition: border-color 0.15s;
         }
-        .priority-select:focus, .status-select:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-        .priority-select.priority-low, .status-select.status-queue { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
-        .priority-select.priority-medium, .status-select.status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
-        .priority-select.priority-high, .status-select.status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
-        .priority-select.priority-critical, .status-select.status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
+        .clickable-badge:hover { border-color: rgba(255,255,255,0.3); }
+        .priority-low, .status-queue { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
+        .priority-medium, .status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
+        .priority-high, .status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
+        .priority-critical, .status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
         .assignees-list.clickable { cursor: pointer; }
         .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
@@ -462,6 +458,29 @@
         .toast.error { background: var(--danger); color: #fff; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        .badge-dropdown {
+            position: fixed;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+        }
+        .badge-option {
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            border-radius: 6px;
+            margin: 2px 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-option:hover { background: var(--surface); }
+        .badge-option .check { margin-left: auto; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -1391,19 +1410,12 @@ async function checkAuth() {
             await updateSubtaskStatus(taskId, subtaskId, newStatus);
         }
 
-        function renderPrioritySelect(taskId, currentPriority, isSubtask, parentTaskId) {
-            const func = isSubtask ? 'changeSubtaskPriority' : 'changeTaskPriority';
-            const extra = isSubtask ? ', ' + parentTaskId : '';
-            return '<select class="priority-select priority-' + (currentPriority || 'medium') + '" onchange="' + func + '(' + (isSubtask ? parentTaskId + ', ' : '') + taskId + ', this.value)">' +
-                PRIORITY_ORDER.map(p => '<option value="' + p + '"' + (p === currentPriority ? ' selected' : '') + '>' + PRIORITY_LABELS[p] + '</option>').join('') +
-                '</select>';
+        function renderPriorityBadge(taskId, currentPriority, isSubtask, parentTaskId) {
+            return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + taskId + '" data-subtask="' + (isSubtask ? parentTaskId : '') + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
         }
 
-        function renderStatusSelect(taskId, currentStatus, isSubtask, parentTaskId) {
-            const func = isSubtask ? 'changeSubtaskStatus' : 'changeTaskStatus';
-            return '<select class="status-select status-' + (currentStatus || 'queue') + '" onchange="' + func + '(' + (isSubtask ? parentTaskId + ', ' : '') + taskId + ', this.value)">' +
-                STATUS_LIST.map(s => '<option value="' + s + '"' + (s === currentStatus ? ' selected' : '') + '>' + STATUS_LABELS[s] + '</option>').join('') +
-                '</select>';
+        function renderStatusBadge(taskId, currentStatus, isSubtask, parentTaskId) {
+            return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + taskId + '" data-subtask="' + (isSubtask ? parentTaskId : '') + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
         }
 
         async function updateTaskAssignees(taskId, newAssignees) {
