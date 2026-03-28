@@ -1647,7 +1647,7 @@ async function checkAuth() {
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
                         <div>${canEdit ? renderPrioritySelect(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
                         <div>${canEdit ? renderStatusSelect(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
-                        <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${taskId}, ${sub.id})">${renderAssigneeTags(subAssignees)}</div>
+                        <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" ${canEdit ? 'onclick="openAssigneePicker(event, ' + taskId + ', ' + sub.id + ')"' : ''}>${renderAssigneeTags(subAssignees)}</div>
                         <div class="task-actions">
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
