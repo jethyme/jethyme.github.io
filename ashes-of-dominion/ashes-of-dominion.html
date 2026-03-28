@@ -1146,28 +1146,6 @@
                     });
                 });
             }
-                        } else {
-                            if (subtaskId) {
-                                await changeSubtaskStatus(taskId, subtaskId, newValue);
-                            } else {
-                                await changeTaskStatus(taskId, newValue);
-                            }
-                        }
-                        dropdown.remove();
-                    });
-                });
-            }
-
-            setTimeout(() => {
-                const close = (e) => {
-                    if (!dropdown.contains(e.target)) {
-                        dropdown.remove();
-                        document.removeEventListener('click', close);
-                    }
-                };
-                document.addEventListener('click', close);
-            }, 0);
-        }
 
 async function checkAuth() {
             const { data: { session } } = await sbClient.auth.getSession();
