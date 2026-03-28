@@ -253,25 +253,26 @@
         .subtask-item.level-3 { border-left: 4px solid var(--success); }
         .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
         .task-row.dragging, .subtask-item.dragging { opacity: 0.5; }
-        .task-row, .subtask-item { cursor: grab; position: relative; }
+        .task-row, .subtask-item { cursor: grab; }
         .task-row:active, .subtask-item:active { cursor: grabbing; }
-        .task-row.drop-target, .subtask-item.drop-target {
-            outline: 3px solid var(--accent-2);
+        .task-row.drop-target, .subtask-item.drop-target { 
+            outline: 3px solid var(--accent-2); 
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
-        .task-row.drop-target::after, .subtask-item.drop-target::after {
-            content: '➕ Подзадача';
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--accent);
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75em;
+        .drop-target-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px dashed var(--accent);
+            border-radius: 8px;
+            margin: 4px 14px;
+            font-size: 0.85em;
             font-weight: 600;
+            color: var(--accent);
         }
         .insert-indicator { height: 3px; background: var(--accent); margin: 4px 0; border-radius: 2px; }
         .insert-indicator::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
@@ -2320,6 +2321,7 @@ async function checkAuth() {
         // List view drag-and-drop
         let listDragItem = null;
         let dropIndicator = null;
+        let dropTargetPlaceholder = null;
 
         function isDescendant(source, targetTaskId, targetSubtaskId) {
             // Проверяем, не является ли target потомком source
@@ -2463,6 +2465,7 @@ async function checkAuth() {
             if (e.currentTarget) e.currentTarget.classList.remove('dragging');
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
             removeDropIndicator();
+            removeDropTargetPlaceholder();
             listDragItem = null;
         }
 
@@ -2486,9 +2489,11 @@ async function checkAuth() {
                 target.classList.add('drop-target');
                 target.classList.remove('drag-over');
                 removeDropIndicator();
+                showDropTargetPlaceholder(target);
             } else {
                 target.classList.remove('drop-target');
                 target.classList.add('drag-over');
+                removeDropTargetPlaceholder();
 
                 // Calculate insert position (before or after)
                 const rect = target.getBoundingClientRect();
@@ -2503,6 +2508,7 @@ async function checkAuth() {
             e.currentTarget.classList.remove('drag-over');
             e.currentTarget.classList.remove('drop-target');
             removeDropIndicator();
+            removeDropTargetPlaceholder();
         }
 
         function updateDropIndicator(target, insertBefore) {
@@ -2535,15 +2541,38 @@ async function checkAuth() {
             dropIndicator = null;
         }
 
+        function showDropTargetPlaceholder(target) {
+            removeDropTargetPlaceholder();
+            
+            dropTargetPlaceholder = document.createElement('div');
+            dropTargetPlaceholder.className = 'drop-target-placeholder';
+            dropTargetPlaceholder.innerHTML = '<span>➕</span><span>Перетащить как подзадачу</span>';
+            
+            // Вставляем после целевого элемента
+            if (target.nextSibling) {
+                target.parentNode.insertBefore(dropTargetPlaceholder, target.nextSibling);
+            } else {
+                target.parentNode.appendChild(dropTargetPlaceholder);
+            }
+        }
+
+        function removeDropTargetPlaceholder() {
+            if (dropTargetPlaceholder && dropTargetPlaceholder.parentNode) {
+                dropTargetPlaceholder.parentNode.removeChild(dropTargetPlaceholder);
+            }
+            dropTargetPlaceholder = null;
+        }
+
         async function handleListDrop(e, targetTaskId, targetSubtaskId) {
             if (!canEdit || !listDragItem) return;
             e.preventDefault();
             e.stopPropagation();
-            
+
             const target = e.currentTarget;
             const isDropTarget = target.classList.contains('drop-target');
             target.classList.remove('drag-over');
             target.classList.remove('drop-target');
+            removeDropTargetPlaceholder();
 
             // Если отпустили на drop-target (задачу/подзадачу без подзадач) - добавляем как подзадачу
             if (isDropTarget) {
