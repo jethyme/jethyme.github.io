@@ -861,6 +861,19 @@
             }).join('');
         }
 
+        function renderAssigneeBadge(ids) {
+            const count = (ids || []).length;
+            if (count === 0) {
+                return '<span class="assignee-badge" data-type="assignee" data-value="">+</span>';
+            }
+            const firstNames = (ids || []).slice(0, 2).map(id => {
+                const a = assignees.find(x => x.id == id);
+                return a ? getShortName(a.name) : id;
+            }).join(', ');
+            const suffix = count > 2 ? ' +' + (count - 2) : '';
+            return '<span class="assignee-badge" data-type="assignee" data-value="' + ids.join(',') + '">' + firstNames + suffix + '</span>';
+        }
+
         const hasSubtasks = window.hasSubtasks || function hasSubtasks(task) {
             return Array.isArray(task?.subtasks) && task.subtasks.length > 0;
         };
