@@ -375,10 +375,6 @@
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
     </style>
-    <script>
-        const ASSIGNEE_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399'];
-        const TASK_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399', '#60a5fa', '#f87171'];
-    </script>
 </head>
 <body>
     <div class="container">
@@ -470,9 +466,7 @@
                 </div>
                 <div class="form-group">
                     <label>Цвет</label>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        ${TASK_COLORS.map(c => `<span class="color-swatch" data-color="${c}" style="width:28px;height:28px;border-radius:6px;background:${c};cursor:pointer;border:2px solid transparent;" onclick="selectTaskColor('${c}', this)"></span>`).join('')}
-                    </div>
+                    <div id="taskColorPicker" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
                     <input type="hidden" id="taskColor">
                 </div>
                 <div class="form-group">
@@ -1393,7 +1387,9 @@ async function checkAuth() {
             document.getElementById('taskId').value = '';
             document.getElementById('taskPriority').value = 'medium';
             document.getElementById('taskStatus').value = 'queue';
+            document.getElementById('taskColor').value = '';
             renderAssigneesSelect('taskAssigneesSelect', []);
+            renderTaskColorPicker();
             document.getElementById('taskModal').classList.add('active');
         }
 
@@ -1409,8 +1405,24 @@ async function checkAuth() {
             document.getElementById('taskTitle').value = task.title;
             document.getElementById('taskPriority').value = task.priority || 'medium';
             document.getElementById('taskStatus').value = task.status;
+            document.getElementById('taskColor').value = task.color || '';
             renderAssigneesSelect('taskAssigneesSelect', task.assignees);
+            renderTaskColorPicker(task.color || '');
             document.getElementById('taskModal').classList.add('active');
+        }
+        
+        function renderTaskColorPicker(selectedColor = '') {
+            const container = document.getElementById('taskColorPicker');
+            if (!container) return;
+            container.innerHTML = TASK_COLORS.map(c => {
+                const border = selectedColor === c ? '2px solid #fff' : '2px solid transparent';
+                return '<span class="color-swatch" data-color="' + c + '" style="width:28px;height:28px;border-radius:6px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
+            }).join('');
+        }
+        
+        function selectTaskColor(color, el) {
+            document.getElementById('taskColor').value = color;
+            renderTaskColorPicker(color);
         }
 
         function openSubtaskModal(taskId, subtaskId = null, parentId = null) {
