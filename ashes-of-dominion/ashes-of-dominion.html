@@ -1466,16 +1466,12 @@ async function checkAuth() {
                 return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked} data-id="${a.id}"><span class="assignee-dot" style="background:${color}"></span>${a.name}</label>`;
             }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
 
-            const host = event.currentTarget || event.target;
-            const anchor = host.closest('.assignees-list') || host;
-            if (anchor) {
-                anchor.style.position = 'relative';
-                picker.style.top = '24px';
-                picker.style.left = '0';
-                anchor.appendChild(picker);
-            } else {
-                document.body.appendChild(picker);
-            }
+            // Append picker to body and position it
+            picker.style.position = 'fixed';
+            picker.style.top = '50%';
+            picker.style.left = '50%';
+            picker.style.transform = 'translate(-50%, -50%)';
+            document.body.appendChild(picker);
 
             // Use click events on checkboxes directly
             picker.querySelectorAll('input[type="checkbox"]').forEach(cb => {
