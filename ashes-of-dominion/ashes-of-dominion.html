@@ -423,6 +423,24 @@
             align-items: center;
             gap: 6px;
             font-size: 0.85em;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        .assignee-picker-item:hover {
+            background: var(--surface);
+        }
+        .assignee-picker-item input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        .assignee-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
         .assignee-picker-actions {
             display: flex;
@@ -1323,62 +1341,6 @@ async function checkAuth() {
             return null;
         }
 
-        async function cycleTaskPriority(taskId) {
-            if (!canEdit) return;
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            const current = task.priority || 'medium';
-            const next = getNextFromList(PRIORITY_ORDER, current);
-            task.priority = next;
-            await sbClient.from('tasks').update({ priority: next }).eq('id', taskId);
-            await loadTasks();
-        }
-
-        async function cycleSubtaskPriority(taskId, subtaskId) {
-            if (!canEdit) return;
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            const target = findSubtaskById(task.subtasks, subtaskId);
-            const current = target?.priority || 'medium';
-            const next = getNextFromList(PRIORITY_ORDER, current);
-            const updateInTree = (nodes) => nodes.map(n => {
-                if (n.id === subtaskId) return { ...n, priority: next };
-                const kids = n.children || n.subtasks || [];
-                if (kids.length > 0) return { ...n, children: updateInTree(kids) };
-                return n;
-            });
-            task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
-            if (hasSubtasks(task)) {
-                task.status = calculateTaskStatus(task.subtasks);
-                task.assignees = calculateTaskAssignees(task.subtasks);
-            }
-            await sbClient.from('tasks').update({
-                status: task.status,
-                subtasks: JSON.stringify(task.subtasks),
-                assignees: task.assignees.join(',')
-            }).eq('id', taskId);
-            await loadTasks();
-        }
-
-        async function cycleTaskStatus(taskId) {
-            if (!canEdit) return;
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            const current = task.status || 'queue';
-            const next = getNextFromList(STATUS_LIST, current);
-            await updateTaskStatus(taskId, next);
-        }
-
-        async function cycleSubtaskStatus(taskId, subtaskId) {
-            if (!canEdit) return;
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            const sub = findSubtaskById(task.subtasks, subtaskId);
-            const current = sub?.status || 'queue';
-            const next = getNextFromList(STATUS_LIST, current);
-            await updateSubtaskStatus(taskId, subtaskId, next);
-        }
-
         async function changeTaskPriority(taskId, newPriority) {
             if (!canEdit) return;
             const task = tasks.find(t => t.id === taskId);
@@ -1488,7 +1450,8 @@ async function checkAuth() {
             picker.className = 'assignee-picker';
             picker.innerHTML = assignees.map(a => {
                 const checked = selected.includes(String(a.id)) ? 'checked' : '';
-                return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked}>${a.name}</label>`;
+                const color = a.color || '#888';
+                return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked} data-id="${a.id}"><span class="assignee-dot" style="background:${color}"></span>${a.name}</label>`;
             }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
 
             const host = event.currentTarget || event.target;
@@ -1502,13 +1465,16 @@ async function checkAuth() {
                 document.body.appendChild(picker);
             }
 
-            picker.addEventListener('change', async () => {
-                const selectedIds = Array.from(picker.querySelectorAll('input:checked')).map(i => i.value);
-                if (subtaskId) {
-                    await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
-                } else {
-                    await updateTaskAssignees(taskId, selectedIds);
-                }
+            // Use click events on checkboxes directly
+            picker.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', async () => {
+                    const selectedIds = Array.from(picker.querySelectorAll('input:checked')).map(i => i.value);
+                    if (subtaskId) {
+                        await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
+                    } else {
+                        await updateTaskAssignees(taskId, selectedIds);
+                    }
+                });
             });
 
             setTimeout(() => {
@@ -1642,9 +1608,9 @@ async function checkAuth() {
                 <div class="task-row" id="task-${task.id}" style="${rowStyle}">
                     <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
-                    <div><span class="priority-badge priority-${task.priority || 'medium'}" onclick="cycleTaskPriority(${task.id})" title="Изменить приоритет">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
-                    <div><span class="status-badge status-${task.status}" onclick="cycleTaskStatus(${task.id})" title="Изменить статус">${STATUS_LABELS[task.status]}</span></div>
-                    <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${task.id}, null)">${renderAssigneeTags(assigneeIds)}</div>
+                    <div>${canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
+                    <div>${canEdit ? renderStatusSelect(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
+                    <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" ${canEdit ? 'onclick="openAssigneePicker(event, ' + task.id + ', null)"' : ''}>${renderAssigneeTags(assigneeIds)}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1790,8 +1756,8 @@ async function checkAuth() {
                        'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="Изменить приоритет">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
-                        '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                        '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', null)"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -1803,7 +1769,7 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="name">' + task.title + '</div>' +
                 '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + rootTaskId + ', ' + task.id + ')">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + rootTaskId + ', ' + task.id + ')"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
             '</div>';
         }
 
@@ -1852,8 +1818,8 @@ async function checkAuth() {
                     : '';
                 return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (node.task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + task.id + ', ' + node.task.id + ')" title=" ">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span></div>' +
-                        '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', ' + node.task.id + ')">' + renderAssigneeTags(subAssignees) + '</div>' +
+                        '<div class="meta">' + (canEdit ? renderPrioritySelect(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
+                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', ' + node.task.id + ')"' : '') + '>' + renderAssigneeTags(subAssignees) + '</div>' +
                     '</div>' + childrenHtml;
             };
 
@@ -1874,8 +1840,8 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header">' +
                     '<div class="title">' + task.title + '</div>' +
-                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title=" ">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
-                    '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                    '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                    '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', null)"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
             '</div>';
