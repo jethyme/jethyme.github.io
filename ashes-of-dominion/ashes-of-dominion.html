@@ -1789,7 +1789,7 @@ async function checkAuth() {
                 const rowStyle = styleParts.join(';');
                 
                 return `
-                    <div class="subtask-item ${levelClass}" style="${rowStyle}">
+                    <div class="subtask-item ${levelClass}" style="${rowStyle}" draggable="true" ondragstart="handleListSubtaskDragStart(event, ${taskId}, ${sub.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event)" ondrop="handleListDrop(event, ${taskId}, ${sub.id})" ondragleave="handleListDragLeave(event)">
                         <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
                         <div>${canEdit ? renderPriorityBadge(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
