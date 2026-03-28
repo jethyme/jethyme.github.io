@@ -372,14 +372,16 @@
             display: none;
             grid-template-columns: repeat(4, 1fr);
             gap: 14px;
-            align-items: start;
+            align-items: stretch;
         }
         .kanban-board.active { display: grid; }
         .kanban-column {
             background: var(--surface);
             border-radius: 12px;
             padding: 12px;
-            min-height: 300px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
         }
         .kanban-column.drag-over { background: var(--surface-2); border: 2px dashed var(--accent); }
         .kanban-column h3 {
@@ -390,6 +392,10 @@
             font-weight: 600;
             color: var(--muted);
             border-bottom: 1px solid var(--border);
+        }
+        .kanban-column-content {
+            flex: 1;
+            overflow-y: auto;
         }
         .kanban-card {
             border-radius: 10px;
@@ -746,19 +752,19 @@
         <div id="kanbanBoard" class="kanban-board">
             <div class="kanban-column" data-status="queue" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'queue')">
                 <h3>📝 В очереди</h3>
-                <div id="queueTasks"></div>
+                <div class="kanban-column-content" id="queueTasks"></div>
             </div>
             <div class="kanban-column" data-status="progress" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'progress')">
                 <h3>🔄 В работе</h3>
-                <div id="progressTasks"></div>
+                <div class="kanban-column-content" id="progressTasks"></div>
             </div>
             <div class="kanban-column" data-status="review" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'review')">
                 <h3>👀 На проверке</h3>
-                <div id="reviewTasks"></div>
+                <div class="kanban-column-content" id="reviewTasks"></div>
             </div>
             <div class="kanban-column" data-status="done" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'done')">
                 <h3>✅ Готово</h3>
-                <div id="doneTasks"></div>
+                <div class="kanban-column-content" id="doneTasks"></div>
             </div>
         </div>
     </div>
@@ -2328,11 +2334,13 @@ async function checkAuth() {
                 i++;
             }
 
-            return result.map(entry => {
+            const html = result.map(entry => {
                 if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks);
                 if (entry.type === 'task') return renderKanbanCard(entry.task, null, 0);
                 return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
-            }).join('') || '<div class="kanban-empty">Пусто</div>';
+            }).join('');
+            
+            return html ? '<div class="kanban-column-content">' + html + '</div>' : '<div class="kanban-empty">Пусто</div>';
         }
         
         function renderKanbanCard(task, rootTaskId, depth, parentSubtaskId = null) {
