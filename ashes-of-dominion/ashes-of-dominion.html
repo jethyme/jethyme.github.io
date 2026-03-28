@@ -178,20 +178,25 @@
             text-overflow: ellipsis;
         }
         .task-actions { display: flex; gap: 5px; justify-content: flex-end; }
-        .subtask-row {
+        .subtask-list {
+            border-bottom: 1px solid #1a4a7a;
+        }
+        .subtask-item {
             display: grid;
-            grid-template-columns: 35px 25px 1fr 90px 100px 180px 140px;
+            grid-template-columns: 35px 1fr 90px 100px 180px 140px;
             align-items: center;
             padding: 8px 15px;
-            background: #0a2540;
             border-bottom: 1px solid #1a4a7a;
             gap: 10px;
         }
-        .subtask-row:last-child { border-bottom: none; }
-        .subtask-children {
-            border-bottom: 1px solid #1a4a7a;
+        .subtask-item:last-child { border-bottom: none; }
+        .subtask-item.level-0 { background: #0d2d4d; }
+        .subtask-item.level-1 { background: #0a2540; padding-left: 40px; }
+        .subtask-item.level-2 { background: #071a30; padding-left: 65px; }
+        .subtask-item.level-3 { background: #051525; padding-left: 90px; }
+        .task-subtasks {
+            background: #0a2540;
         }
-        .subtask-children:last-child { border-bottom: none; }
         .kanban-board {
             display: none;
             grid-template-columns: repeat(4, 1fr);
@@ -417,7 +422,6 @@
 
         <div id="taskList" class="task-list">
             <div class="task-row header">
-                <span></span>
                 <span></span>
                 <span>Задача</span>
                 <span>Приоритет</span>
