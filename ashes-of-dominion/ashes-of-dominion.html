@@ -260,46 +260,28 @@
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
-        .task-row.drop-zone-top {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            min-height: 45px;
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            color: var(--muted);
-            font-weight: 600;
-            transition: all 0.15s;
-            background: transparent;
-        }
-        .task-row.drop-zone-top.drag-over {
-            border-color: var(--accent);
-            background: rgba(233, 69, 96, 0.1);
-            color: var(--accent);
-        }
         .insert-indicator {
-            height: 8px;
-            background: rgba(233, 69, 96, 0.3);
-            margin: 2px 0;
-            border-radius: 4px;
+            height: 10px;
+            background: rgba(233, 69, 96, 0.4);
+            margin: 0;
+            border-radius: 5px;
             border: 2px dashed var(--accent);
             transition: all 0.15s;
+            position: relative;
         }
         .insert-indicator::before {
             content: '';
             position: absolute;
-            left: -4px;
-            top: 1px;
-            width: 12px;
-            height: 12px;
+            left: -5px;
+            top: 3px;
+            width: 14px;
+            height: 14px;
             background: var(--accent);
             border-radius: 50%;
         }
         .insert-indicator:hover {
-            height: 12px;
-            background: rgba(233, 69, 96, 0.5);
+            height: 14px;
+            background: rgba(233, 69, 96, 0.6);
         }
 
         .kanban-board {
@@ -1871,16 +1853,7 @@ async function checkAuth() {
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
             const filteredTasks = tasks.filter(matchesFilters);
-            
-            let html = '';
-            
-            // Зона для конвертации подзадачи в задачу (в начале списка)
-            if (canEdit) {
-                html += '<div class="task-row drop-zone-top" id="dropZoneTop" ondragover="handleDropZoneTopDragOver(event)" ondragleave="handleDropZoneTopDragLeave(event)" ondrop="handleDropZoneTopDrop(event)">📄 Перетащить сюда как задачу</div>';
-            }
-            
-            html += filteredTasks.map(task => renderTaskRow(task)).join('');
-            container.innerHTML = html;
+            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
             renderKanban();
         }
 
@@ -2526,10 +2499,10 @@ async function checkAuth() {
                 target.classList.remove('drop-target');
                 target.classList.add('drag-over');
 
-                // Calculate insert position (before or after)
+                // Увеличенная зона попадания - 45% сверху = вставка перед, 55% снизу = вставка после
                 const rect = target.getBoundingClientRect();
-                const midY = rect.top + rect.height / 2;
-                const insertBefore = e.clientY < midY;
+                const threshold = rect.top + rect.height * 0.45;
+                const insertBefore = e.clientY < threshold;
 
                 updateDropIndicator(target, insertBefore);
             }
@@ -2546,12 +2519,6 @@ async function checkAuth() {
 
             dropIndicator = document.createElement('div');
             dropIndicator.className = 'insert-indicator';
-            dropIndicator.style.position = 'relative';
-            dropIndicator.style.margin = '0';
-            dropIndicator.style.height = '3px';
-            dropIndicator.style.background = 'var(--accent)';
-            dropIndicator.style.borderRadius = '2px';
-            dropIndicator.style.boxShadow = '0 0 4px var(--accent)';
 
             if (insertBefore) {
                 target.parentNode.insertBefore(dropIndicator, target);
@@ -2567,110 +2534,6 @@ async function checkAuth() {
                 dropIndicator.parentNode.removeChild(dropIndicator);
             }
             dropIndicator = null;
-        }
-
-        function handleDropZoneTopDragOver(e) {
-            if (!canEdit || !listDragItem) return;
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Показываем зону только для подзадач
-            if (listDragItem.type === 'subtask') {
-                e.currentTarget.classList.add('drag-over');
-            }
-        }
-
-        function handleDropZoneTopDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        async function handleDropZoneTopDrop(e) {
-            if (!canEdit || !listDragItem) return;
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const dropZone = e.currentTarget;
-            dropZone.classList.remove('drag-over');
-            
-            // Только подзадачи можно сделать задачами
-            if (listDragItem.type !== 'subtask') {
-                listDragItem = null;
-                return;
-            }
-            
-            const sourceTask = tasks.find(t => t.id === listDragItem.taskId);
-            if (!sourceTask) {
-                listDragItem = null;
-                return;
-            }
-            
-            // Находим и удаляем подзадачу из родителя
-            const subtask = findAndRemoveSubtask(sourceTask.subtasks, listDragItem.subtaskId);
-            if (!subtask) {
-                listDragItem = null;
-                return;
-            }
-            
-            // Создаем новую задачу из подзадачи
-            const newTask = {
-                title: subtask.title,
-                priority: subtask.priority || 'medium',
-                status: subtask.status || 'queue',
-                assignees: subtask.assignees || [],
-                color: subtask.color,
-                subtasks: subtask.children || [],
-                order_index: 0
-            };
-            
-            // Нормализуем подзадачи новой задачи
-            newTask.subtasks = normalizeSubtasksTree(newTask.subtasks);
-            
-            // Вставляем в начало массива
-            tasks.unshift({
-                id: 'temp',
-                ...newTask
-            });
-            
-            // Сохраняем новую задачу в базу
-            const { data, error } = await sbClient.from('tasks').insert([{
-                title: newTask.title,
-                priority: newTask.priority,
-                status: newTask.status,
-                assignees: newTask.assignees.join(','),
-                color: newTask.color,
-                subtasks: JSON.stringify(newTask.subtasks),
-                order_index: 0
-            }]).select();
-            
-            if (error) {
-                console.error(error);
-                showToast('Ошибка при создании задачи', 'error');
-                listDragItem = null;
-                return;
-            }
-            
-            // Обновляем ID
-            const newTaskId = data[0].id;
-            tasks[0].id = newTaskId;
-            
-            // Обновляем order_index у всех задач
-            await saveTaskOrder();
-            
-            // Сохраняем изменения в исходной задаче
-            sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
-            if (hasSubtasks(sourceTask)) {
-                sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
-                sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
-            }
-            
-            await sbClient.from('tasks').update({
-                subtasks: JSON.stringify(sourceTask.subtasks),
-                status: sourceTask.status,
-                assignees: sourceTask.assignees.join(',')
-            }).eq('id', sourceTask.id);
-            
-            listDragItem = null;
-            renderTasks();
         }
 
         async function handleListDrop(e, targetTaskId, targetSubtaskId) {
@@ -2725,7 +2588,7 @@ async function checkAuth() {
 
                 await saveTaskOrder();
             }
-            // Для подзадач - вставляем как подзадачу
+            // Для подзадач - вставляем как подзадачу в целевую задачу
             else if (source.type === 'subtask') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) {
@@ -2747,24 +2610,13 @@ async function checkAuth() {
                     return;
                 }
 
-                let targetArray, targetIndexInArray;
-
-                if (targetSubtaskId) {
-                    const result = findSubtaskParentArray(targetTask.subtasks, targetSubtaskId);
-                    if (result) {
-                        targetArray = result.array;
-                        targetIndexInArray = result.index;
-                        if (!insertBefore) targetIndexInArray++;
-                    } else {
-                        targetArray = targetTask.subtasks || [];
-                        targetIndexInArray = targetArray.length;
-                    }
+                // Вставляем в начало или конец подзадач целевой задачи
+                targetTask.subtasks = targetTask.subtasks || [];
+                if (insertBefore) {
+                    targetTask.subtasks.unshift(sourceSubtask);
                 } else {
-                    targetArray = targetTask.subtasks || [];
-                    targetIndexInArray = insertBefore ? 0 : targetArray.length;
+                    targetTask.subtasks.push(sourceSubtask);
                 }
-
-                targetArray.splice(targetIndexInArray, 0, sourceSubtask);
 
                 sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
                 if (hasSubtasks(sourceTask)) {
