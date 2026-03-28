@@ -1115,6 +1115,9 @@
             const existing = document.querySelector('.badge-dropdown');
             if (existing) existing.remove();
             
+            // Удаляем предыдущий обработчик, если был
+            document.removeEventListener('click', closeBadgeDropdownOnce);
+            
             // Закрыть dropdown при клике вне его
             setTimeout(() => {
                 document.addEventListener('click', closeBadgeDropdownOnce);
