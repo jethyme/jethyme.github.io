@@ -420,8 +420,8 @@
         .kanban-children { padding: 8px 10px; border-top: 1px solid var(--border); }
         .kanban-child {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 6px;
             padding: 6px 8px;
             margin-bottom: 6px;
             border-radius: 6px;
@@ -432,6 +432,50 @@
         .kanban-child.no-color {
             background: var(--surface-2);
         }
+        .kanban-child .priority-num {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: 700;
+            line-height: 1;
+            margin-top: 1px;
+        }
+        .kanban-child .priority-num.p-1 { background: #ef4444; color: #fff; }
+        .kanban-child .priority-num.p-2 { background: #f97316; color: #fff; }
+        .kanban-child .priority-num.p-3 { background: #0ea5e9; color: #fff; }
+        .kanban-child .priority-num.p-4 { background: #64748b; color: #fff; }
+        .kanban-child .content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .kanban-child .name {
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            line-height: 1.3;
+        }
+        .kanban-child .assignees {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+        .kanban-child .assignees .assignee-tag {
+            padding: 1px 4px;
+            font-size: 0.8em;
+        }
+        .kanban-child .assignees .assignee-placeholder {
+            padding: 1px 4px;
+            font-size: 0.8em;
+        }
+        .kanban-child .meta { display: none; }
         .kanban-child.depth-0 { border-left-color: var(--accent); }
         .kanban-child.depth-1 { border-left-color: var(--accent-2); }
         .kanban-child.depth-2 { border-left-color: var(--accent-3); }
@@ -882,6 +926,7 @@
         const STATUS_LABELS = { queue: 'В очереди', progress: 'В работе', review: 'На проверке', done: 'Готово' };
         const PRIORITY_ORDER = window.PRIORITY_ORDER || ['low', 'medium', 'high', 'critical'];
         const PRIORITY_LABELS = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
+        const PRIORITY_NUMS = { critical: '1', high: '2', medium: '3', low: '4' };
         
         const ASSIGNEE_COLORS = ['#22c55e', '#06b6d4', '#14b8a6', '#a855f7', '#374151', '#f472b6', '#f97316', '#64748b'];
         const TASK_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399', '#60a5fa', '#f87171'];
@@ -2390,10 +2435,14 @@ async function checkAuth() {
                     ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
                     : '';
                 const nodeHasChildren = node.children.length > 0;
+                const priorityNum = PRIORITY_NUMS[node.task.priority || 'medium'] || '3';
+                const assigneeHtml = renderAssigneeCell(subAssignees, task.id, node.task.id, canEdit && !nodeHasChildren);
                 return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
-                        '<div class="name">' + node.task.title + '</div>' +
-                        '<div class="meta">' + (canEdit ? renderPriorityBadge(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
-                        '<div>' + renderAssigneeCell(subAssignees, task.id, node.task.id, canEdit && !nodeHasChildren) + '</div>' +
+                        '<span class="priority-num p-' + priorityNum + '">' + priorityNum + '</span>' +
+                        '<div class="content">' +
+                            '<div class="name">' + node.task.title + '</div>' +
+                            '<div class="assignees">' + assigneeHtml + '</div>' +
+                        '</div>' +
                     '</div>' + childrenHtml;
             };
 
