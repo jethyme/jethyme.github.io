@@ -1147,9 +1147,21 @@
 
             const rect = event.target.closest('.assignee-tag, .assignee-placeholder, .clickable-badge')?.getBoundingClientRect() || { bottom: event.clientY + 4, left: event.clientX };
             dropdown.style.position = 'fixed';
-            dropdown.style.top = (rect.bottom + 4) + 'px';
             dropdown.style.left = rect.left + 'px';
             document.body.appendChild(dropdown);
+            
+            // Проверяем, помещается ли dropdown внизу экрана
+            const dropdownHeight = dropdown.offsetHeight;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            if (spaceBelow < dropdownHeight && spaceAbove >= dropdownHeight) {
+                // Не помещается внизу, открываем вверх
+                dropdown.style.top = (rect.top - dropdownHeight - 4) + 'px';
+            } else {
+                // Открываем вниз по умолчанию
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+            }
 
             if (type === 'assignee') {
                 dropdown.querySelectorAll('.badge-option').forEach(opt => {
