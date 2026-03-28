@@ -1378,14 +1378,6 @@ async function checkAuth() {
                 color: resolveAssigneeColor(a, idx)
             }));
             renderAssigneesSelect();
-            updateFilterAssignees();
-        }
-
-        function updateFilterAssignees() {
-            const select = document.getElementById('filterAssignee');
-            select.innerHTML = '<option value="">Все</option>' + assignees.map(a => 
-                `<option value="${a.id}">${a.name}</option>`
-            ).join('');
         }
 
         function renderAssigneesSelect(containerId = 'taskAssigneesSelect', selectedIds = []) {
