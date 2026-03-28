@@ -261,27 +261,28 @@
             background: rgba(233, 69, 96, 0.15);
         }
         .insert-indicator {
-            height: 10px;
-            background: rgba(233, 69, 96, 0.4);
+            height: 6px;
+            background: rgba(233, 69, 96, 0.5);
             margin: 0;
-            border-radius: 5px;
-            border: 2px dashed var(--accent);
+            border-radius: 3px;
             transition: all 0.15s;
             position: relative;
         }
         .insert-indicator::before {
             content: '';
             position: absolute;
-            left: -5px;
-            top: 3px;
-            width: 14px;
-            height: 14px;
+            left: -4px;
+            top: 1px;
+            width: 10px;
+            height: 10px;
             background: var(--accent);
             border-radius: 50%;
         }
-        .insert-indicator:hover {
-            height: 14px;
-            background: rgba(233, 69, 96, 0.6);
+        .insert-indicator.insert-as-child {
+            background: rgba(74, 222, 128, 0.5);
+        }
+        .insert-indicator.insert-as-child::before {
+            background: var(--success);
         }
 
         .kanban-board {
@@ -2481,6 +2482,29 @@ async function checkAuth() {
             e.stopPropagation();
 
             const target = e.currentTarget;
+            const rect = target.getBoundingClientRect();
+            const height = rect.height;
+            
+            // Три зоны: верхняя треть, средняя треть, нижняя треть
+            const topThird = rect.top + height / 3;
+            const bottomThird = rect.top + 2 * height / 3;
+            const mouseY = e.clientY;
+            
+            let insertType, insertBefore;
+            
+            if (mouseY < topThird) {
+                // Верхняя треть - вставляем перед элементом
+                insertType = 'before';
+                insertBefore = true;
+            } else if (mouseY > bottomThird) {
+                // Нижняя треть - вставляем после элемента
+                insertType = 'after';
+                insertBefore = false;
+            } else {
+                // Средняя треть - вставляем как подзадачу
+                insertType = 'child';
+                insertBefore = true; // Будет первой подзадачей
+            }
             
             // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
             const canDropAsSubtask = hasSubtasks === false;
@@ -2491,20 +2515,14 @@ async function checkAuth() {
             
             const isChild = isDescendant(listDragItem, targetTaskId, targetSubtaskId);
 
-            if (canDropAsSubtask && !isSameItem && !isChild) {
+            if (canDropAsSubtask && insertType === 'child' && !isSameItem && !isChild) {
                 target.classList.add('drop-target');
                 target.classList.remove('drag-over');
                 removeDropIndicator();
             } else {
                 target.classList.remove('drop-target');
                 target.classList.add('drag-over');
-
-                // Увеличенная зона попадания - 45% сверху = вставка перед, 55% снизу = вставка после
-                const rect = target.getBoundingClientRect();
-                const threshold = rect.top + rect.height * 0.45;
-                const insertBefore = e.clientY < threshold;
-
-                updateDropIndicator(target, insertBefore);
+                updateDropIndicator(target, insertBefore, insertType);
             }
         }
 
@@ -2514,11 +2532,15 @@ async function checkAuth() {
             removeDropIndicator();
         }
 
-        function updateDropIndicator(target, insertBefore) {
+        function updateDropIndicator(target, insertBefore, insertType) {
             removeDropIndicator();
 
             dropIndicator = document.createElement('div');
             dropIndicator.className = 'insert-indicator';
+            
+            if (insertType === 'child') {
+                dropIndicator.classList.add('insert-as-child');
+            }
 
             if (insertBefore) {
                 target.parentNode.insertBefore(dropIndicator, target);
@@ -2527,6 +2549,7 @@ async function checkAuth() {
             }
 
             dropIndicator.insertBefore = insertBefore;
+            dropIndicator.insertType = insertType;
         }
 
         function removeDropIndicator() {
@@ -2553,9 +2576,10 @@ async function checkAuth() {
             }
 
             const insertBefore = dropIndicator ? dropIndicator.insertBefore : true;
+            const insertType = dropIndicator ? dropIndicator.insertType : 'before';
             const source = listDragItem;
 
-            // Для задач - меняем порядок
+            // Для задач - меняем порядок или делаем подзадачей
             if (source.type === 'task') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) {
@@ -2575,20 +2599,63 @@ async function checkAuth() {
                     return;
                 }
 
-                if (sourceIndex < targetIndex) {
-                    targetIndex--;
-                }
+                // Если вставляем как подзадачу
+                if (insertType === 'child') {
+                    const targetTask = tasks.find(t => t.id === targetTaskId);
+                    if (!targetTask) {
+                        listDragItem = null;
+                        return;
+                    }
 
-                tasks.splice(sourceIndex, 1);
-                if (insertBefore) {
-                    tasks.splice(targetIndex, 0, sourceTask);
-                } else {
-                    tasks.splice(targetIndex + 1, 0, sourceTask);
-                }
+                    // Создаем подзадачу из задачи
+                    const newSubtask = {
+                        id: sourceTask.id,
+                        title: sourceTask.title,
+                        priority: sourceTask.priority || 'medium',
+                        status: sourceTask.status,
+                        assignees: sourceTask.assignees || [],
+                        color: sourceTask.color,
+                        children: sourceTask.subtasks || []
+                    };
 
-                await saveTaskOrder();
+                    // Удаляем задачу из списка
+                    tasks.splice(sourceIndex, 1);
+
+                    // Добавляем как первую подзадачу
+                    targetTask.subtasks = targetTask.subtasks || [];
+                    targetTask.subtasks.unshift(newSubtask);
+
+                    targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+                    if (hasSubtasks(targetTask)) {
+                        targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                        targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+                    }
+
+                    await sbClient.from('tasks').update({
+                        subtasks: JSON.stringify(targetTask.subtasks),
+                        status: targetTask.status,
+                        assignees: targetTask.assignees.join(',')
+                    }).eq('id', targetTaskId);
+
+                    await sbClient.from('tasks').delete().eq('id', source.taskId);
+                }
+                // Иначе меняем порядок
+                else {
+                    if (sourceIndex < targetIndex) {
+                        targetIndex--;
+                    }
+
+                    tasks.splice(sourceIndex, 1);
+                    if (insertBefore) {
+                        tasks.splice(targetIndex, 0, sourceTask);
+                    } else {
+                        tasks.splice(targetIndex + 1, 0, sourceTask);
+                    }
+
+                    await saveTaskOrder();
+                }
             }
-            // Для подзадач - вставляем как подзадачу в целевую задачу
+            // Для подзадач - вставляем как подзадачу или меняем порядок
             else if (source.type === 'subtask') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) {
@@ -2610,12 +2677,32 @@ async function checkAuth() {
                     return;
                 }
 
-                // Вставляем в начало или конец подзадач целевой задачи
-                targetTask.subtasks = targetTask.subtasks || [];
-                if (insertBefore) {
+                // Если вставляем как подзадачу целевой задачи
+                if (insertType === 'child') {
+                    targetTask.subtasks = targetTask.subtasks || [];
                     targetTask.subtasks.unshift(sourceSubtask);
-                } else {
-                    targetTask.subtasks.push(sourceSubtask);
+                }
+                // Иначе вставляем в массив подзадач того же уровня
+                else {
+                    // Находим родительский массив подзадач
+                    let targetArray, targetIndexInArray;
+
+                    if (targetSubtaskId) {
+                        const result = findSubtaskParentArray(targetTask.subtasks, targetSubtaskId);
+                        if (result) {
+                            targetArray = result.array;
+                            targetIndexInArray = result.index;
+                            if (!insertBefore) targetIndexInArray++;
+                        } else {
+                            targetArray = targetTask.subtasks || [];
+                            targetIndexInArray = targetArray.length;
+                        }
+                    } else {
+                        targetArray = targetTask.subtasks || [];
+                        targetIndexInArray = insertBefore ? 0 : targetArray.length;
+                    }
+
+                    targetArray.splice(targetIndexInArray, 0, sourceSubtask);
                 }
 
                 sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
