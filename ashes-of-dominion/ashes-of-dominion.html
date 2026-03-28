@@ -1438,10 +1438,6 @@ async function checkAuth() {
             if (existing) existing.remove();
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
-            if (!subtaskId && hasSubtasks(task)) {
-                showToast('Задачи с подзадачами нельзя назначать', 'error');
-                return;
-            }
             const selected = subtaskId
                 ? (findSubtaskById(task.subtasks, subtaskId)?.assignees || [])
                 : (task.assignees || []);
