@@ -217,7 +217,7 @@
         .assignees-list { display: flex; gap: 4px; flex-wrap: wrap; overflow: hidden; }
         .assignee-tag {
             padding: 2px 8px;
-            border-radius: 12px;
+            border-radius: 6px;
             font-size: 0.75em;
             white-space: nowrap;
             max-width: 80px;
@@ -1126,7 +1126,8 @@
                 });
             } else {
                 dropdown.querySelectorAll('.badge-option').forEach(opt => {
-                    opt.addEventListener('click', async () => {
+                    opt.addEventListener('click', async (e) => {
+                        e.stopPropagation();
                         const newValue = opt.dataset.value;
                         if (type === 'priority') {
                             if (subtaskId) {
@@ -1134,6 +1135,17 @@
                             } else {
                                 await changeTaskPriority(taskId, newValue);
                             }
+                        } else {
+                            if (subtaskId) {
+                                await changeSubtaskStatus(taskId, subtaskId, newValue);
+                            } else {
+                                await changeTaskStatus(taskId, newValue);
+                            }
+                        }
+                        dropdown.remove();
+                    });
+                });
+            }
                         } else {
                             if (subtaskId) {
                                 await changeSubtaskStatus(taskId, subtaskId, newValue);
