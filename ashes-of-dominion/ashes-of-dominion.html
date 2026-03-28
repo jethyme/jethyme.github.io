@@ -2343,17 +2343,14 @@ async function checkAuth() {
                     if (!hasParentInColumn && item.depth === 0) {
                         // Родителя нет в колонке - собираем всех детей этой подзадачи
                         const children = [];
-                        const collectChildren = (subitems) => {
-                            subitems.forEach(s => {
-                                if (s.item.parentSubtaskId === item.task.id || 
-                                    (s.item.parentSubtaskId && children.some(c => c.task.id === s.item.parentSubtaskId))) {
-                                    children.push(s);
-                                    consumedSubtasks.add(s.task.id);
-                                    collectChildren(items.filter(it => it.type === 'subtask' && it.item.parentSubtaskId === s.task.id));
-                                }
+                        const collectChildren = (parentId) => {
+                            items.filter(it => it.type === 'subtask' && it.item.parentSubtaskId === parentId).forEach(s => {
+                                children.push(s);
+                                consumedSubtasks.add(s.task.id);
+                                collectChildren(s.task.id);
                             });
                         };
-                        collectChildren(items.filter(it => it.type === 'subtask' && it.item.parentSubtaskId === item.task.id));
+                        collectChildren(item.task.id);
                         
                         consumedSubtasks.add(item.task.id);
                         result.push({ type: 'orphan-nested', task: item.task, subtasks: children, rootTaskId: item.rootTaskId });
