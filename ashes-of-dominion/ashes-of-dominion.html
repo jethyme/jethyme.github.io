@@ -500,6 +500,22 @@
         .picker-option { font-weight: normal; cursor: pointer; }
         .picker-option input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
         .assignee-dot-sm { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .assignee-option {
+            padding: 6px 10px;
+            margin: 3px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(0,0,0,0.2);
+            transition: transform 0.1s, border-color 0.15s;
+        }
+        .assignee-option:hover { transform: scale(1.02); border-color: rgba(255,255,255,0.4); }
+        .assignee-option .assignee-check { margin-left: auto; font-weight: bold; opacity: 0.3; }
+        .assignee-option.selected .assignee-check { opacity: 1; }
     </style>
 </head>
 <body>
@@ -863,6 +879,15 @@
             }).join('');
         }
 
+        function renderAssigneeCell(ids, taskId, subtaskId, canEditFlag) {
+            const tags = renderAssigneeTags(ids);
+            const placeholder = canEditFlag ? '<span class="assignee-placeholder clickable-badge" data-type="assignee" data-task-id="' + taskId + '" data-subtask="' + (subtaskId || '') + '" data-value="">+</span>' : '';
+            if (ids && ids.length > 0) {
+                return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + tags + placeholder + '</div>';
+            }
+            return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + placeholder + '</div>';
+        }
+
         function renderAssigneeBadge(ids) {
             const count = (ids || []).length;
             if (count === 0) {
@@ -998,16 +1023,33 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // Delegated event handler for clicks
             document.addEventListener('click', (e) => {
-                // Assignee picker
-                const assigneeList = e.target.closest('.assignees-list.clickable');
-                if (assigneeList) {
-                    const taskId = assigneeList.dataset.taskId;
-                    const subtaskId = assigneeList.dataset.subtaskId;
+                // Assignee picker - handle clicks on assignee tags
+                const assigneeTag = e.target.closest('.assignees-list.clickable .assignee-tag');
+                if (assigneeTag) {
+                    const list = e.target.closest('.assignees-list');
+                    const taskId = parseInt(list.dataset.taskId);
+                    const subtaskId = list.dataset.subtaskId ? parseInt(list.dataset.subtaskId) : null;
                     if (taskId) {
-                        openAssigneePicker(e, parseInt(taskId), subtaskId ? parseInt(subtaskId) : null);
+                        const badge = document.createElement('span');
+                        badge.dataset.type = 'assignee';
+                        badge.dataset.taskId = taskId;
+                        badge.dataset.subtask = subtaskId || '';
+                        const task = tasks.find(t => t.id == taskId);
+                        let ids = [];
+                        if (subtaskId && task) {
+                            const sub = findSubtaskById(task.subtasks, subtaskId);
+                            if (sub) {
+                                ids = sub.assignees || [];
+                            }
+                        } else if (task) {
+                            ids = task.assignees || [];
+                        }
+                        badge.dataset.value = ids.join(',');
+                        openBadgeDropdown(e, badge);
                     }
+                    return;
                 }
-                // Priority/Status badge dropdown
+                // Priority/Status badge dropdown (including assignee placeholder +)
                 const badge = e.target.closest('.clickable-badge');
                 if (badge) {
                     openBadgeDropdown(e, badge);
@@ -1055,9 +1097,15 @@
             document.body.appendChild(dropdown);
 
             if (type === 'assignee') {
-                dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                    cb.addEventListener('change', async () => {
-                        const selectedIds = Array.from(dropdown.querySelectorAll('input:checked')).map(i => i.value);
+                dropdown.querySelectorAll('.assignee-option').forEach(opt => {
+                    opt.addEventListener('click', async () => {
+                        const id = opt.dataset.id;
+                        let selectedIds = currentValue ? currentValue.split(',') : [];
+                        if (selectedIds.includes(id)) {
+                            selectedIds = selectedIds.filter(s => s !== id);
+                        } else {
+                            selectedIds.push(id);
+                        }
                         if (subtaskId) {
                             await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
                         } else {
@@ -1689,7 +1737,7 @@ async function checkAuth() {
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
                     <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
-                    <div>${canEdit ? renderAssigneeBadge(assigneeIds) : renderAssigneeTags(assigneeIds)}</div>
+                    <div>${renderAssigneeCell(assigneeIds, task.id, null, canEdit)}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1726,7 +1774,7 @@ async function checkAuth() {
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
                         <div>${canEdit ? renderPriorityBadge(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
                         <div>${canEdit ? renderStatusBadge(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
-                        <div class="assignees-list clickable" data-task-id="${taskId}" data-subtask-id="${sub.id}">${renderAssigneeTags(subAssignees)}</div>
+                        <div>${renderAssigneeCell(subAssignees, taskId, sub.id, canEdit)}</div>
                         <div class="task-actions">
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1836,7 +1884,7 @@ async function checkAuth() {
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
                          '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                         '<div>' + (canEdit ? renderAssigneeBadge(assigneeIds) : renderAssigneeTags(assigneeIds)) + '</div>' +
+                         '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -1898,7 +1946,7 @@ async function checkAuth() {
                 return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
                         '<div class="meta">' + (canEdit ? renderPriorityBadge(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
-                        '<div>' + (canEdit ? renderAssigneeBadge(subAssignees) : renderAssigneeTags(subAssignees)) + '</div>' +
+                        '<div>' + renderAssigneeCell(subAssignees, task.id, node.task.id, canEdit) + '</div>' +
                     '</div>' + childrenHtml;
             };
 
@@ -1919,9 +1967,9 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header">' +
                     '<div class="title">' + task.title + '</div>' +
-                    '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                     '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
-                '</div>' +
+                     '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                      '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
+                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
             '</div>';
         }
