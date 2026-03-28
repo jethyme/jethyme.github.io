@@ -249,8 +249,10 @@
         .subtask-item.level-1 { border-left: 4px solid var(--accent-2); }
         .subtask-item.level-2 { border-left: 4px solid var(--accent-3); }
         .subtask-item.level-3 { border-left: 4px solid var(--success); }
-        .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; opacity: 0.8; }
-        .task-row.dragging, .subtask-item.dragging { opacity: 0.5; cursor: grabbing; }
+        .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+        .task-row.dragging, .subtask-item.dragging { opacity: 0.5; }
+        .task-row, .subtask-item { cursor: grab; }
+        .task-row:active, .subtask-item:active { cursor: grabbing; }
 
         .kanban-board {
             display: none;
@@ -2197,6 +2199,170 @@ async function checkAuth() {
                 }
                 draggedItem = null;
             }
+        }
+
+        // List view drag-and-drop
+        let listDragItem = null;
+
+        function handleListTaskDragStart(e, taskId) {
+            if (!canEdit) return;
+            e.stopPropagation();
+            listDragItem = { type: 'task', taskId };
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleListSubtaskDragStart(e, taskId, subtaskId) {
+            if (!canEdit) return;
+            e.stopPropagation();
+            listDragItem = { type: 'subtask', taskId, subtaskId };
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleListDragEnd(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            listDragItem = null;
+        }
+
+        function handleListDragOver(e) {
+            if (!canEdit || !listDragItem) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleListDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleListDrop(e, targetTaskId, targetSubtaskId) {
+            if (!canEdit || !listDragItem) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('drag-over');
+
+            const source = listDragItem;
+            
+            if (source.type === 'task' && source.taskId === targetTaskId) {
+                listDragItem = null;
+                return;
+            }
+            if (source.type === 'subtask' && source.subtaskId === targetSubtaskId) {
+                listDragItem = null;
+                return;
+            }
+
+            const targetTask = tasks.find(t => t.id === targetTaskId);
+            if (!targetTask) {
+                listDragItem = null;
+                return;
+            }
+
+            if (source.type === 'task') {
+                const sourceTask = tasks.find(t => t.id === source.taskId);
+                if (!sourceTask) {
+                    listDragItem = null;
+                    return;
+                }
+                
+                if (targetSubtaskId) {
+                    const targetSubtask = findSubtaskById(targetTask.subtasks, targetSubtaskId);
+                    if (targetSubtask) {
+                        const kids = targetSubtask.children || targetSubtask.subtasks || [];
+                        targetSubtask.children = [...kids, ...(sourceTask.subtasks || [])];
+                        targetSubtask.subtasks = targetSubtask.children;
+                        delete targetSubtask.children;
+                    }
+                } else {
+                    const kids = targetTask.subtasks || [];
+                    targetTask.subtasks = [...kids, ...(sourceTask.subtasks || [])];
+                }
+                
+                sourceTask.subtasks = [];
+                sourceTask.status = sourceTask.status || 'queue';
+                sourceTask.assignees = [];
+                
+                targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+                if (hasSubtasks(targetTask)) {
+                    targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                    targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+                }
+                
+                await sbClient.from('tasks').update({ subtasks: JSON.stringify(targetTask.subtasks) }).eq('id', targetTaskId);
+                await sbClient.from('tasks').update({ subtasks: JSON.stringify(sourceTask.subtasks) }).eq('id', sourceTaskId);
+                
+            } else if (source.type === 'subtask') {
+                const sourceTask = tasks.find(t => t.id === source.taskId);
+                if (!sourceTask) {
+                    listDragItem = null;
+                    return;
+                }
+                
+                const sourceSubtask = findAndRemoveSubtask(sourceTask.subtasks, source.subtaskId);
+                if (!sourceSubtask) {
+                    listDragItem = null;
+                    return;
+                }
+                
+                if (targetSubtaskId) {
+                    const targetSubtask = findSubtaskById(targetTask.subtasks, targetSubtaskId);
+                    if (targetSubtask) {
+                        const kids = targetSubtask.children || targetSubtask.subtasks || [];
+                        targetSubtask.children = [...kids, sourceSubtask];
+                        targetSubtask.subtasks = targetSubtask.children;
+                        delete targetSubtask.children;
+                    }
+                } else {
+                    const kids = targetTask.subtasks || [];
+                    targetTask.subtasks = [...kids, sourceSubtask];
+                }
+                
+                sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
+                if (hasSubtasks(sourceTask)) {
+                    sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
+                    sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
+                } else {
+                    sourceTask.status = sourceTask.status || 'queue';
+                    sourceTask.assignees = [];
+                }
+                
+                targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+                if (hasSubtasks(targetTask)) {
+                    targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                    targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+                }
+                
+                await sbClient.from('tasks').update({
+                    subtasks: JSON.stringify(sourceTask.subtasks),
+                    status: sourceTask.status,
+                    assignees: sourceTask.assignees.join(',')
+                }).eq('id', source.taskId);
+                
+                await sbClient.from('tasks').update({
+                    subtasks: JSON.stringify(targetTask.subtasks),
+                    status: targetTask.status,
+                    assignees: targetTask.assignees.join(',')
+                }).eq('id', targetTaskId);
+            }
+            
+            listDragItem = null;
+            renderTasks();
+        }
+
+        function findAndRemoveSubtask(subtasks, subtaskId) {
+            for (let i = 0; i < (subtasks || []).length; i++) {
+                if (subtasks[i].id === subtaskId) {
+                    return subtasks.splice(i, 1)[0];
+                }
+                const kids = subtasks[i].children || subtasks[i].subtasks || [];
+                if (kids.length > 0) {
+                    const found = findAndRemoveSubtask(kids, subtaskId);
+                    if (found) return found;
+                }
+            }
+            return null;
         }
 
         function showToast(msg, type = 'info') {
