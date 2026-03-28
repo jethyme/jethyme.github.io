@@ -760,6 +760,8 @@
         let expandedSubtasks = new Set();
         let draggedItem = null; // { type: 'task'|'subtask', taskId, subtaskId }
         let filterAssignee = '', filterPriority = '', filterStatus = '';
+        
+        const LOCAL_EXPANDED_KEY = 'aod.expandedState';
 
         // Порядок статусов: 0=самый ранний, 3=самый поздний
         const STATUS_ORDER = window.STATUS_ORDER || { queue: 0, progress: 1, review: 2, done: 3 };
@@ -787,6 +789,39 @@
             try {
                 localStorage.setItem(LOCAL_ASSIGNEE_COLORS_KEY, JSON.stringify(map || {}));
             } catch (e) {}
+        }
+        
+        function getExpandedStateKey() {
+            const userEmail = currentUser?.email || 'anonymous';
+            return LOCAL_EXPANDED_KEY + ':' + userEmail;
+        }
+        
+        function loadExpandedState() {
+            try {
+                const data = localStorage.getItem(getExpandedStateKey());
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    return {
+                        tasks: new Set(parsed.tasks || []),
+                        subtasks: new Set(parsed.subtasks || [])
+                    };
+                }
+            } catch (e) {
+                console.warn('Failed to load expanded state:', e);
+            }
+            return null;
+        }
+        
+        function saveExpandedState() {
+            try {
+                const data = {
+                    tasks: Array.from(expandedTasks),
+                    subtasks: Array.from(expandedSubtasks)
+                };
+                localStorage.setItem(getExpandedStateKey(), JSON.stringify(data));
+            } catch (e) {
+                console.warn('Failed to save expanded state:', e);
+            }
         }
 
         function setLocalAssigneeColor(id, color) {
@@ -1079,6 +1114,11 @@
             event.stopPropagation();
             const existing = document.querySelector('.badge-dropdown');
             if (existing) existing.remove();
+            
+            // Закрыть dropdown при клике вне его
+            setTimeout(() => {
+                document.addEventListener('click', closeBadgeDropdown, { once: true });
+            }, 0);
 
             const type = badge.dataset.type;
             const taskId = parseInt(badge.dataset.taskId);
@@ -1155,6 +1195,11 @@
                     });
                 });
             }
+        }
+
+        function closeBadgeDropdown() {
+            const existing = document.querySelector('.badge-dropdown');
+            if (existing) existing.remove();
         }
 
 async function checkAuth() {
@@ -1390,18 +1435,25 @@ async function checkAuth() {
                     task.assignees = task.assignees || [];
                 }
             });
-            // Expand all tasks and subtasks by default
-            tasks.forEach(task => {
-                expandedTasks.add(task.id);
-                const collectSubtaskIds = (subtasks) => {
-                    subtasks.forEach(sub => {
-                        expandedSubtasks.add(sub.id);
-                        const children = sub.children || sub.subtasks || [];
-                        collectSubtaskIds(children);
-                    });
-                };
-                collectSubtaskIds(task.subtasks);
-            });
+            // Load expanded state from localStorage or expand all by default
+            const savedState = loadExpandedState();
+            if (savedState) {
+                expandedTasks = savedState.tasks;
+                expandedSubtasks = savedState.subtasks;
+            } else {
+                // Expand all tasks and subtasks by default for first-time users
+                tasks.forEach(task => {
+                    expandedTasks.add(task.id);
+                    const collectSubtaskIds = (subtasks) => {
+                        subtasks.forEach(sub => {
+                            expandedSubtasks.add(sub.id);
+                            const children = sub.children || sub.subtasks || [];
+                            collectSubtaskIds(children);
+                        });
+                    };
+                    collectSubtaskIds(task.subtasks);
+                });
+            }
             renderTasks();
         }
 
@@ -1809,7 +1861,7 @@ async function checkAuth() {
                         <div>${canEdit ? renderStatusBadge(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
                         <div>${renderAssigneeCell(subAssignees, taskId, sub.id, canEdit && !hasChildren)}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю"><span class="icon-plus">✚</span></button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">&#128465;</button>` : ''}
                         </div>
@@ -2011,12 +2063,14 @@ async function checkAuth() {
         function toggleTask(id) {
             if (expandedTasks.has(id)) expandedTasks.delete(id);
             else expandedTasks.add(id);
+            saveExpandedState();
             renderTasks();
         }
 
         function toggleSubtask(subtaskId) {
             if (expandedSubtasks.has(subtaskId)) expandedSubtasks.delete(subtaskId);
             else expandedSubtasks.add(subtaskId);
+            saveExpandedState();
             renderTasks();
         }
 
