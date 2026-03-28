@@ -1117,7 +1117,7 @@
             
             // Закрыть dropdown при клике вне его
             setTimeout(() => {
-                document.addEventListener('click', closeBadgeDropdown, { once: true });
+                document.addEventListener('click', closeBadgeDropdownOnce);
             }, 0);
 
             const type = badge.dataset.type;
@@ -1200,6 +1200,20 @@
         function closeBadgeDropdown() {
             const existing = document.querySelector('.badge-dropdown');
             if (existing) existing.remove();
+        }
+        
+        function closeBadgeDropdownOnce(event) {
+            const dropdown = document.querySelector('.badge-dropdown');
+            if (!dropdown) {
+                document.removeEventListener('click', closeBadgeDropdownOnce);
+                return;
+            }
+            // Если клик внутри dropdown, не закрываем и не удаляем обработчик
+            if (dropdown.contains(event.target)) {
+                return;
+            }
+            dropdown.remove();
+            document.removeEventListener('click', closeBadgeDropdownOnce);
         }
 
 async function checkAuth() {
