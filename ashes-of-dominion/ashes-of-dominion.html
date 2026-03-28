@@ -943,6 +943,17 @@
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // Delegated event handler for assignee picker
+            document.addEventListener('click', (e) => {
+                const assigneeList = e.target.closest('.assignees-list.clickable');
+                if (assigneeList) {
+                    const taskId = assigneeList.dataset.taskId;
+                    const subtaskId = assigneeList.dataset.subtaskId;
+                    if (taskId) {
+                        openAssigneePicker(e, parseInt(taskId), subtaskId ? parseInt(subtaskId) : null);
+                    }
+                }
+            });
             await checkAuth();
             await loadAssignees();
             await loadTasks();
@@ -1432,12 +1443,17 @@ async function checkAuth() {
         }
 
         function openAssigneePicker(event, taskId, subtaskId = null) {
+            console.log('openAssigneePicker called', { taskId, subtaskId });
             if (!canEdit) return;
             event.stopPropagation();
             const existing = document.querySelector('.assignee-picker');
             if (existing) existing.remove();
             const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
+            if (!task) { console.log('task not found'); return; }
+            if (!subtaskId && hasSubtasks(task)) {
+                showToast('Задачи с подзадачами нельзя назначать', 'error');
+                return;
+            }
             const selected = subtaskId
                 ? (findSubtaskById(task.subtasks, subtaskId)?.assignees || [])
                 : (task.assignees || []);
@@ -1606,7 +1622,7 @@ async function checkAuth() {
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
                     <div>${canEdit ? renderStatusSelect(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
-                    <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" ${canEdit ? 'onclick="openAssigneePicker(event, ' + task.id + ', null)"' : ''}>${renderAssigneeTags(assigneeIds)}</div>
+                    <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" data-task-id="${task.id}" data-subtask-id="">${renderAssigneeTags(assigneeIds)}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1643,7 +1659,7 @@ async function checkAuth() {
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
                         <div>${canEdit ? renderPrioritySelect(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
                         <div>${canEdit ? renderStatusSelect(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
-                        <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" ${canEdit ? 'onclick="openAssigneePicker(event, ' + taskId + ', ' + sub.id + ')"' : ''}>${renderAssigneeTags(subAssignees)}</div>
+                        <div class="${canEdit ? 'assignees-list clickable' : 'assignees-list'}" data-task-id="${taskId}" data-subtask-id="${sub.id}">${renderAssigneeTags(subAssignees)}</div>
                         <div class="task-actions">
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
                             ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -1753,7 +1769,7 @@ async function checkAuth() {
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
                         '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', null)"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
+                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -1765,7 +1781,7 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="name">' + task.title + '</div>' +
                 '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + rootTaskId + ', ' + task.id + ')"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
+                '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + rootTaskId + '" data-subtask-id="' + task.id + '">' + renderAssigneeTags(assigneeIds) + '</div>' +
             '</div>';
         }
 
@@ -1815,7 +1831,7 @@ async function checkAuth() {
                 return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
                         '<div class="meta">' + (canEdit ? renderPrioritySelect(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
-                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', ' + node.task.id + ')"' : '') + '>' + renderAssigneeTags(subAssignees) + '</div>' +
+                        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="' + node.task.id + '">' + renderAssigneeTags(subAssignees) + '</div>' +
                     '</div>' + childrenHtml;
             };
 
@@ -1837,7 +1853,7 @@ async function checkAuth() {
                 '<div class="kanban-card-header">' +
                     '<div class="title">' + task.title + '</div>' +
                     '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                    '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '"' + (canEdit ? ' onclick="openAssigneePicker(event, ' + task.id + ', null)"' : '') + '>' + renderAssigneeTags(assigneeIds) + '</div>' +
+                    '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
             '</div>';
