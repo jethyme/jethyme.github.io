@@ -195,10 +195,9 @@
             font-weight: 600;
             cursor: pointer;
             display: inline-block;
-            border: 1px solid rgba(0,0,0,0.2);
-            transition: border-color 0.15s, transform 0.1s;
+            transition: transform 0.15s;
         }
-        .clickable-badge:hover { border-color: rgba(255,255,255,0.6); transform: scale(1.05); }
+        .clickable-badge:hover { transform: scale(1.05); }
         .assignee-badge {
             background: #8b5cf6;
             color: #fff;
@@ -208,9 +207,9 @@
             font-weight: 600;
             cursor: pointer;
             display: inline-block;
-            border: 1px solid transparent;
+            transition: transform 0.15s;
         }
-        .assignee-badge:hover { border-color: rgba(255,255,255,0.5); }
+        .assignee-badge:hover { transform: scale(1.05); }
         .assignees-list.clickable { cursor: pointer; }
         .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
@@ -219,12 +218,14 @@
             padding: 2px 8px;
             border-radius: 6px;
             font-size: 0.75em;
+            font-weight: 700;
             white-space: nowrap;
             max-width: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
-            border: 1px solid;
+            transition: transform 0.15s;
         }
+        .assignee-tag:hover { transform: scale(1.05); }
         .assignee-placeholder {
             padding: 2px 8px;
             border-radius: 12px;
@@ -759,7 +760,7 @@
         const PRIORITY_ORDER = window.PRIORITY_ORDER || ['low', 'medium', 'high', 'critical'];
         const PRIORITY_LABELS = { low: 'Низкий', medium: 'Средний', high: 'Высокий', critical: 'Критичный' };
         
-        const ASSIGNEE_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399'];
+        const ASSIGNEE_COLORS = ['#22c55e', '#06b6d4', '#14b8a6', '#a855f7', '#374151', '#f472b6', '#f97316', '#64748b'];
         const TASK_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399', '#60a5fa', '#f87171'];
         
         
