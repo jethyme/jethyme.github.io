@@ -996,6 +996,64 @@
             await loadTasks();
         });
 
+        function openBadgeDropdown(event, badge) {
+            if (!canEdit) return;
+            event.stopPropagation();
+            const existing = document.querySelector('.badge-dropdown');
+            if (existing) existing.remove();
+
+            const type = badge.dataset.type;
+            const taskId = parseInt(badge.dataset.taskId);
+            const subtaskId = badge.dataset.subtask ? parseInt(badge.dataset.subtask) : null;
+            const currentValue = badge.dataset.value;
+
+            const options = type === 'priority' ? PRIORITY_ORDER.map(p => ({ value: p, label: PRIORITY_LABELS[p] })) : STATUS_LIST.map(s => ({ value: s, label: STATUS_LABELS[s] }));
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'badge-dropdown';
+            dropdown.innerHTML = options.map(opt => {
+                const cls = type === 'priority' ? 'priority-' + opt.value : 'status-' + opt.value;
+                const checked = opt.value === currentValue ? '<span class="check">&#10003;</span>' : '';
+                return '<div class="badge-option ' + cls + '" data-value="' + opt.value + '">' + opt.label + checked + '</div>';
+            }).join('');
+
+            const rect = badge.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.left = rect.left + 'px';
+            document.body.appendChild(dropdown);
+
+            dropdown.querySelectorAll('.badge-option').forEach(opt => {
+                opt.addEventListener('click', async () => {
+                    const newValue = opt.dataset.value;
+                    if (type === 'priority') {
+                        if (subtaskId) {
+                            await changeSubtaskPriority(taskId, subtaskId, newValue);
+                        } else {
+                            await changeTaskPriority(taskId, newValue);
+                        }
+                    } else {
+                        if (subtaskId) {
+                            await changeSubtaskStatus(taskId, subtaskId, newValue);
+                        } else {
+                            await changeTaskStatus(taskId, newValue);
+                        }
+                    }
+                    dropdown.remove();
+                });
+            });
+
+            setTimeout(() => {
+                const close = (e) => {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', close);
+                    }
+                };
+                document.addEventListener('click', close);
+            }, 0);
+        }
+
 async function checkAuth() {
             const { data: { session } } = await sbClient.auth.getSession();
             if (session) {
