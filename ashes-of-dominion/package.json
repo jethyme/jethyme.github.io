@@ -1,0 +1,8 @@
+{
+  "name": "ashes-of-dominion",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test"
+  }
+}

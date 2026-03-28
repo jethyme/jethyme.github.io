@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link rel="icon" href="data:,">
     <title>Ashes of Dominion - Р—Р°РґР°С‡Рё</title>
     <style>
         :root {
@@ -186,6 +187,9 @@
         .priority-medium { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
         .priority-high { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
         .priority-critical { background: rgba(248, 113, 113, 0.25); color: var(--danger); }
+        .status-badge, .priority-badge { cursor: pointer; }
+        .assignees-list.clickable { cursor: pointer; }
+        .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
         .assignees-list { display: flex; gap: 4px; flex-wrap: wrap; overflow: hidden; }
         .assignee-tag {
@@ -330,6 +334,7 @@
         .assignee-checkbox {
             display: flex;
             align-items: center;
+            gap: 6px;
             gap: 5px;
             padding: 4px 10px;
             background: var(--surface);
@@ -341,7 +346,7 @@
         }
         .assignee-checkbox:hover { border-color: var(--accent); }
         .assignee-checkbox.checked { background: var(--accent); border-color: var(--accent); }
-        .assignee-checkbox input { width: auto; }
+        .assignee-checkbox input { width: auto; margin-right: 4px; }
         .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
         .hidden { display: none; }
         .auth-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
@@ -357,9 +362,55 @@
             margin: 4px 0;
             border-radius: 6px;
             border: 1px solid var(--border);
+            position: relative;
         }
         .assignee-item input[type="color"] { width: 30px; height: 26px; padding: 1px; }
-        .assignee-color { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; }
+        .assignee-item-name { display: flex; align-items: center; gap: 8px; }
+        .assignee-color { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; cursor: pointer; }
+        .color-picker-popup {
+            position: absolute;
+            display: flex;
+            gap: 6px;
+            padding: 6px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+            margin-top: 6px;
+            z-index: 20;
+        }
+        .color-picker-popup span {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+            cursor: pointer;
+        }
+        .assignee-picker {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px;
+            min-width: 180px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+            z-index: 30;
+        }
+        .assignee-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+        }
+        .assignee-picker-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 4px;
+        }
         .toast {
             position: fixed;
             bottom: 20px;
@@ -596,13 +647,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0"></script>
-    <script src="logic.js"></script>
-    <script>
+<script>
         const SUPABASE_URL = 'https://nrrqiedzcwmgzqkmaret.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_1edDcYXXILaZ27t7oMEWMA_KIt2Ivck';
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let tasks = [], assignees = [], currentUser = null, canEdit = false;
+        let taskColorDbSupported = true;
         let expandedTasks = new Set();
         let expandedSubtasks = new Set();
         let draggedItem = null; // { type: 'task'|'subtask', taskId, subtaskId }
@@ -616,12 +667,120 @@
         const ASSIGNEE_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399'];
         const TASK_COLORS = ['#e94560', '#f7c35c', '#64d2ff', '#4ade80', '#a78bfa', '#fb923c', '#f472b6', '#34d399', '#60a5fa', '#f87171'];
         
+        
+        const LOCAL_ASSIGNEE_COLORS_KEY = 'aod.assigneeColors';
+        let assigneeColorDbSupported = true;
+
+        function loadAssigneeColorMap() {
+            try {
+                return JSON.parse(localStorage.getItem(LOCAL_ASSIGNEE_COLORS_KEY) || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveAssigneeColorMap(map) {
+            try {
+                localStorage.setItem(LOCAL_ASSIGNEE_COLORS_KEY, JSON.stringify(map || {}));
+            } catch (e) {}
+        }
+
+        function setLocalAssigneeColor(id, color) {
+            if (!id || !color) return;
+            const map = loadAssigneeColorMap();
+            map[String(id)] = color;
+            saveAssigneeColorMap(map);
+        }
+
+        function getLocalAssigneeColor(id) {
+            const map = loadAssigneeColorMap();
+            return map[String(id)] || '';
+        }
+
+        function hashString(str) {
+            let hash = 0;
+            const text = String(str || '');
+            for (let i = 0; i < text.length; i++) {
+                hash = (hash * 31 + text.charCodeAt(i)) | 0;
+            }
+            return Math.abs(hash);
+        }
+
+        function pickAssigneeColor(seed) {
+            const index = Math.abs(seed) % ASSIGNEE_COLORS.length;
+            return ASSIGNEE_COLORS[index];
+        }
+
+        function resolveAssigneeColor(assignee, index = 0) {
+            if (assignee && assignee.color) return assignee.color;
+            const local = assignee ? getLocalAssigneeColor(assignee.id) : '';
+            if (local) return local;
+            const seed = assignee ? hashString(assignee.name || assignee.id) : index;
+            return pickAssigneeColor(seed || 0);
+        }
+
+        function hexToRgb(hex) {
+            if (!hex || typeof hex !== 'string') return null;
+            let value = hex.trim().replace('#', '');
+            if (value.length === 3) {
+                value = value.split('').map(c => c + c).join('');
+            }
+            if (value.length !== 6) return null;
+            const num = parseInt(value, 16);
+            if (Number.isNaN(num)) return null;
+            return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+        }
+
+        function rgbToHex(r, g, b) {
+            const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+            return '#' + [clamp(r), clamp(g), clamp(b)]
+                .map(v => v.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        function toRgba(hex, alpha) {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return '';
+            const a = Math.max(0, Math.min(1, alpha));
+            return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
+        }
+
+        function mixColor(hexA, hexB, weight) {
+            const a = hexToRgb(hexA);
+            const b = hexToRgb(hexB);
+            if (!a) return hexA || '';
+            if (!b) return hexA || '';
+            const w = Math.max(0, Math.min(1, weight));
+            const r = a.r * (1 - w) + b.r * w;
+            const g = a.g * (1 - w) + b.g * w;
+            const bl = a.b * (1 - w) + b.b * w;
+            return rgbToHex(r, g, bl);
+        }
+
+        function deriveTaskColor(baseColor, depth) {
+            if (!baseColor) return '';
+            const weight = Math.min(0.14 * depth, 0.6);
+            return mixColor(baseColor, '#ffffff', weight);
+        }
+
+        function getTaskColorById(taskId) {
+            const task = tasks.find(t => t.id == taskId);
+            return task ? (task.color || '') : '';
+        }
+
+        function getShortName(name) {
+            const text = String(name || '').trim();
+            if (!text) return '';
+            return text.split(/\s+/)[0];
+        }
+
         function renderAssigneeTags(ids) {
-            return (ids || []).map(id => {
+            return (ids || []).map((id, index) => {
                 const a = assignees.find(x => x.id == id);
                 const name = a ? a.name : id;
-                const color = a && a.color ? a.color : '#888';
-                return '<span class="assignee-tag" style="background:' + color + '33;color:' + color + ';border-color:' + color + '66;">' + name + '</span>';
+                const displayName = getShortName(name);
+                const color = resolveAssigneeColor(a || { id: id, name: name }, index);
+                return '<span class="assignee-tag" style="background:' + color + '33;color:' + color + ';border-color:' + color + '66;">' + displayName + '</span>';
             }).join('');
         }
 
@@ -803,8 +962,19 @@ async function checkAuth() {
         }
 
         async function loadAssignees() {
-            const { data } = await sbClient.from('assignees').select('*').order('name');
-            assignees = data || [];
+            const { data, error } = await sbClient.from('assignees').select('*').order('name');
+            if (error) {
+                console.error(error);
+                showToast('Не удалось загрузить исполнителей', 'error');
+                return;
+            }
+            if (data && data.length) {
+                assigneeColorDbSupported = data.some(row => Object.prototype.hasOwnProperty.call(row, 'color'));
+            }
+            assignees = (data || []).map((a, idx) => ({
+                ...a,
+                color: resolveAssigneeColor(a, idx)
+            }));
             renderAssigneesSelect();
             updateFilterAssignees();
         }
@@ -832,27 +1002,45 @@ async function checkAuth() {
         }
 
         function renderAssigneesList() {
-            document.getElementById('assigneesList').innerHTML = assignees.map(a => `
+            document.getElementById('assigneesList').innerHTML = assignees.map((a, idx) => `
                 <div class="assignee-item">
                     <div class="assignee-item-name">
-                        <span style="background:${a.color || '#888'}" onclick="showColorPicker(event, ${a.id})" title="РР·РјРµРЅРёС‚СЊ С†РІРµС‚"></span>
+                        <span class="assignee-color" style="background:${resolveAssigneeColor(a, idx)}" onclick="showColorPicker(event, ${a.id})" title="Изменить цвет"></span>
                         <span>${a.name}</span>
                     </div>
-                    ${canEdit ? `<button class="btn-small btn-secondary" onclick="deleteAssignee(${a.id})">вњ•</button>` : ''}
+                    ${canEdit ? `<button class="btn-small btn-secondary" onclick="deleteAssignee(${a.id})">&#10005;</button>` : ''}
                 </div>
-            `).join('') || '<p style="color:#888;text-align:center">РќРµС‚ РёСЃРїРѕР»РЅРёС‚РµР»РµР№</p>';
+            `).join('') || '<p style="color:#888;text-align:center">Нет исполнителей</p>';
         }
 
         async function addAssignee() {
             const input = document.getElementById('newAssigneeName');
             const name = input.value.trim();
             if (!name || !canEdit) return;
-            const color = ASSIGNEE_COLORS[assignees.length % ASSIGNEE_COLORS.length];
-            await sbClient.from('assignees').insert([{ name, color }]);
+            const color = pickAssigneeColor(hashString(name));
+            let created = null;
+            if (assigneeColorDbSupported) {
+                const { data: withColor, error: colorError } = await sbClient.from('assignees').insert([{ name, color }]).select();
+                if (!colorError) {
+                    created = withColor && withColor[0];
+                } else {
+                    assigneeColorDbSupported = false;
+                }
+            }
+            if (!created) {
+                const { data: noColor, error: fallbackError } = await sbClient.from('assignees').insert([{ name }]).select();
+                if (fallbackError) {
+                    console.error(fallbackError);
+                    showToast('Не удалось добавить исполнителя', 'error');
+                    return;
+                }
+                created = noColor && noColor[0];
+                if (created) setLocalAssigneeColor(created.id, color);
+            }
             input.value = '';
             await loadAssignees();
             renderAssigneesList();
-            showToast('Р”РѕР±Р°РІР»РµРЅ', 'success');
+            showToast('Добавлен', 'success');
         }
 
         async function deleteAssignee(id) {
@@ -867,24 +1055,49 @@ async function checkAuth() {
             event.stopPropagation();
             const existing = document.querySelector('.color-picker-popup');
             if (existing) existing.remove();
-            
+
             const popup = document.createElement('div');
             popup.className = 'color-picker-popup';
-            popup.style.position = 'relative';
-            
+
             ASSIGNEE_COLORS.forEach(color => {
                 const btn = document.createElement('span');
                 btn.style.background = color;
                 btn.onclick = () => updateAssigneeColor(assigneeId, color);
                 popup.appendChild(btn);
             });
-            
-            event.target.parentElement.appendChild(popup);
+
+            const host = event.target.closest('.assignee-item') || event.target.parentElement;
+            if (host) {
+                host.style.position = 'relative';
+                popup.style.top = '26px';
+                popup.style.left = '0';
+                host.appendChild(popup);
+            } else {
+                document.body.appendChild(popup);
+            }
+
+            setTimeout(() => {
+                const close = (e) => {
+                    if (!popup.contains(e.target)) {
+                        popup.remove();
+                        document.removeEventListener('click', close);
+                    }
+                };
+                document.addEventListener('click', close);
+            }, 0);
         }
-        
+
         async function updateAssigneeColor(id, color) {
             if (!canEdit) return;
-            await sbClient.from('assignees').update({ color }).eq('id', id);
+            if (assigneeColorDbSupported) {
+                const { error } = await sbClient.from('assignees').update({ color }).eq('id', id);
+                if (error) {
+                    assigneeColorDbSupported = false;
+                }
+            }
+            if (!assigneeColorDbSupported) {
+                setLocalAssigneeColor(id, color);
+            }
             await loadAssignees();
             renderAssigneesList();
             renderTasks();
@@ -892,14 +1105,22 @@ async function checkAuth() {
         }
 
         async function loadTasks() {
-            const { data } = await sbClient.from('tasks').select('*').order('created_at', { ascending: false });
+            const { data, error } = await sbClient.from('tasks').select('*').order('created_at', { ascending: false });
+            if (error) {
+                console.error(error);
+                showToast('Не удалось загрузить задачи', 'error');
+                return;
+            }
+            if (data && data.length) {
+                taskColorDbSupported = data.some(row => Object.prototype.hasOwnProperty.call(row, 'color'));
+            }
             tasks = (data || []).map(t => ({
                 ...t,
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
                 subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || [])
             }));
-            // РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚СѓСЃС‹ Р·Р°РґР°С‡ РЅР° РѕСЃРЅРѕРІРµ РїРѕРґР·Р°РґР°С‡ С‚РѕР»СЊРєРѕ РµСЃР»Рё РѕРЅРё РµСЃС‚СЊ
-            // Assignees РѕР±РЅРѕРІР»СЏРµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё РµСЃС‚СЊ РїРѕРґР·Р°РґР°С‡Рё (РёРЅР°С‡Рµ СЃРѕС…СЂР°РЅСЏРµРј СЂСѓС‡РЅС‹Рµ)
+            // Обновляем статусы задач на основе подзадач только если они есть
+            // Assignees обновляем только если есть подзадачи (иначе сохраняем ручные)
             tasks.forEach(task => {
                 task.subtasks = normalizeSubtasksTree(task.subtasks);
                 if (hasSubtasks(task)) {
@@ -912,22 +1133,20 @@ async function checkAuth() {
             });
             renderTasks();
         }
-        
-        
 
         async function saveTask(taskData) {
-            if (!canEdit) { showToast('РўРѕР»СЊРєРѕ РґР»СЏ СЂРµРґР°РєС‚РѕСЂРѕРІ', 'error'); return false; }
+            if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
             
             const task = tasks.find(t => t.id === taskData.id);
             let newSubtasks = taskData.subtasks || [];
             
-            // Р•СЃР»Рё РјРµРЅСЏРµРј СЃС‚Р°С‚СѓСЃ Р·Р°РґР°С‡Рё РЅР° Р±РѕР»РµРµ РїРѕР·РґРЅРёР№ вЂ” РїРѕРґРЅРёРјР°РµРј РїРѕРґР·Р°РґР°С‡Рё С‚РѕРіРѕ Р¶Рµ СЃС‚Р°С‚СѓСЃР°
+            // Если меняем статус задачи на более поздний — поднимаем подзадачи того же статуса
             if (task && taskData.status !== task.status) {
                 const oldOrder = STATUS_ORDER[task.status] ?? 0;
                 const newOrder = STATUS_ORDER[taskData.status] ?? 0;
                 
                 if (newOrder > oldOrder) {
-                    // Р”РІРёРіР°РµРј РІРїРµСЂС‘Рґ вЂ” РїРѕРґРЅРёРјР°РµРј РїРѕРґР·Р°РґР°С‡Рё СЃ С‚РµРј Р¶Рµ СЃС‚Р°С‚СѓСЃРѕРј
+                    // Двигаем вперёд — поднимаем подзадачи с тем же статусом
                     newSubtasks = elevateSameStatusSubtasks(newSubtasks, task.status, taskData.status);
                 }
             }
@@ -937,32 +1156,58 @@ async function checkAuth() {
             const hasSubs = newSubtasks && newSubtasks.length > 0;
             const newStatus = hasSubs ? calculateTaskStatus(newSubtasks) : (taskData.status || 'queue');
             const newAssignees = hasSubs ? calculateTaskAssignees(newSubtasks) : (taskData.assignees || []);
+            const payload = {
+                title: taskData.title,
+                color: taskData.color || null,
+                priority: taskData.priority,
+                status: newStatus,
+                assignees: newAssignees.join(','),
+                subtasks: JSON.stringify(newSubtasks)
+            };
             
             if (taskData.id) {
-                await sbClient.from('tasks').update({
-                    title: taskData.title,
-                    color: taskData.color || null,
-                    priority: taskData.priority,
-                    status: newStatus,
-                    assignees: newAssignees.join(','),
-                    subtasks: JSON.stringify(newSubtasks)
-                }).eq('id', taskData.id);
+                const { error } = await sbClient.from('tasks').update(payload).eq('id', taskData.id);
+                if (error) {
+                    if (payload.color !== undefined) {
+                        taskColorDbSupported = false;
+                        const fallback = { ...payload };
+                        delete fallback.color;
+                        const { error: fallbackError } = await sbClient.from('tasks').update(fallback).eq('id', taskData.id);
+                        if (fallbackError) {
+                            console.error(fallbackError);
+                            showToast('Не удалось сохранить задачу', 'error');
+                            return false;
+                        }
+                    } else {
+                        console.error(error);
+                        showToast('Не удалось сохранить задачу', 'error');
+                        return false;
+                    }
+                }
             } else {
-                await sbClient.from('tasks').insert([{
-                    title: taskData.title,
-                    color: taskData.color || null,
-                    priority: taskData.priority,
-                    status: newStatus,
-                    assignees: newAssignees.join(','),
-                    subtasks: JSON.stringify(newSubtasks)
-                }]);
+                const { error } = await sbClient.from('tasks').insert([payload]);
+                if (error) {
+                    if (payload.color !== undefined) {
+                        taskColorDbSupported = false;
+                        const fallback = { ...payload };
+                        delete fallback.color;
+                        const { error: fallbackError } = await sbClient.from('tasks').insert([fallback]);
+                        if (fallbackError) {
+                            console.error(fallbackError);
+                            showToast('Не удалось сохранить задачу', 'error');
+                            return false;
+                        }
+                    } else {
+                        console.error(error);
+                        showToast('Не удалось сохранить задачу', 'error');
+                        return false;
+                    }
+                }
             }
             await loadTasks();
-            showToast('РЎРѕС…СЂР°РЅРµРЅРѕ', 'success');
+            showToast('Сохранено', 'success');
             return true;
         }
-        
-        
 
         async function deleteTask(id) {
             if (!canEdit || !confirm('РЈРґР°Р»РёС‚СЊ?')) return;
@@ -1039,6 +1284,171 @@ async function checkAuth() {
                 assignees: task.assignees.join(',')
             }).eq('id', taskId);
             await loadTasks();
+        }
+
+        function getNextFromList(list, current) {
+            const idx = list.indexOf(current);
+            if (idx === -1) return list[0];
+            return list[(idx + 1) % list.length];
+        }
+
+        function findSubtaskById(nodes, id) {
+            for (const n of nodes || []) {
+                if (n.id === id) return n;
+                const kids = n.children || n.subtasks || [];
+                const found = findSubtaskById(kids, id);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        async function cycleTaskPriority(taskId) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const current = task.priority || 'medium';
+            const next = getNextFromList(PRIORITY_ORDER, current);
+            task.priority = next;
+            await sbClient.from('tasks').update({ priority: next }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function cycleSubtaskPriority(taskId, subtaskId) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const target = findSubtaskById(task.subtasks, subtaskId);
+            const current = target?.priority || 'medium';
+            const next = getNextFromList(PRIORITY_ORDER, current);
+            const updateInTree = (nodes) => nodes.map(n => {
+                if (n.id === subtaskId) return { ...n, priority: next };
+                const kids = n.children || n.subtasks || [];
+                if (kids.length > 0) return { ...n, children: updateInTree(kids) };
+                return n;
+            });
+            task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
+            if (hasSubtasks(task)) {
+                task.status = calculateTaskStatus(task.subtasks);
+                task.assignees = calculateTaskAssignees(task.subtasks);
+            }
+            await sbClient.from('tasks').update({
+                status: task.status,
+                subtasks: JSON.stringify(task.subtasks),
+                assignees: task.assignees.join(',')
+            }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function cycleTaskStatus(taskId) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const current = task.status || 'queue';
+            const next = getNextFromList(STATUS_LIST, current);
+            await updateTaskStatus(taskId, next);
+        }
+
+        async function cycleSubtaskStatus(taskId, subtaskId) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const sub = findSubtaskById(task.subtasks, subtaskId);
+            const current = sub?.status || 'queue';
+            const next = getNextFromList(STATUS_LIST, current);
+            await updateSubtaskStatus(taskId, subtaskId, next);
+        }
+
+        async function updateTaskAssignees(taskId, newAssignees) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            if (hasSubtasks(task)) {
+                showToast('Исполнители задачи берутся из подзадач', 'error');
+                return;
+            }
+            task.assignees = newAssignees || [];
+            await sbClient.from('tasks').update({ assignees: task.assignees.join(',') }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function updateSubtaskAssignees(taskId, subtaskId, newAssignees) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const updateInTree = (nodes) => nodes.map(n => {
+                if (n.id === subtaskId) return { ...n, assignees: newAssignees };
+                const kids = n.children || n.subtasks || [];
+                if (kids.length > 0) return { ...n, children: updateInTree(kids) };
+                return n;
+            });
+            task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
+            if (hasSubtasks(task)) {
+                task.status = calculateTaskStatus(task.subtasks);
+                task.assignees = calculateTaskAssignees(task.subtasks);
+            }
+            await sbClient.from('tasks').update({
+                status: task.status,
+                subtasks: JSON.stringify(task.subtasks),
+                assignees: task.assignees.join(',')
+            }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        function openAssigneePicker(event, taskId, subtaskId = null) {
+            if (!canEdit) return;
+            event.stopPropagation();
+            const existing = document.querySelector('.assignee-picker');
+            if (existing) existing.remove();
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            if (!subtaskId && hasSubtasks(task)) {
+                showToast('Исполнители задачи берутся из подзадач', 'error');
+                return;
+            }
+            const selected = subtaskId
+                ? (findSubtaskById(task.subtasks, subtaskId)?.assignees || [])
+                : (task.assignees || []);
+
+            const picker = document.createElement('div');
+            picker.className = 'assignee-picker';
+            picker.innerHTML = assignees.map(a => {
+                const checked = selected.includes(String(a.id)) ? 'checked' : '';
+                return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked}>${a.name}</label>`;
+            }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
+
+            const host = event.currentTarget || event.target;
+            const anchor = host.closest('.assignees-list') || host;
+            if (anchor) {
+                anchor.style.position = 'relative';
+                picker.style.top = '24px';
+                picker.style.left = '0';
+                anchor.appendChild(picker);
+            } else {
+                document.body.appendChild(picker);
+            }
+
+            picker.addEventListener('change', async () => {
+                const selectedIds = Array.from(picker.querySelectorAll('input:checked')).map(i => i.value);
+                if (subtaskId) {
+                    await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
+                } else {
+                    await updateTaskAssignees(taskId, selectedIds);
+                }
+            });
+
+            setTimeout(() => {
+                const close = (e) => {
+                    if (!picker.contains(e.target)) {
+                        picker.remove();
+                        document.removeEventListener('click', close);
+                    }
+                };
+                document.addEventListener('click', close);
+            }, 0);
+        }
+
+        function closeAssigneePicker() {
+            document.querySelector('.assignee-picker')?.remove();
         }
 
         async function saveSubtask(taskId, subtaskData) {
@@ -1145,53 +1555,65 @@ async function checkAuth() {
             const hasSubtasks = task.subtasks && task.subtasks.length > 0;
             const progressMeta = renderProgressMeta(task.subtasks);
             const taskColor = task.color || '';
+            const rowStyleParts = [];
+            if (taskColor) {
+                const tint = toRgba(taskColor, 0.14);
+                rowStyleParts.push('border-left:4px solid ' + taskColor);
+                rowStyleParts.push('background: linear-gradient(90deg, ' + tint + ', rgba(0,0,0,0) 70%)');
+            }
+            const rowStyle = rowStyleParts.join(';');
             
             return `
-                <div class="task-row" id="task-${task.id}" style="${taskColor ? 'border-left:3px solid ' + taskColor : ''}">
-                    <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? 'в–ј' : 'в–¶') : ''}</div>
+                <div class="task-row" id="task-${task.id}" style="${rowStyle}">
+                    <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
-                    <div><span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
-                    <div><span class="status-badge status-${task.status}">${STATUS_LABELS[task.status]}</span></div>
-                    <div class="assignees-list">${renderAssigneeTags(assigneeIds)}</div>
+                    <div><span class="priority-badge priority-${task.priority || 'medium'}" onclick="cycleTaskPriority(${task.id})" title="Сменить приоритет">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
+                    <div><span class="status-badge status-${task.status}" onclick="cycleTaskStatus(${task.id})" title="Сменить статус">${STATUS_LABELS[task.status]}</span></div>
+                    <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${task.id}, null)">${renderAssigneeTags(assigneeIds)}</div>
                     <div class="task-actions">
-                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Р”РѕР±Р°РІРёС‚СЊ РїРѕРґР·Р°РґР°С‡Сѓ">вћ•</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">рџ“ќ</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="РЈРґР°Р»РёС‚СЊ">рџ—‘пёЏ</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">&#128465;</button>` : ''}
                     </div>
                 </div>
                 <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
-                    ${renderSubtaskTree(task.subtasks, task.id, 0)}
+                    ${renderSubtaskTree(task.subtasks, task.id, 0, taskColor)}
                 </div>
             `;
         }
 
-        function renderSubtaskTree(subtasks, taskId, level) {
+        function renderSubtaskTree(subtasks, taskId, level, baseColor) {
             if (!subtasks || subtasks.length === 0) return '';
             return subtasks.map(sub => {
                 const childNodes = sub.children || sub.subtasks || [];
                 const hasChildren = childNodes.length > 0;
-                const subAssignees = calculateNodeAssignees(sub).map(id => { 
-                    const a = assignees.find(x => x.id == id); 
-                    return a ? a.name : id; 
-                });
+                const subAssignees = calculateNodeAssignees(sub);
                 const isExpanded = expandedSubtasks.has(sub.id);
                 const levelClass = 'level-' + Math.min(level, 3);
                 const indent = level * 25;
+                const derivedColor = baseColor ? deriveTaskColor(baseColor, level + 1) : '';
+                const styleParts = [`padding-left:${indent + 15}px`];
+                if (derivedColor) {
+                    const tint = toRgba(derivedColor, 0.18);
+                    styleParts.push('border-left:3px solid ' + derivedColor);
+                    styleParts.push('background: linear-gradient(90deg, ' + tint + ', rgba(0,0,0,0) 70%)');
+                }
+                const rowStyle = styleParts.join(';');
                 
                 return `
-                    <div class="subtask-item ${levelClass}" style="padding-left:${indent + 15}px">
-                        <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? 'в–ј' : 'в–¶') : ''}</div>
+                    <div class="subtask-item ${levelClass}" style="${rowStyle}">
+                        <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
-                        <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
-                        <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
-                        <div class="assignees-list">${subAssignees.map(a => `<span class="assignee-tag">${a}</span>`).join('')}</div>
+                        <div><span class="priority-badge priority-${sub.priority || 'medium'}" onclick="cycleSubtaskPriority(${taskId}, ${sub.id})" title="Сменить приоритет">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
+                        <div><span class="status-badge status-${sub.status}" onclick="cycleSubtaskStatus(${taskId}, ${sub.id})" title="Сменить статус">${STATUS_LABELS[sub.status]}</span></div>
+                        <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${taskId}, ${sub.id})">${renderAssigneeTags(subAssignees)}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Р”РѕР±Р°РІРёС‚СЊ РґРѕС‡РµСЂРЅСЋСЋ">вћ•</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">рџ“ќ</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="РЈРґР°Р»РёС‚СЊ">рџ—‘пёЏ</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">&#128465;</button>` : ''}
                         </div>
                     </div>
-                    ${isExpanded && hasChildren ? renderSubtaskTree(childNodes, taskId, level + 1) : ''}
+                    ${isExpanded && hasChildren ? renderSubtaskTree(childNodes, taskId, level + 1, baseColor) : ''}
                 `;
             }).join('');
         }
@@ -1275,18 +1697,26 @@ async function checkAuth() {
                 : (canEdit ? 'handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')' : '');
             const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
             const dragEvents = canEdit ? ('ondragstart="' + dragHandler + '" ondragend="handleDragEnd(event)"') : '';
-            const cursor = canEdit ? 'cursor:pointer;' : 'cursor:default;';
+            const baseColor = isTask ? (task.color || '') : getTaskColorById(rootTaskId);
+            const accentColor = isTask ? baseColor : (baseColor ? deriveTaskColor(baseColor, depth + 1) : '');
+            const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
+            if (accentColor) {
+                const tint = toRgba(accentColor, 0.16);
+                styleParts.push('border-left:4px solid ' + accentColor);
+                styleParts.push('background: linear-gradient(90deg, ' + tint + ', rgba(0,0,0,0) 70%)');
+            }
+            const style = styleParts.join(';');
             
             if (isTask) {
                 return '<div class="' + cardClass + '" ' + dragAttr + ' ' +
                        (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                        dragEvents + ' ' +
-                       'style="' + cursor + '" ' +
-                       'title="' + task.title + (canEdit ? ' (РєР»РёРє РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ)' : '') + '">' +
+                       'style="' + style + '" ' +
+                       'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
-                        '<div class="assignees-list">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                        '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="Сменить приоритет">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                        '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -1294,16 +1724,17 @@ async function checkAuth() {
             return '<div class="' + cardClass + '" ' + dragAttr + ' ' +
                    (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                    dragEvents + ' ' +
-                   'style="' + cursor + '" ' +
-                   'title="' + task.title + (canEdit ? ' (РєР»РёРє РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ)' : '') + '">' +
+                   'style="' + style + '" ' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="name">' + task.title + '</div>' +
-                '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
-                '<div class="assignees-list">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + rootTaskId + ', ' + task.id + ')" title="Сменить приоритет">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + rootTaskId + ', ' + task.id + ')">' + renderAssigneeTags(assigneeIds) + '</div>' +
             '</div>';
         }
-        
+
         function renderKanbanNested(task, subtasks) {
             const assigneeIds = task.assignees || [];
+            const baseColor = task.color || '';
 
             const orderIndex = new Map(subtasks.map((s, idx) => [s.task.id, idx]));
             const byId = new Map();
@@ -1332,14 +1763,22 @@ async function checkAuth() {
                 const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
                 const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + node.task.id + ')" ondragend="handleDragEnd(event)"') : '';
                 const clickHandler = canEdit ? ('onclick="openSubtaskModal(' + task.id + ',' + node.task.id + ')"') : '';
-                const cursor = canEdit ? 'cursor:pointer;' : 'cursor:default;';
+                const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+                const accentColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
+                const styleParts = [cursor];
+                if (accentColor) {
+                    const tint = toRgba(accentColor, 0.16);
+                    styleParts.push('border-left:4px solid ' + accentColor);
+                    styleParts.push('background: linear-gradient(90deg, ' + tint + ', rgba(0,0,0,0) 70%)');
+                }
+                const style = styleParts.join(';');
                 const childrenHtml = node.children.length > 0
                     ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
                     : '';
-                return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + cursor + '">' +
+                return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span></div>' +
-                        '<div class="assignees-list">' + renderAssigneeTags(subAssignees) + '</div>' +
+                        '<div class="meta"><span class="priority-badge priority-' + (node.task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + task.id + ', ' + node.task.id + ')" title="Сменить приоритет">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span></div>' +
+                        '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', ' + node.task.id + ')">' + renderAssigneeTags(subAssignees) + '</div>' +
                     '</div>' + childrenHtml;
             };
 
@@ -1347,14 +1786,21 @@ async function checkAuth() {
             const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
             const dragEvents = canEdit ? ('ondragstart="handleTaskDragStart(event, ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
             const clickHandler = canEdit ? ('onclick="editTask(' + task.id + ')"') : '';
-            const cursor = canEdit ? 'cursor:pointer;' : 'cursor:default;';
+            const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+            const styleParts = [cursor];
+            if (baseColor) {
+                const tint = toRgba(baseColor, 0.18);
+                styleParts.push('border-left:4px solid ' + baseColor);
+                styleParts.push('background: linear-gradient(90deg, ' + tint + ', rgba(0,0,0,0) 70%)');
+            }
+            const style = styleParts.join(';');
 
-            return '<div class="kanban-card" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + cursor + '" ' +
-                   'title="' + task.title + (canEdit ? ' (РєР»РёРє РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ)' : '') + '">' +
+            return '<div class="kanban-card" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '" ' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header">' +
                     '<div class="title">' + task.title + '</div>' +
-                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
-                    '<div class="assignees-list">' + renderAssigneeTags(assigneeIds) + '</div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="Сменить приоритет">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                    '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
             '</div>';
@@ -1578,6 +2024,62 @@ async function checkAuth() {
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
