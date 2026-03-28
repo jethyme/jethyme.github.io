@@ -1852,7 +1852,7 @@ async function checkAuth() {
         function renderTaskRow(task) {
             const assigneeIds = calculateNodeAssignees(task);
             const isExpanded = expandedTasks.has(task.id);
-            const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+            const hasSubtasksFlag = hasSubtasks(task);
             const progressMeta = renderProgressMeta(task.subtasks);
             const taskColor = task.color || '';
             const rowStyleParts = [];
@@ -1862,14 +1862,14 @@ async function checkAuth() {
                 rowStyleParts.push('color: ' + getContrastColor(taskColor));
             }
             const rowStyle = rowStyleParts.join(';');
-            
+
             return `
-                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasks ? 'true' : 'false'})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
-                    <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasks ? '' : 'visibility:hidden'}">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
+                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasksFlag ? 'true' : 'false'})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
+                    <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasksFlag ? '' : 'visibility:hidden'}">${hasSubtasksFlag ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
                     <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
-                    <div>${renderAssigneeCell(assigneeIds, task.id, null, canEdit && !hasSubtasks)}</div>
+                    <div>${renderAssigneeCell(assigneeIds, task.id, null, canEdit && !hasSubtasksFlag)}</div>
                     <div class="task-actions">
                         ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу"><span class="icon-plus">✚</span></button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
@@ -2326,11 +2326,9 @@ async function checkAuth() {
             if (source.type === 'task') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) return false;
-                // Если targetSubtaskId существует, проверяем, находится ли он в дереве source
                 if (targetSubtaskId) {
                     return findSubtaskById(sourceTask.subtasks, targetSubtaskId) !== null;
                 }
-                // Если targetTaskId === source.taskId, это тот же элемент
                 return targetTaskId === source.taskId;
             }
             if (source.type === 'subtask') {
@@ -2338,7 +2336,6 @@ async function checkAuth() {
                 if (!sourceTask) return false;
                 const sourceSub = findSubtaskById(sourceTask.subtasks, source.subtaskId);
                 if (!sourceSub) return false;
-                // Проверяем, находится ли target в дереве sourceSub
                 if (targetSubtaskId) {
                     return findSubtaskById(sourceSub.children || sourceSub.subtasks || [], targetSubtaskId) !== null;
                 }
@@ -2480,10 +2477,12 @@ async function checkAuth() {
             const canDropAsSubtask = hasSubtasks === 'false';
             
             // Если перетаскиваем не сам элемент и у цели нет подзадач - показываем drop-target
-            const isSameItem = (listDragItem.type === 'task' && listDragItem.taskId == targetTaskId) ||
-                               (listDragItem.type === 'subtask' && listDragItem.subtaskId == targetSubtaskId);
+            const isSameItem = (listDragItem.type === 'task' && String(listDragItem.taskId) === String(targetTaskId)) ||
+                               (listDragItem.type === 'subtask' && String(listDragItem.subtaskId) === String(targetSubtaskId));
             
-            if (canDropAsSubtask && !isSameItem && !isDescendant(listDragItem, targetTaskId, targetSubtaskId)) {
+            const isChild = isDescendant(listDragItem, targetTaskId, targetSubtaskId);
+
+            if (canDropAsSubtask && !isSameItem && !isChild) {
                 target.classList.add('drop-target');
                 target.classList.remove('drag-over');
                 removeDropIndicator();

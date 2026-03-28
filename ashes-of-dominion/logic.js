@@ -2,7 +2,8 @@
     const STATUS_ORDER = global.STATUS_ORDER || { queue: 0, progress: 1, review: 2, done: 3 };
 
     function hasSubtasks(task) {
-        return Array.isArray(task?.subtasks) && task.subtasks.length > 0;
+        return (Array.isArray(task?.subtasks) && task.subtasks.length > 0) ||
+               (Array.isArray(task?.children) && task.children.length > 0);
     }
 
     function getSubtaskStats(subtasks) {
