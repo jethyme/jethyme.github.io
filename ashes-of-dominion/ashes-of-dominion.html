@@ -155,15 +155,17 @@
         .expand-btn {
             cursor: pointer;
             font-size: 11px;
-            color: var(--muted);
+            color: #fff;
             width: 24px;
             height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 4px;
+            background: rgba(255,255,255,0.1);
         }
-        .expand-btn:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+        .expand-btn:hover { background: rgba(255,255,255,0.2); }
+        .expand-btn[style*="visibility:hidden"]:hover { background: rgba(255,255,255,0.1); cursor: default; }
         .task-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .task-meta { display: flex; align-items: center; gap: 6px; font-size: 0.75em; color: var(--muted); }
         .progress-bar { flex: 1; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; min-width: 50px; }
