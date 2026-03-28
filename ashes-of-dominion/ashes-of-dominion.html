@@ -260,6 +260,23 @@
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
+        .task-row.drop-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .task-row.drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent);
+        }
         .drop-target-placeholder {
             display: flex;
             align-items: center;
@@ -1846,7 +1863,8 @@ async function checkAuth() {
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
             const filteredTasks = tasks.filter(matchesFilters);
-            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
+            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('') + 
+                (canEdit ? '<div class="task-row drop-zone" id="taskDropZone" ondragover="handleTaskDropZoneDragOver(event)" ondragleave="handleTaskDropZoneDragLeave(event)" ondrop="handleTaskDropZoneDrop(event)">Перетащить сюда как задачу</div>' : '');
             renderKanban();
         }
 
@@ -1865,7 +1883,7 @@ async function checkAuth() {
             const rowStyle = rowStyleParts.join(';');
 
             return `
-                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasksFlag ? 'true' : 'false'})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
+                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasksFlag})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
                     <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasksFlag ? '' : 'visibility:hidden'}">${hasSubtasksFlag ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
@@ -1902,7 +1920,7 @@ async function checkAuth() {
                 const rowStyle = styleParts.join(';');
                 
                 return `
-                    <div class="subtask-item ${levelClass}" style="${rowStyle}" draggable="true" ondragstart="handleListSubtaskDragStart(event, ${taskId}, ${sub.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${taskId}, ${sub.id}, ${hasChildren ? 'true' : 'false'})" ondrop="handleListDrop(event, ${taskId}, ${sub.id})" ondragleave="handleListDragLeave(event)">
+                    <div class="subtask-item ${levelClass}" style="${rowStyle}" draggable="true" ondragstart="handleListSubtaskDragStart(event, ${taskId}, ${sub.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${taskId}, ${sub.id}, ${hasChildren})" ondrop="handleListDrop(event, ${taskId}, ${sub.id})" ondragleave="handleListDragLeave(event)">
                         <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
                         <div>${canEdit ? renderPriorityBadge(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
@@ -2477,7 +2495,7 @@ async function checkAuth() {
             const target = e.currentTarget;
             
             // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
-            const canDropAsSubtask = hasSubtasks === 'false';
+            const canDropAsSubtask = hasSubtasks === false;
             
             // Если перетаскиваем не сам элемент и у цели нет подзадач - показываем drop-target
             const isSameItem = (listDragItem.type === 'task' && String(listDragItem.taskId) === String(targetTaskId)) ||
@@ -2561,6 +2579,104 @@ async function checkAuth() {
                 dropTargetPlaceholder.parentNode.removeChild(dropTargetPlaceholder);
             }
             dropTargetPlaceholder = null;
+        }
+
+        function handleTaskDropZoneDragOver(e) {
+            if (!canEdit || !listDragItem) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Показываем drop zone только для подзадач (их можно сделать задачами)
+            if (listDragItem.type === 'subtask') {
+                e.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleTaskDropZoneDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        async function handleTaskDropZoneDrop(e) {
+            if (!canEdit || !listDragItem) return;
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+            
+            // Только подзадачи можно сделать задачами
+            if (listDragItem.type !== 'subtask') {
+                listDragItem = null;
+                return;
+            }
+            
+            const sourceTask = tasks.find(t => t.id === listDragItem.taskId);
+            if (!sourceTask) {
+                listDragItem = null;
+                return;
+            }
+            
+            // Находим и удаляем подзадачу из родителя
+            const subtask = findAndRemoveSubtask(sourceTask.subtasks, listDragItem.subtaskId);
+            if (!subtask) {
+                listDragItem = null;
+                return;
+            }
+            
+            // Создаем новую задачу из подзадачи
+            const newTask = {
+                title: subtask.title,
+                priority: subtask.priority || 'medium',
+                status: subtask.status || 'queue',
+                assignees: subtask.assignees || [],
+                color: subtask.color,
+                subtasks: subtask.children || [],
+                order_index: tasks.length
+            };
+            
+            // Нормализуем подзадачи новой задачи
+            newTask.subtasks = normalizeSubtasksTree(newTask.subtasks);
+            
+            // Сохраняем новую задачу в базу
+            const { data, error } = await sbClient.from('tasks').insert([{
+                title: newTask.title,
+                priority: newTask.priority,
+                status: newTask.status,
+                assignees: newTask.assignees.join(','),
+                color: newTask.color,
+                subtasks: JSON.stringify(newTask.subtasks),
+                order_index: newTask.order_index
+            }]).select();
+            
+            if (error) {
+                console.error(error);
+                showToast('Ошибка при создании задачи', 'error');
+                listDragItem = null;
+                return;
+            }
+            
+            // Добавляем задачу в локальный массив
+            const newTaskId = data[0].id;
+            tasks.push({
+                id: newTaskId,
+                ...newTask
+            });
+            
+            // Сохраняем изменения в исходной задаче
+            sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
+            if (hasSubtasks(sourceTask)) {
+                sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
+                sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
+            }
+            
+            await sbClient.from('tasks').update({
+                subtasks: JSON.stringify(sourceTask.subtasks),
+                status: sourceTask.status,
+                assignees: sourceTask.assignees.join(',')
+            }).eq('id', sourceTask.id);
+            
+            listDragItem = null;
+            renderTasks();
         }
 
         async function handleListDrop(e, targetTaskId, targetSubtaskId) {
