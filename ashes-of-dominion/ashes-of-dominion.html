@@ -1351,7 +1351,7 @@ async function checkAuth() {
         }
 
         async function loadTasks() {
-            const { data, error } = await sbClient.from('tasks').select('*').order('created_at', { ascending: false });
+            const { data, error } = await sbClient.from('tasks').select('*').order('order_index', { ascending: true, nullsFirst: true });
             if (error) {
                 console.error(error);
                 showToast('   ', 'error');
@@ -1360,19 +1360,18 @@ async function checkAuth() {
             if (data && data.length) {
                 taskColorDbSupported = data.some(row => Object.prototype.hasOwnProperty.call(row, 'color'));
             }
-            tasks = (data || []).map(t => ({
+            tasks = (data || []).map((t, idx) => ({
                 ...t,
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
                 subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || []),
-                order_index: t.order_index ?? data.indexOf(t)
+                order_index: t.order_index ?? idx
             }));
             
-            // Initialize order_index for tasks without it
-            const tasksNeedingOrder = tasks.filter((t, i) => t.order_index === undefined || t.order_index === null);
+            // Initialize order_index for tasks that don't have it
+            const tasksNeedingOrder = tasks.filter(t => t.order_index === undefined || t.order_index === null);
             if (tasksNeedingOrder.length > 0) {
-                const maxOrder = Math.max(0, ...tasks.map(t => t.order_index ?? 0));
-                const updates = tasksNeedingOrder.map((t, i) => {
-                    t.order_index = maxOrder + 1 + i;
+                const updates = tasksNeedingOrder.map(t => {
+                    t.order_index = tasks.indexOf(t);
                     return sbClient.from('tasks').update({ order_index: t.order_index }).eq('id', t.id);
                 });
                 await Promise.all(updates);
