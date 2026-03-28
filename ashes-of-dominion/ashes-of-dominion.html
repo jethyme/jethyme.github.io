@@ -2371,7 +2371,7 @@ async function checkAuth() {
                 if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks, null);
                 if (entry.type === 'task') return renderKanbanCard(entry.task, null, 0);
                 if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
-                if (entry.type === 'orphan-nested') return renderKanbanNested(entry.task, entry.subtasks, entry.rootTaskId);
+                if (entry.type === 'orphan-nested') return renderKanbanNested(entry.task, entry.subtasks, entry.rootTaskId, entry.task.id);
                 return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
             }).join('');
 
@@ -2432,7 +2432,7 @@ async function checkAuth() {
             '</div>';
         }
 
-        function renderKanbanNested(task, subtasks, rootTaskId) {
+        function renderKanbanNested(task, subtasks, rootTaskId, orphanParentId = null) {
             const assigneeIds = task.assignees || [];
             const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
 
@@ -2444,9 +2444,16 @@ async function checkAuth() {
 
             const roots = [];
             byId.forEach(node => {
-                if (node.parentSubtaskId && byId.has(node.parentSubtaskId)) {
-                    byId.get(node.parentSubtaskId).children.push(node);
+                // Для orphan-подзадач проверяем parentSubtaskId относительно orphanParentId
+                const parentId = node.parentSubtaskId;
+                if (parentId === orphanParentId) {
+                    // Это прямой ребёнок orphan-родителя
+                    roots.push(node);
+                } else if (parentId && byId.has(parentId)) {
+                    // Это ребёнок другой подзадачи в списке
+                    byId.get(parentId).children.push(node);
                 } else {
+                    // Нет родителя или родитель не в списке
                     roots.push(node);
                 }
             });
