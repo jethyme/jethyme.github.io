@@ -1772,7 +1772,7 @@ async function checkAuth() {
                     <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
                     <div>${renderAssigneeCell(assigneeIds, task.id, null, canEdit && !hasSubtasks)}</div>
                     <div class="task-actions">
-                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу"><span class="icon-plus">+</span></button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу"><span class="icon-plus">✚</span></button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
                         ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">&#128465;</button>` : ''}
                     </div>
