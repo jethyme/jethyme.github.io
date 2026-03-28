@@ -256,33 +256,15 @@
         .task-row, .subtask-item { cursor: grab; }
         .task-row:active, .subtask-item:active { cursor: grabbing; }
         .task-row.drop-target, .subtask-item.drop-target { 
-            outline: 3px solid var(--accent-2); 
+            outline: 3px solid var(--success); 
             outline-offset: -2px;
-            background: rgba(233, 69, 96, 0.15);
+            background: rgba(74, 222, 128, 0.15);
         }
-        .insert-indicator {
-            height: 6px;
-            background: rgba(233, 69, 96, 0.5);
-            margin: 0;
-            border-radius: 3px;
-            transition: all 0.15s;
-            position: relative;
+        .task-row.drag-insert-before, .subtask-item.drag-insert-before {
+            box-shadow: 0 -3px 0 0 var(--accent) inset;
         }
-        .insert-indicator::before {
-            content: '';
-            position: absolute;
-            left: -4px;
-            top: 1px;
-            width: 10px;
-            height: 10px;
-            background: var(--accent);
-            border-radius: 50%;
-        }
-        .insert-indicator.insert-as-child {
-            background: rgba(74, 222, 128, 0.5);
-        }
-        .insert-indicator.insert-as-child::before {
-            background: var(--success);
+        .task-row.drag-insert-after, .subtask-item.drag-insert-after {
+            box-shadow: 0 3px 0 0 var(--accent) inset;
         }
 
         .kanban-board {
@@ -2503,60 +2485,43 @@ async function checkAuth() {
             } else {
                 // Средняя треть - вставляем как подзадачу
                 insertType = 'child';
-                insertBefore = true; // Будет первой подзадачей
+                insertBefore = true;
             }
             
-            // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
-            const canDropAsSubtask = hasSubtasks === false;
+            // Очищаем старые классы
+            target.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
             
-            // Если перетаскиваем не сам элемент и у цели нет подзадач - показываем drop-target
+            // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
             const isSameItem = (listDragItem.type === 'task' && String(listDragItem.taskId) === String(targetTaskId)) ||
                                (listDragItem.type === 'subtask' && String(listDragItem.subtaskId) === String(targetSubtaskId));
             
             const isChild = isDescendant(listDragItem, targetTaskId, targetSubtaskId);
 
-            if (canDropAsSubtask && insertType === 'child' && !isSameItem && !isChild) {
+            if (insertType === 'child' && !isSameItem && !isChild) {
                 target.classList.add('drop-target');
-                target.classList.remove('drag-over');
-                removeDropIndicator();
-            } else {
-                target.classList.remove('drop-target');
-                target.classList.add('drag-over');
-                updateDropIndicator(target, insertBefore, insertType);
+            } else if (insertType === 'before') {
+                target.classList.add('drag-insert-before');
+            } else if (insertType === 'after') {
+                target.classList.add('drag-insert-after');
             }
+            
+            // Сохраняем текущие параметры в элементе
+            target.dataset.insertType = insertType;
+            target.dataset.insertBefore = insertBefore ? 'true' : 'false';
+            target.dataset.targetTaskId = targetTaskId;
+            target.dataset.targetSubtaskId = targetSubtaskId || '';
         }
 
         function handleListDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-            e.currentTarget.classList.remove('drop-target');
-            removeDropIndicator();
+            e.currentTarget.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
         }
 
-        function updateDropIndicator(target, insertBefore, insertType) {
-            removeDropIndicator();
-
-            dropIndicator = document.createElement('div');
-            dropIndicator.className = 'insert-indicator';
-            
-            if (insertType === 'child') {
-                dropIndicator.classList.add('insert-as-child');
-            }
-
-            if (insertBefore) {
-                target.parentNode.insertBefore(dropIndicator, target);
-            } else {
-                target.parentNode.insertBefore(dropIndicator, target.nextSibling);
-            }
-
-            dropIndicator.insertBefore = insertBefore;
-            dropIndicator.insertType = insertType;
-        }
-
-        function removeDropIndicator() {
-            if (dropIndicator && dropIndicator.parentNode) {
-                dropIndicator.parentNode.removeChild(dropIndicator);
-            }
-            dropIndicator = null;
+        function handleListDragEnd(e) {
+            if (e.currentTarget) e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.drag-insert-before, .drag-insert-after, .drop-target, .drag-over').forEach(el => {
+                el.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
+            });
+            listDragItem = null;
         }
 
         async function handleListDrop(e, targetTaskId, targetSubtaskId) {
@@ -2565,18 +2530,13 @@ async function checkAuth() {
             e.stopPropagation();
 
             const target = e.currentTarget;
-            const isDropTarget = target.classList.contains('drop-target');
-            target.classList.remove('drag-over');
-            target.classList.remove('drop-target');
+            const insertType = target.dataset.insertType || 'before';
+            const insertBefore = target.dataset.insertBefore === 'true';
+            const tgtTaskId = parseInt(target.dataset.targetTaskId);
+            const tgtSubtaskId = target.dataset.targetSubtaskId ? parseInt(target.dataset.targetSubtaskId) : null;
+            
+            target.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
 
-            // Если отпустили на drop-target (задачу/подзадачу без подзадач) - добавляем как подзадачу
-            if (isDropTarget) {
-                await handleDropAsSubtask(targetTaskId, targetSubtaskId);
-                return;
-            }
-
-            const insertBefore = dropIndicator ? dropIndicator.insertBefore : true;
-            const insertType = dropIndicator ? dropIndicator.insertType : 'before';
             const source = listDragItem;
 
             // Для задач - меняем порядок или делаем подзадачей
@@ -2593,7 +2553,7 @@ async function checkAuth() {
                     return;
                 }
 
-                let targetIndex = tasks.findIndex(t => t.id === targetTaskId);
+                let targetIndex = tasks.findIndex(t => t.id === tgtTaskId);
                 if (targetIndex === -1) {
                     listDragItem = null;
                     return;
@@ -2601,7 +2561,7 @@ async function checkAuth() {
 
                 // Если вставляем как подзадачу
                 if (insertType === 'child') {
-                    const targetTask = tasks.find(t => t.id === targetTaskId);
+                    const targetTask = tasks.find(t => t.id === tgtTaskId);
                     if (!targetTask) {
                         listDragItem = null;
                         return;
@@ -2635,7 +2595,7 @@ async function checkAuth() {
                         subtasks: JSON.stringify(targetTask.subtasks),
                         status: targetTask.status,
                         assignees: targetTask.assignees.join(',')
-                    }).eq('id', targetTaskId);
+                    }).eq('id', tgtTaskId);
 
                     await sbClient.from('tasks').delete().eq('id', source.taskId);
                 }
@@ -2669,7 +2629,7 @@ async function checkAuth() {
                     return;
                 }
 
-                const targetTask = tasks.find(t => t.id === targetTaskId);
+                const targetTask = tasks.find(t => t.id === tgtTaskId);
                 if (!targetTask) {
                     sourceTask.subtasks = sourceTask.subtasks || [];
                     sourceTask.subtasks.push(sourceSubtask);
@@ -2687,8 +2647,8 @@ async function checkAuth() {
                     // Находим родительский массив подзадач
                     let targetArray, targetIndexInArray;
 
-                    if (targetSubtaskId) {
-                        const result = findSubtaskParentArray(targetTask.subtasks, targetSubtaskId);
+                    if (tgtSubtaskId) {
+                        const result = findSubtaskParentArray(targetTask.subtasks, tgtSubtaskId);
                         if (result) {
                             targetArray = result.array;
                             targetIndexInArray = result.index;
@@ -2727,7 +2687,7 @@ async function checkAuth() {
                     subtasks: JSON.stringify(targetTask.subtasks),
                     status: targetTask.status,
                     assignees: targetTask.assignees.join(',')
-                }).eq('id', targetTaskId);
+                }).eq('id', tgtTaskId);
             }
 
             listDragItem = null;
