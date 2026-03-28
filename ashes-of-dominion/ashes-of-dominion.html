@@ -1108,11 +1108,9 @@
                         } else {
                             selectedIds.push(id);
                         }
-                        if (selectedIds.includes(id)) {
-                            opt.innerHTML = a.name + '<span class="check">&#10003;</span>';
-                        } else {
-                            opt.innerHTML = a.name;
-                        }
+                        const assignee = assignees.find(a => String(a.id) === String(id));
+                        const name = assignee ? assignee.name : id;
+                        opt.innerHTML = name + (selectedIds.includes(id) ? '<span class="check">&#10003;</span>' : '');
                         if (subtaskId) {
                             await updateSubtaskAssignees(taskId, subtaskId, selectedIds);
                         } else {
