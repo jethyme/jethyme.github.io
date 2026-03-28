@@ -1438,7 +1438,7 @@ async function checkAuth() {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             if (hasSubtasks(task)) {
-                showToast('Задачи с подзадачами нельзя назначать'), 'error');
+                showToast('Задачи с подзадачами нельзя назначать', 'error');
                 return;
             }
             task.assignees = newAssignees || [];
@@ -1477,7 +1477,7 @@ async function checkAuth() {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             if (!subtaskId && hasSubtasks(task)) {
-                showToast('Задачи с подзадачами нельзя назначать'), 'error');
+                showToast('Задачи с подзадачами нельзя назначать', 'error');
                 return;
             }
             const selected = subtaskId
