@@ -1379,8 +1379,9 @@ async function checkAuth() {
                     task.assignees = task.assignees || [];
                 }
             });
-            // Expand all subtasks by default
+            // Expand all tasks and subtasks by default
             tasks.forEach(task => {
+                expandedTasks.add(task.id);
                 const collectSubtaskIds = (subtasks) => {
                     subtasks.forEach(sub => {
                         expandedSubtasks.add(sub.id);
