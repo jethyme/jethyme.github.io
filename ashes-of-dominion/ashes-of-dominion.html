@@ -116,14 +116,77 @@
             border-radius: 10px;
             margin-bottom: 12px;
         }
-        .filters label { display: flex; gap: 6px; align-items: center; font-size: 0.85em; color: var(--muted); }
-        .filters select {
-            padding: 6px 10px;
+        .filter-dropdown {
+            position: relative;
+        }
+        .filter-btn {
+            padding: 6px 12px;
             border: 1px solid var(--border);
             border-radius: 6px;
             background: var(--surface-2);
             color: var(--text);
             font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .filter-btn:hover {
+            background: var(--border);
+        }
+        .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .filter-dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 100;
+            padding: 8px;
+            margin-top: 4px;
+        }
+        .filter-dropdown-content.active {
+            display: block;
+        }
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        .filter-option:hover {
+            background: var(--surface);
+        }
+        .filter-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+        .filter-reset {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface-2);
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .filter-reset:hover {
+            color: var(--text);
+            border-color: var(--accent);
         }
 
         .task-list {
@@ -559,29 +622,25 @@
         </header>
 
         <div class="filters">
-            <label>Исполнитель:
-                <select id="filterAssignee" onchange="applyFilters()">
-                    <option value="">Все</option>
-                </select>
-            </label>
-            <label>Приоритет:
-                <select id="filterPriority" onchange="applyFilters()">
-                    <option value="">Все</option>
-                    <option value="low">Низкий</option>
-                    <option value="medium">Средний</option>
-                    <option value="high">Высокий</option>
-                    <option value="critical">Критичный</option>
-                </select>
-            </label>
-            <label>Статус:
-                <select id="filterStatus" onchange="applyFilters()">
-                    <option value="">Все</option>
-                    <option value="queue">В очереди</option>
-                    <option value="progress">В работе</option>
-                    <option value="review">На проверке</option>
-                    <option value="done">Готово</option>
-                </select>
-            </label>
+            <div class="filter-dropdown">
+                <button class="filter-btn" onclick="toggleFilterDropdown('assignee')" id="filterAssigneeBtn">
+                    👥 Исполнители <span id="filterAssigneeCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterAssigneeDropdown"></div>
+            </div>
+            <div class="filter-dropdown">
+                <button class="filter-btn" onclick="toggleFilterDropdown('priority')" id="filterPriorityBtn">
+                    ⚡ Приоритет <span id="filterPriorityCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterPriorityDropdown"></div>
+            </div>
+            <div class="filter-dropdown">
+                <button class="filter-btn" onclick="toggleFilterDropdown('status')" id="filterStatusBtn">
+                    📊 Статус <span id="filterStatusCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterStatusDropdown"></div>
+            </div>
+            <button class="filter-reset" onclick="resetFilters()">✕ Сбросить</button>
         </div>
 
         <div id="taskList" class="task-list">
@@ -767,10 +826,11 @@
         let taskColorDbSupported = true;
         let expandedTasks = new Set();
         let expandedSubtasks = new Set();
-        let draggedItem = null; // { type: 'task'|'subtask', taskId, subtaskId }
-        let filterAssignee = '', filterPriority = '', filterStatus = '';
-        
+        let draggedItem = null;
+        let filterAssignee = [], filterPriority = [], filterStatus = [];
+
         const LOCAL_EXPANDED_KEY = 'aod.expandedState';
+        const LOCAL_FILTERS_KEY = 'aod.filters';
 
         // Порядок статусов: 0=самый ранний, 3=самый поздний
         const STATUS_ORDER = window.STATUS_ORDER || { queue: 0, progress: 1, review: 2, done: 3 };
@@ -1113,8 +1173,19 @@
                     openBadgeDropdown(e, badge);
                 }
             });
+            
+            // Закрыть dropdown при клике вне
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.filter-dropdown')) {
+                    document.querySelectorAll('.filter-dropdown-content').forEach(d => d.classList.remove('active'));
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                }
+            });
+            
             await checkAuth();
+            loadFilters();
             await loadAssignees();
+            renderFilterDropdowns();
             await loadTasks();
         });
 
@@ -1827,23 +1898,202 @@ async function checkAuth() {
             showToast('Удалено', 'success');
         }
 
+        function toggleFilterDropdown(type) {
+            const dropdown = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`);
+            const btn = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Btn`);
+            
+            // Закрыть все остальные
+            document.querySelectorAll('.filter-dropdown-content').forEach(d => {
+                if (d !== dropdown) d.classList.remove('active');
+            });
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                if (b !== btn) b.classList.remove('active');
+            });
+            
+            dropdown.classList.toggle('active');
+            btn.classList.toggle('active');
+        }
+
+        function renderFilterDropdowns() {
+            // Исполнители
+            const assigneeDropdown = document.getElementById('filterAssigneeDropdown');
+            assigneeDropdown.innerHTML = assignees.map(a => {
+                const isChecked = filterAssignee.includes(String(a.id));
+                return `<label class="filter-option">
+                    <input type="checkbox" value="${a.id}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('assignee', '${a.id}')">
+                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${a.color || '#888'}"></span>
+                    ${a.name}
+                </label>`;
+            }).join('');
+            updateFilterCount('assignee', filterAssignee.length);
+
+            // Приоритеты
+            const priorityDropdown = document.getElementById('filterPriorityDropdown');
+            priorityDropdown.innerHTML = PRIORITY_ORDER.map(p => {
+                const isChecked = filterPriority.includes(p);
+                return `<label class="filter-option">
+                    <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('priority', '${p}')">
+                    <span class="priority-badge priority-${p}">${PRIORITY_LABELS[p]}</span>
+                </label>`;
+            }).join('');
+            updateFilterCount('priority', filterPriority.length);
+
+            // Статусы
+            const statusDropdown = document.getElementById('filterStatusDropdown');
+            statusDropdown.innerHTML = STATUS_LIST.map(s => {
+                const isChecked = filterStatus.includes(s);
+                return `<label class="filter-option">
+                    <input type="checkbox" value="${s}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('status', '${s}')">
+                    <span class="status-badge status-${s}">${STATUS_LABELS[s]}</span>
+                </label>`;
+            }).join('');
+            updateFilterCount('status', filterStatus.length);
+        }
+
+        function updateFilterCount(type, count) {
+            const el = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Count`);
+            if (el) el.textContent = count > 0 ? `(${count})` : '';
+        }
+
+        function toggleFilter(type, value) {
+            const arr = type === 'assignee' ? filterAssignee : type === 'priority' ? filterPriority : filterStatus;
+            const idx = arr.indexOf(value);
+            if (idx >= 0) {
+                arr.splice(idx, 1);
+            } else {
+                arr.push(value);
+            }
+            saveFilters();
+            renderFilterDropdowns();
+            renderTasks();
+        }
+
+        function resetFilters() {
+            filterAssignee = [];
+            filterPriority = [];
+            filterStatus = [];
+            saveFilters();
+            renderFilterDropdowns();
+            renderTasks();
+        }
+
+        function saveFilters() {
+            try {
+                localStorage.setItem(LOCAL_FILTERS_KEY, JSON.stringify({
+                    assignee: filterAssignee,
+                    priority: filterPriority,
+                    status: filterStatus
+                }));
+            } catch (e) {}
+        }
+
+        function loadFilters() {
+            try {
+                const data = JSON.parse(localStorage.getItem(LOCAL_FILTERS_KEY));
+                if (data) {
+                    filterAssignee = data.assignee || [];
+                    filterPriority = data.priority || [];
+                    filterStatus = data.status || [];
+                }
+            } catch (e) {}
+        }
+
         function applyFilters() {
-            filterAssignee = document.getElementById('filterAssignee').value;
-            filterPriority = document.getElementById('filterPriority').value;
-            filterStatus = document.getElementById('filterStatus').value;
             renderTasks();
         }
 
         function matchesFilters(task) {
-            if (filterAssignee && !task.assignees.includes(filterAssignee)) return false;
-            if (filterPriority && task.priority !== filterPriority) return false;
-            if (filterStatus && task.status !== filterStatus) return false;
-            return true;
+            // Если все фильтры пустые - показываем всё
+            if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+                return true;
+            }
+            
+            // Проверяем соответствие задачи фильтрам
+            const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => task.assignees.includes(String(id)));
+            const priorityMatch = filterPriority.length === 0 || filterPriority.includes(task.priority);
+            const statusMatch = filterStatus.length === 0 || filterStatus.includes(task.status);
+            
+            return assigneeMatch && priorityMatch && statusMatch;
+        }
+
+        function taskHasMatchingLeaf(task) {
+            // Если фильтры пустые - всё соответствует
+            if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+                return true;
+            }
+            
+            // Рекурсивно ищем соответствующие конечные подзадачи
+            const findMatchingLeaf = (subtasks) => {
+                if (!subtasks || subtasks.length === 0) return false;
+                
+                for (const sub of subtasks) {
+                    const hasChildren = sub.children && sub.children.length > 0;
+                    
+                    if (hasChildren) {
+                        // Если есть дети - ищем в них
+                        if (findMatchingLeaf(sub.children)) return true;
+                    } else {
+                        // Конечная подзадача - проверяем фильтры
+                        const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (sub.assignees || []).includes(String(id)));
+                        const priorityMatch = filterPriority.length === 0 || filterPriority.includes(sub.priority);
+                        const statusMatch = filterStatus.length === 0 || filterStatus.includes(sub.status);
+                        
+                        if (assigneeMatch && priorityMatch && statusMatch) return true;
+                    }
+                }
+                return false;
+            };
+            
+            // Если у задачи нет подзадач - проверяем саму задачу
+            if (!task.subtasks || task.subtasks.length === 0) {
+                return matchesFilters(task);
+            }
+            
+            // Ищем соответствующие конечные подзадачи
+            return findMatchingLeaf(task.subtasks);
+        }
+
+        function filterSubtasks(subtasks) {
+            // Если фильтры пустые - возвращаем всё
+            if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+                return subtasks;
+            }
+            
+            const filterTree = (nodes) => {
+                if (!nodes || nodes.length === 0) return [];
+                
+                const result = [];
+                for (const node of nodes) {
+                    const hasChildren = node.children && node.children.length > 0;
+                    
+                    if (hasChildren) {
+                        // Фильтруем детей
+                        const filteredChildren = filterTree(node.children);
+                        
+                        // Если есть отфильтрованные дети или сама подзадача конечная и соответствует
+                        if (filteredChildren.length > 0) {
+                            result.push({ ...node, children: filteredChildren });
+                        }
+                    } else {
+                        // Конечная подзадача - проверяем фильтры
+                        const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (node.assignees || []).includes(String(id)));
+                        const priorityMatch = filterPriority.length === 0 || filterPriority.includes(node.priority);
+                        const statusMatch = filterStatus.length === 0 || filterStatus.includes(node.status);
+                        
+                        if (assigneeMatch && priorityMatch && statusMatch) {
+                            result.push(node);
+                        }
+                    }
+                }
+                return result;
+            };
+            
+            return filterTree(subtasks);
         }
 
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
-            const filteredTasks = tasks.filter(matchesFilters);
+            const filteredTasks = tasks.filter(taskHasMatchingLeaf);
             container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
             renderKanban();
         }
@@ -1876,7 +2126,7 @@ async function checkAuth() {
                     </div>
                 </div>
                 <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
-                    ${renderSubtaskTree(task.subtasks, task.id, 0, taskColor)}
+                    ${renderSubtaskTree(filterSubtasks(task.subtasks), task.id, 0, taskColor)}
                 </div>
             `;
         }
