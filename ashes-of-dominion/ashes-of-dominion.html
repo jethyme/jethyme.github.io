@@ -249,6 +249,8 @@
         .subtask-item.level-1 { border-left: 4px solid var(--accent-2); }
         .subtask-item.level-2 { border-left: 4px solid var(--accent-3); }
         .subtask-item.level-3 { border-left: 4px solid var(--success); }
+        .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; opacity: 0.8; }
+        .task-row.dragging, .subtask-item.dragging { opacity: 0.5; cursor: grabbing; }
 
         .kanban-board {
             display: none;
@@ -1746,7 +1748,7 @@ async function checkAuth() {
             const rowStyle = rowStyleParts.join(';');
             
             return `
-                <div class="task-row" id="task-${task.id}" style="${rowStyle}">
+                <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event)" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
                     <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
                     <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
