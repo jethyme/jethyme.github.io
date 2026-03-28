@@ -796,7 +796,7 @@
             const stats = getSubtaskStats(subtasks);
             if (!stats.total) return '';
             const pct = Math.round((stats.done / stats.total) * 100);
-            return `<div class="task-meta"><span>${stats.done}/${stats.total} ������</span><div class="progress-bar"><span style="width:${pct}%"></span></div></div>`;
+            return `<div class="task-meta"><span>${stats.done}/${stats.total} задач</span><div class="progress-bar"><span style="width:${pct}%"></span></div></div>`;
         };
 
         const calculateTaskAssignees = window.calculateTaskAssignees || function calculateTaskAssignees(subtasks) {
