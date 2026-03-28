@@ -104,9 +104,9 @@
         .task-list { background: #0f3460; border-radius: 8px; overflow: hidden; }
         .task-row {
             display: grid;
-            grid-template-columns: 35px 25px 1fr 90px 100px 180px 140px;
+            grid-template-columns: 35px 1fr 90px 100px 180px 140px;
             align-items: center;
-            padding: 12px 15px;
+            padding: 12px 15px 12px 10px;
             border-bottom: 1px solid #1a4a7a;
             gap: 10px;
         }
@@ -115,6 +115,13 @@
             background: #1a4a7a;
             font-weight: bold;
             font-size: 0.9em;
+        }
+        .task-row-inline {
+            display: grid;
+            grid-template-columns: 35px 1fr 90px 100px 180px 140px;
+            align-items: center;
+            padding: 12px 15px 12px 10px;
+            gap: 10px;
         }
         .expand-btn {
             width: 28px;
@@ -789,8 +796,13 @@
                 }
             }
             
-            // Пересчитываем исполнителей из подзадач
-            const newAssignees = calculateTaskAssignees(newSubtasks);
+            // Если есть подзадачи — пересчитываем исполнителей из них, иначе сохраняем ручные
+            let newAssignees;
+            if (newSubtasks && newSubtasks.length > 0) {
+                newAssignees = calculateTaskAssignees(newSubtasks);
+            } else {
+                newAssignees = taskData.assignees || [];
+            }
             
             if (taskData.id) {
                 await sbClient.from('tasks').update({
@@ -972,7 +984,7 @@
         }
 
         function renderTaskRow(task) {
-            const assigneeNames = task.assignees.map(id => { 
+            const assigneeNames = calculateNodeAssignees(task).map(id => { 
                 const a = assignees.find(x => x.id == id); 
                 return a ? a.name : id; 
             });
@@ -982,7 +994,6 @@
             return `
                 <div class="task-row" id="task-${task.id}">
                     <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '▼' : '▶') : ''}</div>
-                    <div></div>
                     <div class="task-title">${task.title}</div>
                     <div><span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
                     <div><span class="status-badge status-${task.status}">${STATUS_LABELS[task.status]}</span></div>
@@ -1001,19 +1012,22 @@
 
         function renderSubtaskTree(subtasks, taskId, level) {
             if (!subtasks || subtasks.length === 0) return '';
-            return subtasks.map(sub => {
+            return subtasks.map((sub, idx) => {
                 const hasChildren = sub.children && sub.children.length > 0;
-                const subAssignees = (sub.assignees || []).map(id => { 
+                const subAssignees = calculateNodeAssignees(sub).map(id => { 
                     const a = assignees.find(x => x.id == id); 
                     return a ? a.name : id; 
                 });
                 const isExpanded = expandedSubtasks.has(sub.id);
-                const indent = 15 + level * 25;
+                const isLast = idx === subtasks.length - 1;
+                const levelClass = 'subtask-level-' + Math.min(level, 3);
+                const treeLine = level > 0 ? '<span class="tree-connector"></span>' : '';
+                
                 return `
-                    <div class="subtask-children" style="padding-left:${indent}px">
-                        <div class="subtask-row">
+                    <div class="subtask-children ${levelClass}">
+                        ${renderTreeIndent(level, isLast)}
+                        <div class="subtask-row-inline">
                             <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '▼' : '▶') : ''}</div>
-                            <div></div>
                             <div class="task-title">${sub.title}</div>
                             <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
                             <div><span class="status-badge status-${sub.status}">${STATUS_LABELS[sub.status]}</span></div>
@@ -1029,146 +1043,172 @@
                 `;
             }).join('');
         }
+        
+        function renderTreeIndent(level, isLast) {
+            let html = '';
+            for (let i = 0; i < level; i++) {
+                html += '<span class="tree-level"></span>';
+            }
+            html += '<span class="tree-node' + (isLast ? ' tree-node-last' : '') + '"></span>';
+            return html;
+        }
 
         function renderKanban() {
             const columns = { queue: [], progress: [], review: [], done: [] };
             
-            // Строим плоский список всех задач и подзадач с их иерархией
-            const flatItems = [];
-            
             tasks.filter(matchesFilters).forEach(task => {
-                // Добавляем задачу
-                flatItems.push({
+                // Задача попадает в свою колонку
+                columns[task.status].push({
                     type: 'task',
-                    item: task,
-                    parentId: null,
-                    breadcrumb: null,
-                    depth: 0
+                    task: task
                 });
                 
-                // Рекурсивно добавляем все подзадачи
-                const addSubtasks = (subtasks, parentId, breadcrumb, depth) => {
+                // Подзадачи попадают в свои колонки
+                const collectSubtasks = (subtasks, parentTaskId) => {
                     subtasks.forEach(sub => {
-                        const subBreadcrumb = breadcrumb ? `${breadcrumb} › ${task.title}` : task.title;
-                        flatItems.push({
+                        columns[sub.status].push({
                             type: 'subtask',
-                            item: sub,
-                            parentId: parentId,
-                            parentTaskId: task.id,
-                            breadcrumb: subBreadcrumb,
-                            depth: depth
+                            task: sub,
+                            parentTaskId: parentTaskId
                         });
                         if (sub.children) {
-                            addSubtasks(sub.children, sub.id, subBreadcrumb, depth + 1);
+                            collectSubtasks(sub.children, parentTaskId);
                         }
                     });
                 };
-                
-                addSubtasks(task.subtasks, task.id, null, 1);
+                collectSubtasks(task.subtasks, task.id);
             });
             
-            // Группируем по статусу
-            flatItems.forEach(item => {
-                columns[item.item.status].push(item);
-            });
-            
-            // Рендерим колонки
             Object.keys(columns).forEach(status => {
-                const container = document.getElementById(`${status}Tasks`);
+                const container = document.getElementById(status + 'Tasks');
                 container.innerHTML = renderKanbanColumn(columns[status]);
             });
         }
         
         function renderKanbanColumn(items) {
-            // Находим задачи с nested подзадачами того же статуса
-            const taskIds = new Set(items.filter(i => i.type === 'task').map(i => i.item.id));
-            
-            let html = '';
+            // Группируем: задачи и их подзадачи того же статуса
+            const result = [];
             let i = 0;
             
             while (i < items.length) {
                 const item = items[i];
                 
                 if (item.type === 'task') {
-                    // Проверяем, есть ли nested подзадачи того же статуса
-                    const nestedItems = [];
+                    // Собираем подзадачи этого же статуса
+                    const nestedSubtasks = [];
                     let j = i + 1;
                     while (j < items.length && items[j].type === 'subtask' && 
-                           items[j].item.status === item.item.status && items[j].depth === 1) {
-                        nestedItems.push(items[j]);
+                           items[j].task.status === item.task.status) {
+                        nestedSubtasks.push(items[j]);
                         j++;
                     }
                     
-                    if (nestedItems.length > 0) {
-                        html += renderKanbanTaskNested(item.item, nestedItems);
-                        i = j;
-                        continue;
+                    if (nestedSubtasks.length > 0) {
+                        result.push({
+                            type: 'nested',
+                            task: item.task,
+                            subtasks: nestedSubtasks
+                        });
+                    } else {
+                        result.push({ type: 'task', task: item.task });
                     }
-                }
-                
-                // Обычная карточка
-                if (item.type === 'task') {
-                    html += renderKanbanCard(item.item, null, null, 0);
+                    i = j;
                 } else {
-                    html += renderKanbanCard(item.item, item.parentTaskId, item.breadcrumb, item.depth);
+                    // Отдельная подзадача (другой статус)
+                    result.push({ type: 'subtask', task: item.task, parentTaskId: item.parentTaskId });
+                    i++;
                 }
-                i++;
             }
             
-            return html || '<div class="kanban-empty">Пусто</div>';
+            return result.map(function(item) {
+                if (item.type === 'nested') {
+                    return renderKanbanNested(item.task, item.subtasks);
+                } else if (item.type === 'task') {
+                    return renderKanbanCard(item.task, null);
+                } else {
+                    return renderKanbanCard(item.task, item.parentTaskId);
+                }
+            }).join('') || '<div class="kanban-empty">Пусто</div>';
         }
         
-        function renderKanbanCard(item, parentTaskId, breadcrumb, depth) {
-            const assigneeNames = (item.assignees || []).map(id => { 
-                const a = assignees.find(x => x.id == id); 
+        function renderKanbanCard(task, parentTaskId) {
+            const allAssignees = calculateNodeAssignees(task);
+            const assigneeNames = allAssignees.map(function(id) { 
+                const a = assignees.find(function(x) { return x.id == id; }); 
                 return a ? a.name : id; 
             });
             
             const isTask = !parentTaskId;
             const cardClass = isTask ? 'kanban-card' : 'kanban-child';
-            const clickHandler = isTask ? 'editTask(' + item.id + ')' : 'openSubtaskModal(' + parentTaskId + ',' + item.id + ')';
-            const dragHandler = isTask ? 'handleTaskDragStart(event, ' + item.id + ')' : 'handleSubtaskDragStart(event, ' + parentTaskId + ', ' + item.id + ')';
-            
-            const depthColors = ['', 'rgba(233, 69, 96, 0.15)', 'rgba(233, 69, 96, 0.25)', 'rgba(233, 69, 96, 0.35)'];
-            const bgColor = depth > 0 ? depthColors[Math.min(depth, 3)] : '';
+            const clickHandler = isTask ? 'editTask(' + task.id + ')' : 'openSubtaskModal(' + parentTaskId + ',' + task.id + ')';
+            const dragHandler = isTask ? 'handleTaskDragStart(event, ' + task.id + ')' : 'handleSubtaskDragStart(event, ' + parentTaskId + ', ' + task.id + ')';
             
             return '<div class="' + cardClass + '" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
                    'onclick="' + clickHandler + '" ' +
                    'ondragstart="' + dragHandler + '" ' +
                    'ondragend="handleDragEnd(event)" ' +
-                   'style="' + (bgColor ? 'background:' + bgColor + ';' : '') + (canEdit ? 'cursor:pointer;' : '') + '" ' +
-                   'title="' + item.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                   'style="' + (canEdit ? 'cursor:pointer;' : '') + '" ' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header">' +
-                    (breadcrumb ? '<div class="breadcrumb">' + breadcrumb + '</div>' : '') +
-                    '<div class="title" title="' + item.title + '">' + item.title + '</div>' +
-                    '<div class="meta"><span class="priority-badge priority-' + (item.priority || 'medium') + '">' + PRIORITY_LABELS[item.priority || 'medium'] + '</span></div>' +
+                    '<div class="title" title="' + task.title + '">' + task.title + '</div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
                     '<div class="assignees-list">' + assigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
                 '</div>' +
             '</div>';
         }
         
-        function renderKanbanTaskNested(task, nestedItems) {
-            const assigneeNames = task.assignees.map(function(id) { 
+        function renderKanbanNested(task, subtasks) {
+            const allAssignees = calculateNodeAssignees(task);
+            const assigneeNames = allAssignees.map(function(id) { 
                 const a = assignees.find(function(x) { return x.id == id; }); 
                 return a ? a.name : id; 
             });
             
-            var childrenHtml = nestedItems.map(function(sub) {
-                var subAssignees = (sub.item.assignees || []).map(function(id) { 
-                    var a = assignees.find(function(x) { return x.id == id; }); 
-                    return a ? a.name : id; 
-                });
-                return '<div class="kanban-child" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
-                       'onclick="openSubtaskModal(' + task.id + ',' + sub.item.id + ')" ' +
-                       'ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + sub.item.id + ')" ' +
-                       'ondragend="handleDragEnd(event)" ' +
-                       'style="' + (canEdit ? 'cursor:pointer;' : '') + '" ' +
-                       'title="' + sub.item.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
-                    '<div class="name" title="' + sub.item.title + '">' + sub.item.title + '</div>' +
-                    '<div class="meta"><span class="priority-badge priority-' + (sub.item.priority || 'medium') + '">' + PRIORITY_LABELS[sub.item.priority || 'medium'] + '</span></div>' +
-                    '<div class="assignees-list">' + subAssignees.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
-                '</div>';
-            }).join('');
+            // Рекурсивно рендерим детей
+            function renderChildren(subtasks, depth) {
+                return subtasks.map(function(sub) {
+                    const subAllAssignees = calculateNodeAssignees(sub);
+                    const subAssigneeNames = subAllAssignees.map(function(id) { 
+                        const a = assignees.find(function(x) { return x.id == id; }); 
+                        return a ? a.name : id; 
+                    });
+                    
+                    const depthColors = ['rgba(233, 69, 96, 0.1)', 'rgba(233, 69, 96, 0.2)', 'rgba(233, 69, 96, 0.3)'];
+                    const bgColor = depthColors[Math.min(depth, 2)];
+                    
+                    // Проверяем есть ли дети с тем же статусом
+                    const sameStatusChildren = (sub.children || []).filter(function(c) { return c.status === sub.status; });
+                    
+                    let html = '<div class="kanban-child" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
+                               'onclick="openSubtaskModal(' + task.id + ',' + sub.id + ')" ' +
+                               'ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + sub.id + ')" ' +
+                               'ondragend="handleDragEnd(event)" ' +
+                               'style="background:' + bgColor + ';' + (canEdit ? 'cursor:pointer;' : '') + '" ' +
+                               'title="' + sub.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                        '<div class="name" title="' + sub.title + '">' + sub.title + '</div>' +
+                        '<div class="meta"><span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span></div>' +
+                        '<div class="assignees-list">' + subAssigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
+                    '</div>';
+                    
+                    // Если есть дети того же статуса - рендерим их внутри
+                    if (sameStatusChildren.length > 0) {
+                        html = '<div class="kanban-child-nested" style="background:' + bgColor + ';">' +
+                            '<div class="kanban-child-header" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
+                               'onclick="openSubtaskModal(' + task.id + ',' + sub.id + ')" ' +
+                               'ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + sub.id + ')" ' +
+                               'ondragend="handleDragEnd(event)" ' +
+                               'style="' + (canEdit ? 'cursor:pointer;' : '') + '">' +
+                                '<div class="name" title="' + sub.title + '">' + sub.title + '</div>' +
+                                '<div class="meta"><span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span></div>' +
+                                '<div class="assignees-list">' + subAssigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
+                            '</div>' +
+                            '<div class="kanban-children">' + renderChildren(sameStatusChildren, depth + 1) + '</div>' +
+                        '</div>';
+                    }
+                    
+                    return html;
+                }).join('');
+            }
             
             return '<div class="kanban-card kanban-card-nested" draggable="' + (canEdit ? 'true' : 'false') + '" ' +
                    'onclick="editTask(' + task.id + ')" ' +
@@ -1181,7 +1221,7 @@
                     '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
                     '<div class="assignees-list">' + assigneeNames.map(function(a) { return '<span class="assignee-tag">' + a + '</span>'; }).join('') + '</div>' +
                 '</div>' +
-                '<div class="kanban-children">' + childrenHtml + '</div>' +
+                '<div class="kanban-children">' + renderChildren(subtasks, 0) + '</div>' +
             '</div>';
         }
 
