@@ -1466,11 +1466,11 @@ async function checkAuth() {
                 return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked} data-id="${a.id}"><span class="assignee-dot" style="background:${color}"></span>${a.name}</label>`;
             }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
 
-            // Append picker to body and position it
+            // Position picker near the clicked element
+            const rect = event.target.getBoundingClientRect();
             picker.style.position = 'fixed';
-            picker.style.top = '50%';
-            picker.style.left = '50%';
-            picker.style.transform = 'translate(-50%, -50%)';
+            picker.style.top = (rect.bottom + 4) + 'px';
+            picker.style.left = rect.left + 'px';
             document.body.appendChild(picker);
 
             // Use click events on checkboxes directly
