@@ -2314,20 +2314,33 @@ async function checkAuth() {
         let dropTargetPlaceholder = null;
 
         function isDescendant(source, targetTaskId, targetSubtaskId) {
-            // Проверяем, не является ли target потомком source
+            // Проверяем, является ли target потомком source
+            // Если source - задача, ищем target в её дереве подзадач
             if (source.type === 'task') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) return false;
+                
+                // Если target - та же задача
+                if (!targetSubtaskId && targetTaskId === source.taskId) {
+                    return true;
+                }
+                
+                // Если target - подзадача в дереве source
                 if (targetSubtaskId) {
                     return findSubtaskById(sourceTask.subtasks, targetSubtaskId) !== null;
                 }
-                return targetTaskId === source.taskId;
+                return false;
             }
+            
+            // Если source - подзадача, ищем target в её дереве
             if (source.type === 'subtask') {
                 const sourceTask = tasks.find(t => t.id === source.taskId);
                 if (!sourceTask) return false;
+                
                 const sourceSub = findSubtaskById(sourceTask.subtasks, source.subtaskId);
                 if (!sourceSub) return false;
+                
+                // Если target - подзадача в дереве sourceSub
                 if (targetSubtaskId) {
                     return findSubtaskById(sourceSub.children || sourceSub.subtasks || [], targetSubtaskId) !== null;
                 }
@@ -2491,14 +2504,20 @@ async function checkAuth() {
             // Очищаем старые классы
             target.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
             
-            // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
+            // Проверяем, можно ли перетащить (не на себя и не на своего потомка)
             const isSameItem = (listDragItem.type === 'task' && String(listDragItem.taskId) === String(targetTaskId)) ||
                                (listDragItem.type === 'subtask' && String(listDragItem.subtaskId) === String(targetSubtaskId));
             
             const isChild = isDescendant(listDragItem, targetTaskId, targetSubtaskId);
+            
+            // Нельзя перетаскивать на себя или на своего потомка
+            if (isSameItem || isChild) {
+                target.classList.remove('drag-insert-before', 'drag-insert-after', 'drop-target', 'drag-over');
+                return;
+            }
 
             // Средняя треть + не тот же элемент + не потомок = показываем drop-target
-            if (insertType === 'child' && !isSameItem && !isChild) {
+            if (insertType === 'child') {
                 target.classList.add('drop-target');
             } else if (insertType === 'before') {
                 target.classList.add('drag-insert-before');
