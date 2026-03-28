@@ -881,10 +881,13 @@
 
         function renderAssigneeCell(ids, taskId, subtaskId, canEditFlag) {
             const tags = renderAssigneeTags(ids);
-            if (!canEditFlag || (ids && ids.length > 0)) {
+            if (!canEditFlag) {
                 return '<div class="assignees-list">' + tags + '</div>';
             }
             const placeholder = '<span class="assignee-placeholder clickable-badge" data-type="assignee" data-task-id="' + taskId + '" data-subtask="' + (subtaskId || '') + '" data-value="">+</span>';
+            if (ids && ids.length > 0) {
+                return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + tags + placeholder + '</div>';
+            }
             return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + placeholder + '</div>';
         }
 
