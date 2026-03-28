@@ -260,19 +260,43 @@
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
-        .drop-target-placeholder {
+        .drop-zone-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 4px 0;
+            padding: 6px;
+            background: rgba(233, 69, 96, 0.1);
+            border-radius: 6px;
+        }
+        .drop-zone {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 8px 14px;
-            background: rgba(233, 69, 96, 0.2);
-            border: 2px dashed var(--accent);
-            border-radius: 8px;
-            margin: 4px 14px;
-            font-size: 0.85em;
+            gap: 6px;
+            padding: 6px;
+            border: 2px dashed;
+            border-radius: 6px;
+            font-size: 0.8em;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .drop-zone-task {
+            border-color: var(--accent);
             color: var(--accent);
+            background: rgba(233, 69, 96, 0.05);
+        }
+        .drop-zone-task:hover {
+            background: rgba(233, 69, 96, 0.15);
+        }
+        .drop-zone-subtask {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(74, 222, 128, 0.05);
+        }
+        .drop-zone-subtask:hover {
+            background: rgba(74, 222, 128, 0.15);
         }
         .insert-indicator { height: 3px; background: var(--accent); margin: 4px 0; border-radius: 2px; }
         .insert-indicator::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
@@ -2464,7 +2488,10 @@ async function checkAuth() {
         function handleListDragEnd(e) {
             if (e.currentTarget) e.currentTarget.classList.remove('dragging');
             document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-            removeDropIndicator();
+            // Очищаем зоны с задержкой, чтобы дать время на клик
+            setTimeout(() => {
+                removeDropIndicator();
+            }, 100);
             removeDropTargetPlaceholder();
             listDragItem = null;
         }
@@ -2475,6 +2502,11 @@ async function checkAuth() {
             e.stopPropagation();
 
             const target = e.currentTarget;
+            
+            // Удаляем старые зоны при переходе на новый элемент
+            if (dropIndicator && dropIndicator.parentNode && !dropIndicator.contains(target)) {
+                removeDropIndicator();
+            }
             
             // Проверяем, можно ли перетащить как подзадачу (если у цели нет подзадач)
             const canDropAsSubtask = hasSubtasks === false;
@@ -2507,62 +2539,49 @@ async function checkAuth() {
         function handleListDragLeave(e) {
             e.currentTarget.classList.remove('drag-over');
             e.currentTarget.classList.remove('drop-target');
-            removeDropIndicator();
+            // Не удаляем drop indicator сразу - даём возможность кликнуть на зону
+            // removeDropIndicator();
             removeDropTargetPlaceholder();
         }
 
         function updateDropIndicator(target, insertBefore, targetTaskId) {
             removeDropIndicator();
 
-            // Если перетаскиваем подзадачу и наводим на задачу - добавляем опцию "вставить как задачу"
+            // Если перетаскиваем подзадачу и наводим на задачу - показываем две зоны
             const isTaskTarget = target.classList.contains('task-row');
             const isDraggingSubtask = listDragItem?.type === 'subtask';
             
             if (isDraggingSubtask && isTaskTarget) {
-                // Создаём контейнер с двумя опциями
+                // Создаём контейнер с двумя зонами
                 const container = document.createElement('div');
-                container.style.display = 'flex';
-                container.style.alignItems = 'center';
-                container.style.gap = '8px';
-                container.style.margin = '4px 0';
+                container.className = 'drop-zone-container';
+                container.dataset.insertBefore = insertBefore;
+                container.dataset.targetTaskId = targetTaskId;
                 
-                // Индикатор вставки (между задачами)
-                const insertInd = document.createElement('div');
-                insertInd.className = 'insert-indicator';
-                insertInd.style.flex = '1';
-                insertInd.style.height = '3px';
-                insertInd.style.background = 'var(--accent)';
-                insertInd.style.borderRadius = '2px';
-                insertInd.style.cursor = 'pointer';
-                insertInd.title = 'Вставить как задачу';
-                insertInd.onclick = async (e) => {
+                // Зона для вставки как задачи
+                const taskZone = document.createElement('div');
+                taskZone.className = 'drop-zone drop-zone-task';
+                taskZone.innerHTML = '<span>📄</span><span>Вставить как задачу</span>';
+                taskZone.onclick = async (e) => {
                     e.stopPropagation();
-                    await insertSubtaskAsTask(targetTaskId, insertBefore);
+                    const insBefore = container.dataset.insertBefore === 'true';
+                    const tgtId = parseInt(container.dataset.targetTaskId);
+                    await insertSubtaskAsTask(tgtId, insBefore);
                 };
                 
-                // Разделитель
-                const separator = document.createElement('div');
-                separator.textContent = '|';
-                separator.style.color = 'var(--muted)';
-                separator.style.fontSize = '12px';
-                
-                // Индикатор подзадачи
-                const subInd = document.createElement('div');
-                subInd.className = 'insert-indicator';
-                subInd.style.flex = '1';
-                subInd.style.height = '3px';
-                subInd.style.background = 'var(--success)';
-                subInd.style.borderRadius = '2px';
-                subInd.style.cursor = 'pointer';
-                subInd.title = 'Вставить как подзадачу';
-                subInd.onclick = async (e) => {
+                // Зона для вставки как подзадачи
+                const subtaskZone = document.createElement('div');
+                subtaskZone.className = 'drop-zone drop-zone-subtask';
+                subtaskZone.innerHTML = '<span>📑</span><span>Вставить как подзадачу</span>';
+                subtaskZone.onclick = async (e) => {
                     e.stopPropagation();
-                    await handleListDropOnTask(targetTaskId, insertBefore);
+                    const insBefore = container.dataset.insertBefore === 'true';
+                    const tgtId = parseInt(container.dataset.targetTaskId);
+                    await handleListDropOnTask(tgtId, insBefore);
                 };
                 
-                container.appendChild(insertInd);
-                container.appendChild(separator);
-                container.appendChild(subInd);
+                container.appendChild(taskZone);
+                container.appendChild(subtaskZone);
                 
                 if (insertBefore) {
                     target.parentNode.insertBefore(container, target);
@@ -2572,7 +2591,7 @@ async function checkAuth() {
                 
                 dropIndicator = container;
             } else {
-                // Обычный индикатор
+                // Обычный индикатор для перемещения порядка
                 dropIndicator = document.createElement('div');
                 dropIndicator.className = 'insert-indicator';
                 dropIndicator.style.position = 'relative';
@@ -2804,15 +2823,60 @@ async function checkAuth() {
                 return;
             }
 
-            // Если есть индикатор с выбором (для подзадач) - не обрабатываем drop здесь
-            if (dropIndicator && dropIndicator.children && dropIndicator.children.length > 1) {
+            // Если есть зоны выбора - не обрабатываем drop здесь (пользователь должен кликнуть на зону)
+            if (dropIndicator && dropIndicator.classList.contains('drop-zone-container')) {
                 removeDropIndicator();
                 listDragItem = null;
                 return;
             }
 
             const insertBefore = dropIndicator ? dropIndicator.insertBefore : true;
-            await handleListDropOnTask(targetTaskId, insertBefore);
+            
+            // Для задач - просто меняем порядок
+            if (listDragItem.type === 'task') {
+                await handleTaskReorder(targetTaskId, insertBefore);
+            } else {
+                // Для подзадач - вставляем как подзадачу (по умолчанию, если не выбрано иное)
+                await handleListDropOnTask(targetTaskId, insertBefore);
+            }
+        }
+
+        async function handleTaskReorder(targetTaskId, insertBefore) {
+            const source = listDragItem;
+            if (source.type !== 'task') return;
+            
+            const sourceTask = tasks.find(t => t.id === source.taskId);
+            if (!sourceTask) {
+                listDragItem = null;
+                return;
+            }
+
+            const sourceIndex = tasks.findIndex(t => t.id === source.taskId);
+            if (sourceIndex === -1) {
+                listDragItem = null;
+                return;
+            }
+
+            let targetIndex = tasks.findIndex(t => t.id === targetTaskId);
+            if (targetIndex === -1) {
+                listDragItem = null;
+                return;
+            }
+
+            if (sourceIndex < targetIndex) {
+                targetIndex--;
+            }
+
+            tasks.splice(sourceIndex, 1);
+            if (insertBefore) {
+                tasks.splice(targetIndex, 0, sourceTask);
+            } else {
+                tasks.splice(targetIndex + 1, 0, sourceTask);
+            }
+
+            await saveTaskOrder();
+            listDragItem = null;
+            renderTasks();
         }
 
         function findAndRemoveSubtask(subtasks, subtaskId) {
