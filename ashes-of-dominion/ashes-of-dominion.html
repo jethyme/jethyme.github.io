@@ -746,6 +746,20 @@
             collectAssignees(subtasks || []);
             return Array.from(allAssignees);
         }
+        
+        // Собирает исполнителей из узла и всех его потомков
+        function calculateNodeAssignees(node) {
+            const allAssignees = new Set();
+            if (node.assignees) {
+                node.assignees.forEach(a => allAssignees.add(String(a)));
+            }
+            if (node.children) {
+                node.children.forEach(child => {
+                    calculateNodeAssignees(child).forEach(a => allAssignees.add(a));
+                });
+            }
+            return Array.from(allAssignees);
+        }
 
         // Вычисляет статус задачи как МИНИМАЛЬНЫЙ среди всех подзадач
         // Если подзадач нет — 'queue'
