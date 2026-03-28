@@ -2311,10 +2311,14 @@ async function checkAuth() {
             const consumedSubtasks = new Set();
             const subtasksByRoot = new Map();
             const taskIdsInColumn = new Set();
+            const subtaskIdsInColumn = new Set();
 
-            // Собираем все ID задач в этой колонке
+            // Собираем все ID задач и подзадач в этой колонке
             items.filter(i => i.type === 'task').forEach(t => {
                 taskIdsInColumn.add(t.task.id);
+            });
+            items.filter(i => i.type === 'subtask').forEach(s => {
+                subtaskIdsInColumn.add(s.task.id);
             });
 
             items.filter(i => i.type === 'subtask').forEach(sub => {
@@ -2337,7 +2341,7 @@ async function checkAuth() {
                 } else if (!consumedSubtasks.has(item.task.id)) {
                     // Проверяем, есть ли родитель в этой колонке
                     const hasParentInColumn = item.parentSubtaskId ? 
-                        items.some(p => p.type === 'subtask' && p.task.id === item.parentSubtaskId) :
+                        subtaskIdsInColumn.has(item.parentSubtaskId) :
                         taskIdsInColumn.has(item.rootTaskId);
                     
                     if (!hasParentInColumn && item.depth === 0) {
@@ -2345,9 +2349,11 @@ async function checkAuth() {
                         const children = [];
                         const collectChildren = (parentId) => {
                             items.filter(it => it.type === 'subtask' && it.item && it.item.parentSubtaskId === parentId).forEach(s => {
-                                children.push(s);
-                                consumedSubtasks.add(s.task.id);
-                                collectChildren(s.task.id);
+                                if (!consumedSubtasks.has(s.task.id)) {
+                                    children.push(s);
+                                    consumedSubtasks.add(s.task.id);
+                                    collectChildren(s.task.id);
+                                }
                             });
                         };
                         collectChildren(item.task.id);
