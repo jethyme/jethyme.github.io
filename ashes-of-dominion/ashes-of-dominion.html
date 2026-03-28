@@ -1668,8 +1668,8 @@ async function checkAuth() {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             task.priority = newPriority;
-            await sbClient.from('tasks').update({ priority: newPriority }).eq('id', taskId);
-            await loadTasks();
+            await sbClient.from('tasks').update({ priority: newPriority }).eq('id', taskId).select();
+            renderTasks();
         }
 
         async function changeTaskStatus(taskId, newStatus) {
@@ -1703,11 +1703,19 @@ async function checkAuth() {
         }
 
         function renderPriorityBadge(taskId, currentPriority, isSubtask, parentTaskId) {
-            return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
+            if (isSubtask) {
+                return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
+            } else {
+                return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + taskId + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
+            }
         }
 
         function renderStatusBadge(taskId, currentStatus, isSubtask, parentTaskId) {
-            return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
+            if (isSubtask) {
+                return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
+            } else {
+                return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + taskId + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
+            }
         }
 
         async function updateTaskAssignees(taskId, newAssignees) {
