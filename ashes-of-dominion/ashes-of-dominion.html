@@ -392,7 +392,6 @@
             border-bottom: 1px solid var(--border);
         }
         .kanban-card {
-            background: var(--surface-2);
             border-radius: 10px;
             margin-bottom: 10px;
             overflow: hidden;
@@ -400,15 +399,20 @@
             border: 1px solid var(--border);
             transition: transform 0.15s, box-shadow 0.15s;
         }
+        .kanban-card.no-color {
+            background: var(--surface-2);
+        }
         .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         .kanban-card.dragging { opacity: 0.5; }
         .kanban-card-header {
             padding: 10px 12px;
-            background: var(--surface);
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
+        }
+        .kanban-card-header.no-color {
+            background: var(--surface);
         }
         .kanban-card-header .title { font-weight: 600; font-size: 0.9em; flex: 1; min-width: 100px; }
         .kanban-card-header .meta { display: flex; gap: 4px; flex-shrink: 0; }
@@ -420,11 +424,13 @@
             gap: 8px;
             padding: 6px 8px;
             margin-bottom: 6px;
-            background: var(--surface-2);
             border-radius: 6px;
             font-size: 0.85em;
             cursor: grab;
             border-left: 3px solid;
+        }
+        .kanban-child.no-color {
+            background: var(--surface-2);
         }
         .kanban-child.depth-0 { border-left-color: var(--accent); }
         .kanban-child.depth-1 { border-left-color: var(--accent-2); }
@@ -2286,7 +2292,7 @@ async function checkAuth() {
         
         function renderKanbanCard(task, rootTaskId, depth, parentSubtaskId = null) {
             const assigneeIds = task.assignees || [];
-            
+
             const isTask = !rootTaskId;
             const depthClass = !isTask ? ' depth-' + Math.min(depth + 1, 3) : '';
             const cardClass = isTask ? 'kanban-card' : ('kanban-child' + depthClass);
@@ -2300,21 +2306,26 @@ async function checkAuth() {
             const dragEvents = canEdit ? ('ondragstart="' + dragHandler + '" ondragend="handleDragEnd(event)"') : '';
             const baseColor = isTask ? (task.color || '') : getTaskColorById(rootTaskId);
             const derivedColor = !isTask && baseColor ? deriveTaskColor(baseColor, depth + 1) : baseColor;
+            const hasColor = !!derivedColor;
+            
+            // Добавляем класс no-color если нет цвета
+            const fullCardClass = cardClass + (hasColor ? '' : ' no-color');
+            
             const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
-            if (derivedColor) {
-                styleParts.push('border-left:4px solid ' + derivedColor);
-                styleParts.push('background: ' + derivedColor);
-                styleParts.push('color: ' + getContrastColor(derivedColor));
+            if (hasColor) {
+                styleParts.push('border-left:4px solid ' + derivedColor + ' !important');
+                styleParts.push('background: ' + derivedColor + ' !important');
+                styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
             }
             const style = styleParts.join(';');
-            
+
             if (isTask) {
-                return '<div class="' + cardClass + '" ' + dragAttr + ' ' +
+                return '<div class="' + fullCardClass + '" ' + dragAttr + ' ' +
                        (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                        dragEvents + ' ' +
                        'style="' + style + '" ' +
                        'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
-                    '<div class="kanban-card-header">' +
+                    '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
                         '<div class="title">' + task.title + '</div>' +
                          '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                          '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
@@ -2322,7 +2333,7 @@ async function checkAuth() {
                 '</div>';
             }
 
-            return '<div class="' + cardClass + '" ' + dragAttr + ' ' +
+            return '<div class="' + fullCardClass + '" ' + dragAttr + ' ' +
                    (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                    dragEvents + ' ' +
                    'style="' + style + '" ' +
@@ -2366,18 +2377,20 @@ async function checkAuth() {
                 const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + task.id + ',' + node.task.id + ')"') : '';
                 const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
                 const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
+                const hasColor = !!derivedColor;
+                const fullDepthClass = depthClass + (hasColor ? '' : ' no-color');
                 const styleParts = [cursor];
-                if (derivedColor) {
-                    styleParts.push('border-left:4px solid ' + derivedColor);
-                    styleParts.push('background: ' + derivedColor);
-                    styleParts.push('color: ' + getContrastColor(derivedColor));
+                if (hasColor) {
+                    styleParts.push('border-left:4px solid ' + derivedColor + ' !important');
+                    styleParts.push('background: ' + derivedColor + ' !important');
+                    styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
                 }
                 const style = styleParts.join(';');
                 const childrenHtml = node.children.length > 0
                     ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
                     : '';
                 const nodeHasChildren = node.children.length > 0;
-                return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
+                return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
                         '<div class="meta">' + (canEdit ? renderPriorityBadge(node.task.id, node.task.priority || 'medium', true, task.id) : '<span class="priority-badge priority-' + (node.task.priority || 'medium') + '">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span>') + '</div>' +
                         '<div>' + renderAssigneeCell(subAssignees, task.id, node.task.id, canEdit && !nodeHasChildren) + '</div>' +
