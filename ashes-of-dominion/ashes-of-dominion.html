@@ -179,14 +179,14 @@
             text-align: center;
             white-space: nowrap;
         }
-        .status-queue { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
-        .status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
-        .status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
-        .status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
-        .priority-low { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
-        .priority-medium { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
-        .priority-high { background: rgba(251, 146, 60, 0.25); color: #fb923c; }
-        .priority-critical { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+        .status-queue { background: #5a6475; color: #fff; }
+        .status-progress { background: #0ea5e9; color: #fff; }
+        .status-review { background: #eab308; color: #000; }
+        .status-done { background: #22c55e; color: #fff; }
+        .priority-low { background: #64748b; color: #fff; }
+        .priority-medium { background: #0ea5e9; color: #fff; }
+        .priority-high { background: #f97316; color: #fff; }
+        .priority-critical { background: #ef4444; color: #fff; }
         .status-badge, .priority-badge { cursor: pointer; }
         .clickable-badge {
             padding: 3px 10px;
@@ -195,13 +195,13 @@
             font-weight: 600;
             cursor: pointer;
             display: inline-block;
-            border: 1px solid transparent;
-            transition: border-color 0.15s;
+            border: 1px solid rgba(0,0,0,0.2);
+            transition: border-color 0.15s, transform 0.1s;
         }
-        .clickable-badge:hover { border-color: rgba(255,255,255,0.3); }
+        .clickable-badge:hover { border-color: rgba(255,255,255,0.6); transform: scale(1.05); }
         .assignee-badge {
-            background: rgba(167, 139, 250, 0.2);
-            color: #a78bfa;
+            background: #8b5cf6;
+            color: #fff;
             padding: 3px 10px;
             border-radius: 20px;
             font-size: 0.72em;
@@ -210,7 +210,7 @@
             display: inline-block;
             border: 1px solid transparent;
         }
-        .assignee-badge:hover { border-color: rgba(255,255,255,0.3); }
+        .assignee-badge:hover { border-color: rgba(255,255,255,0.5); }
         .assignees-list.clickable { cursor: pointer; }
         .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
@@ -834,13 +834,32 @@
             return text.split(/\s+/)[0];
         }
 
+        function mixColor(hexA, hexB, weight) {
+            const a = hexToRgb(hexA);
+            const b = hexToRgb(hexB);
+            if (!a) return hexA || '';
+            if (!b) return hexA || '';
+            const w = Math.max(0, Math.min(1, weight));
+            const r = a.r * (1 - w) + b.r * w;
+            const g = a.g * (1 - w) + b.g * w;
+            const bl = a.b * (1 - w) + b.b * w;
+            return rgbToHex(Math.round(r), Math.round(g), Math.round(bl));
+        }
+
+        function deriveTaskColor(baseColor, depth) {
+            if (!baseColor) return '';
+            const weight = Math.min(0.12 * depth, 0.6);
+            return mixColor(baseColor, '#000000', weight);
+        }
+
         function renderAssigneeTags(ids) {
             return (ids || []).map((id, index) => {
                 const a = assignees.find(x => x.id == id);
                 const name = a ? a.name : id;
                 const displayName = getShortName(name);
                 const color = resolveAssigneeColor(a || { id: id, name: name }, index);
-                return '<span class="assignee-tag" style="background:' + color + '33;color:' + color + ';border-color:' + color + '66;">' + displayName + '</span>';
+                const textColor = getContrastColor(color);
+                return '<span class="assignee-tag" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
             }).join('');
         }
 
@@ -1692,11 +1711,12 @@ async function checkAuth() {
                 const isExpanded = expandedSubtasks.has(sub.id);
                 const levelClass = 'level-' + Math.min(level, 3);
                 const indent = level * 25;
+                const derivedColor = baseColor ? deriveTaskColor(baseColor, level + 1) : '';
                 const styleParts = [`padding-left:${indent + 15}px`];
-                if (baseColor) {
-                    styleParts.push('border-left:3px solid ' + baseColor);
-                    styleParts.push('background: ' + baseColor);
-                    styleParts.push('color: ' + getContrastColor(baseColor));
+                if (derivedColor) {
+                    styleParts.push('border-left:3px solid ' + derivedColor);
+                    styleParts.push('background: ' + derivedColor);
+                    styleParts.push('color: ' + getContrastColor(derivedColor));
                 }
                 const rowStyle = styleParts.join(';');
                 
@@ -1798,11 +1818,12 @@ async function checkAuth() {
             const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
             const dragEvents = canEdit ? ('ondragstart="' + dragHandler + '" ondragend="handleDragEnd(event)"') : '';
             const baseColor = isTask ? (task.color || '') : getTaskColorById(rootTaskId);
+            const derivedColor = !isTask && baseColor ? deriveTaskColor(baseColor, depth + 1) : baseColor;
             const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
-            if (baseColor) {
-                styleParts.push('border-left:4px solid ' + baseColor);
-                styleParts.push('background: ' + baseColor);
-                styleParts.push('color: ' + getContrastColor(baseColor));
+            if (derivedColor) {
+                styleParts.push('border-left:4px solid ' + derivedColor);
+                styleParts.push('background: ' + derivedColor);
+                styleParts.push('color: ' + getContrastColor(derivedColor));
             }
             const style = styleParts.join(';');
             
@@ -1863,11 +1884,12 @@ async function checkAuth() {
                 const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + task.id + ', ' + node.task.id + ')" ondragend="handleDragEnd(event)"') : '';
                 const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + task.id + ',' + node.task.id + ')"') : '';
                 const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+                const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
                 const styleParts = [cursor];
-                if (baseColor) {
-                    styleParts.push('border-left:4px solid ' + baseColor);
-                    styleParts.push('background: ' + baseColor);
-                    styleParts.push('color: ' + getContrastColor(baseColor));
+                if (derivedColor) {
+                    styleParts.push('border-left:4px solid ' + derivedColor);
+                    styleParts.push('background: ' + derivedColor);
+                    styleParts.push('color: ' + getContrastColor(derivedColor));
                 }
                 const style = styleParts.join(';');
                 const childrenHtml = node.children.length > 0
