@@ -160,20 +160,58 @@
         .filter-option {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 8px;
             padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.85em;
+            border: 1px solid transparent;
+            transition: all 0.15s;
         }
         .filter-option:hover {
             background: var(--surface);
+        }
+        .filter-option.selected {
+            border-color: var(--accent);
+            background: rgba(233, 69, 96, 0.1);
+        }
+        .filter-option-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
         }
         .filter-option input[type="checkbox"] {
             width: 16px;
             height: 16px;
             cursor: pointer;
             accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+        .filter-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            flex: 1;
+            text-align: left;
+        }
+        .filter-badge.priority-low { background: #64748b; color: #fff; }
+        .filter-badge.priority-medium { background: #0ea5e9; color: #fff; }
+        .filter-badge.priority-high { background: #f97316; color: #fff; }
+        .filter-badge.priority-critical { background: #ef4444; color: #fff; }
+        .filter-badge.status-queue { background: #5a6475; color: #fff; }
+        .filter-badge.status-progress { background: #0ea5e9; color: #fff; }
+        .filter-badge.status-review { background: #eab308; color: #000; }
+        .filter-badge.status-done { background: #22c55e; color: #fff; }
+        .filter-check {
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .filter-option.selected .filter-check {
+            opacity: 1;
         }
         .filter-reset {
             padding: 6px 12px;
@@ -1911,10 +1949,14 @@ async function checkAuth() {
             const assigneeDropdown = document.getElementById('filterAssigneeDropdown');
             assigneeDropdown.innerHTML = assignees.map(a => {
                 const isChecked = filterAssignee.includes(String(a.id));
-                return `<label class="filter-option">
-                    <input type="checkbox" value="${a.id}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('assignee', '${a.id}')">
-                    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${a.color || '#888'}"></span>
-                    ${a.name}
+                const color = a.color || '#888';
+                const textColor = getContrastColor(color);
+                return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                    <div class="filter-option-content">
+                        <span class="filter-badge" style="background:${color};color:${textColor}">${a.name}</span>
+                    </div>
+                    <span class="filter-check">✓</span>
+                    <input type="checkbox" value="${a.id}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('assignee', '${a.id}')" style="display:none">
                 </label>`;
             }).join('');
             updateFilterCount('assignee', filterAssignee.length);
@@ -1923,9 +1965,12 @@ async function checkAuth() {
             const priorityDropdown = document.getElementById('filterPriorityDropdown');
             priorityDropdown.innerHTML = PRIORITY_ORDER.map(p => {
                 const isChecked = filterPriority.includes(p);
-                return `<label class="filter-option">
-                    <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('priority', '${p}')">
-                    <span class="priority-badge priority-${p}">${PRIORITY_LABELS[p]}</span>
+                return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                    <div class="filter-option-content">
+                        <span class="filter-badge priority-${p}">${PRIORITY_LABELS[p]}</span>
+                    </div>
+                    <span class="filter-check">✓</span>
+                    <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('priority', '${p}')" style="display:none">
                 </label>`;
             }).join('');
             updateFilterCount('priority', filterPriority.length);
@@ -1934,9 +1979,12 @@ async function checkAuth() {
             const statusDropdown = document.getElementById('filterStatusDropdown');
             statusDropdown.innerHTML = STATUS_LIST.map(s => {
                 const isChecked = filterStatus.includes(s);
-                return `<label class="filter-option">
-                    <input type="checkbox" value="${s}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('status', '${s}')">
-                    <span class="status-badge status-${s}">${STATUS_LABELS[s]}</span>
+                return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                    <div class="filter-option-content">
+                        <span class="filter-badge status-${s}">${STATUS_LABELS[s]}</span>
+                    </div>
+                    <span class="filter-check">✓</span>
+                    <input type="checkbox" value="${s}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('status', '${s}')" style="display:none">
                 </label>`;
             }).join('');
             updateFilterCount('status', filterStatus.length);
@@ -1959,6 +2007,18 @@ async function checkAuth() {
             renderFilterDropdowns();
             renderTasks();
         }
+
+        // Клик на filter-option тоже переключает чекбокс
+        document.addEventListener('click', (e) => {
+            const filterOption = e.target.closest('.filter-option');
+            if (filterOption) {
+                const checkbox = filterOption.querySelector('input[type="checkbox"]');
+                if (checkbox && !e.target.closest('input[type="checkbox"]')) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            }
+        });
 
         function resetFilters() {
             filterAssignee = [];
