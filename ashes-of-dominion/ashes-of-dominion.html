@@ -188,6 +188,25 @@
         .priority-high { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
         .priority-critical { background: rgba(248, 113, 113, 0.25); color: var(--danger); }
         .status-badge, .priority-badge { cursor: pointer; }
+        .priority-select, .status-select {
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.72em;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            min-width: 70px;
+        }
+        .priority-select:focus, .status-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        .priority-select.priority-low, .status-select.status-queue { background: rgba(136, 153, 170, 0.3); color: #c8cdd5; }
+        .priority-select.priority-medium, .status-select.status-progress { background: rgba(100, 210, 255, 0.2); color: var(--accent-3); }
+        .priority-select.priority-high, .status-select.status-review { background: rgba(247, 195, 92, 0.25); color: var(--accent-2); }
+        .priority-select.priority-critical, .status-select.status-done { background: rgba(74, 222, 128, 0.2); color: var(--success); }
         .assignees-list.clickable { cursor: pointer; }
         .assignees-list.clickable .assignee-tag { cursor: pointer; }
         
@@ -967,7 +986,7 @@ async function checkAuth() {
             const { data, error } = await sbClient.from('assignees').select('*').order('name');
             if (error) {
                 console.error(error);
-                showToast('�� ������� ��������� ������������', 'error');
+                showToast('Не удалось загрузить исполнителей', 'error');
                 return;
             }
             if (data && data.length) {
@@ -1007,12 +1026,12 @@ async function checkAuth() {
             document.getElementById('assigneesList').innerHTML = assignees.map((a, idx) => `
                 <div class="assignee-item">
                     <div class="assignee-item-name">
-                        <span class="assignee-color" style="background:${resolveAssigneeColor(a, idx)}" onclick="showColorPicker(event, ${a.id})" title="�������� ����"></span>
+                        <span class="assignee-color" style="background:${resolveAssigneeColor(a, idx)}" onclick="showColorPicker(event, ${a.id})" title="Выбрать цвет"></span>
                         <span>${a.name}</span>
                     </div>
                     ${canEdit ? `<button class="btn-small btn-secondary" onclick="deleteAssignee(${a.id})">&#10005;</button>` : ''}
                 </div>
-            `).join('') || '<p style="color:#888;text-align:center">��� ������������</p>';
+            `).join('') || '<p style="color:#888;text-align:center">Нет исполнителей</p>';
         }
 
         async function addAssignee() {
@@ -1033,7 +1052,7 @@ async function checkAuth() {
                 const { data: noColor, error: fallbackError } = await sbClient.from('assignees').insert([{ name }]).select();
                 if (fallbackError) {
                     console.error(fallbackError);
-                    showToast('�� ������� �������� �����������', 'error');
+                    showToast('Не удалось создать исполнителя', 'error');
                     return;
                 }
                 created = noColor && noColor[0];
@@ -1042,7 +1061,7 @@ async function checkAuth() {
             input.value = '';
             await loadAssignees();
             renderAssigneesList();
-            showToast('��������', 'success');
+            showToast('Создан', 'success');
         }
 
         async function deleteAssignee(id) {
@@ -1110,7 +1129,7 @@ async function checkAuth() {
             const { data, error } = await sbClient.from('tasks').select('*').order('created_at', { ascending: false });
             if (error) {
                 console.error(error);
-                showToast('�� ������� ��������� ������', 'error');
+                showToast('   ', 'error');
                 return;
             }
             if (data && data.length) {
@@ -1121,8 +1140,8 @@ async function checkAuth() {
                 assignees: t.assignees ? t.assignees.split(',').filter(a => a) : [],
                 subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || [])
             }));
-            // ��������� ������� ����� �� ������ �������� ������ ���� ��� ����
-            // Assignees ��������� ������ ���� ���� ��������� (����� ��������� ������)
+            //          
+            // Assignees      (  )
             tasks.forEach(task => {
                 task.subtasks = normalizeSubtasksTree(task.subtasks);
                 if (hasSubtasks(task)) {
@@ -1137,18 +1156,18 @@ async function checkAuth() {
         }
 
         async function saveTask(taskData) {
-            if (!canEdit) { showToast('������ ��� ����������', 'error'); return false; }
+            if (!canEdit) { showToast('Только для редакторов', 'error'); return false; }
             
             const task = tasks.find(t => t.id === taskData.id);
             let newSubtasks = taskData.subtasks || [];
             
-            // ���� ������ ������ ������ �� ����� ������� � ��������� ��������� ���� �� �������
+            //             
             if (task && taskData.status !== task.status) {
                 const oldOrder = STATUS_ORDER[task.status] ?? 0;
                 const newOrder = STATUS_ORDER[taskData.status] ?? 0;
                 
                 if (newOrder > oldOrder) {
-                    // ������� ����� � ��������� ��������� � ��� �� ��������
+                    //         
                     newSubtasks = elevateSameStatusSubtasks(newSubtasks, task.status, taskData.status);
                 }
             }
@@ -1177,12 +1196,12 @@ async function checkAuth() {
                         const { error: fallbackError } = await sbClient.from('tasks').update(fallback).eq('id', taskData.id);
                         if (fallbackError) {
                             console.error(fallbackError);
-                            showToast('�� ������� ��������� ������', 'error');
+                            showToast('   ', 'error');
                             return false;
                         }
                     } else {
                         console.error(error);
-                        showToast('�� ������� ��������� ������', 'error');
+                        showToast('   ', 'error');
                         return false;
                     }
                 }
@@ -1196,18 +1215,18 @@ async function checkAuth() {
                         const { error: fallbackError } = await sbClient.from('tasks').insert([fallback]);
                         if (fallbackError) {
                             console.error(fallbackError);
-                            showToast('�� ������� ��������� ������', 'error');
+                            showToast('   ', 'error');
                             return false;
                         }
                     } else {
                         console.error(error);
-                        showToast('�� ������� ��������� ������', 'error');
+                        showToast('   ', 'error');
                         return false;
                     }
                 }
             }
             await loadTasks();
-            showToast('���������', 'success');
+            showToast('', 'success');
             return true;
         }
 
@@ -1360,12 +1379,66 @@ async function checkAuth() {
             await updateSubtaskStatus(taskId, subtaskId, next);
         }
 
+        async function changeTaskPriority(taskId, newPriority) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            task.priority = newPriority;
+            await sbClient.from('tasks').update({ priority: newPriority }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function changeTaskStatus(taskId, newStatus) {
+            if (!canEdit) return;
+            await updateTaskStatus(taskId, newStatus);
+        }
+
+        async function changeSubtaskPriority(taskId, subtaskId, newPriority) {
+            if (!canEdit) return;
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const target = findSubtaskById(task.subtasks, subtaskId);
+            if (!target) return;
+            target.priority = newPriority;
+            task.subtasks = normalizeSubtasksTree(task.subtasks);
+            if (hasSubtasks(task)) {
+                task.status = calculateTaskStatus(task.subtasks);
+                task.assignees = calculateTaskAssignees(task.subtasks);
+            }
+            await sbClient.from('tasks').update({
+                status: task.status,
+                subtasks: JSON.stringify(task.subtasks),
+                assignees: task.assignees.join(',')
+            }).eq('id', taskId);
+            await loadTasks();
+        }
+
+        async function changeSubtaskStatus(taskId, subtaskId, newStatus) {
+            if (!canEdit) return;
+            await updateSubtaskStatus(taskId, subtaskId, newStatus);
+        }
+
+        function renderPrioritySelect(taskId, currentPriority, isSubtask, parentTaskId) {
+            const func = isSubtask ? 'changeSubtaskPriority' : 'changeTaskPriority';
+            const extra = isSubtask ? ', ' + parentTaskId : '';
+            return '<select class="priority-select priority-' + (currentPriority || 'medium') + '" onchange="' + func + '(' + (isSubtask ? parentTaskId + ', ' : '') + taskId + ', this.value)">' +
+                PRIORITY_ORDER.map(p => '<option value="' + p + '"' + (p === currentPriority ? ' selected' : '') + '>' + PRIORITY_LABELS[p] + '</option>').join('') +
+                '</select>';
+        }
+
+        function renderStatusSelect(taskId, currentStatus, isSubtask, parentTaskId) {
+            const func = isSubtask ? 'changeSubtaskStatus' : 'changeTaskStatus';
+            return '<select class="status-select status-' + (currentStatus || 'queue') + '" onchange="' + func + '(' + (isSubtask ? parentTaskId + ', ' : '') + taskId + ', this.value)">' +
+                STATUS_LIST.map(s => '<option value="' + s + '"' + (s === currentStatus ? ' selected' : '') + '>' + STATUS_LABELS[s] + '</option>').join('') +
+                '</select>';
+        }
+
         async function updateTaskAssignees(taskId, newAssignees) {
             if (!canEdit) return;
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             if (hasSubtasks(task)) {
-                showToast('����������� ������ ������� �� ��������', 'error');
+                showToast('Задачи с подзадачами нельзя назначать'), 'error');
                 return;
             }
             task.assignees = newAssignees || [];
@@ -1404,7 +1477,7 @@ async function checkAuth() {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             if (!subtaskId && hasSubtasks(task)) {
-                showToast('����������� ������ ������� �� ��������', 'error');
+                showToast('Задачи с подзадачами нельзя назначать'), 'error');
                 return;
             }
             const selected = subtaskId
@@ -1416,7 +1489,7 @@ async function checkAuth() {
             picker.innerHTML = assignees.map(a => {
                 const checked = selected.includes(String(a.id)) ? 'checked' : '';
                 return `<label class="assignee-picker-item"><input type="checkbox" value="${a.id}" ${checked}>${a.name}</label>`;
-            }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">�������</button></div>';
+            }).join('') + '<div class="assignee-picker-actions"><button class="btn-small btn-secondary" type="button" onclick="closeAssigneePicker()">Закрыть</button></div>';
 
             const host = event.currentTarget || event.target;
             const anchor = host.closest('.assignees-list') || host;
@@ -1569,13 +1642,13 @@ async function checkAuth() {
                 <div class="task-row" id="task-${task.id}" style="${rowStyle}">
                     <div class="expand-btn" onclick="toggleTask(${task.id})">${hasSubtasks ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                     <div class="task-title">${task.title}</div>
-                    <div><span class="priority-badge priority-${task.priority || 'medium'}" onclick="cycleTaskPriority(${task.id})" title="������� ���������">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
-                    <div><span class="status-badge status-${task.status}" onclick="cycleTaskStatus(${task.id})" title="������� ������">${STATUS_LABELS[task.status]}</span></div>
+                    <div><span class="priority-badge priority-${task.priority || 'medium'}" onclick="cycleTaskPriority(${task.id})" title="Изменить приоритет">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
+                    <div><span class="status-badge status-${task.status}" onclick="cycleTaskStatus(${task.id})" title="Изменить статус">${STATUS_LABELS[task.status]}</span></div>
                     <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${task.id}, null)">${renderAssigneeTags(assigneeIds)}</div>
                     <div class="task-actions">
-                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="�������� ���������">&#x2795;</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="�������������">&#9998;</button>` : ''}
-                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="�������">&#128465;</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу">&#x2795;</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
+                        ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">&#128465;</button>` : ''}
                     </div>
                 </div>
                 <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
@@ -1606,13 +1679,13 @@ async function checkAuth() {
                     <div class="subtask-item ${levelClass}" style="${rowStyle}">
                         <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                         <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
-                        <div><span class="priority-badge priority-${sub.priority || 'medium'}" onclick="cycleSubtaskPriority(${taskId}, ${sub.id})" title="������� ���������">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
-                        <div><span class="status-badge status-${sub.status}" onclick="cycleSubtaskStatus(${taskId}, ${sub.id})" title="������� ������">${STATUS_LABELS[sub.status]}</span></div>
+                        <div>${canEdit ? renderPrioritySelect(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
+                        <div>${canEdit ? renderStatusSelect(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
                         <div class="assignees-list clickable" onclick="openAssigneePicker(event, ${taskId}, ${sub.id})">${renderAssigneeTags(subAssignees)}</div>
                         <div class="task-actions">
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="�������� ��������">&#x2795;</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="�������������">&#9998;</button>` : ''}
-                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="�������">&#128465;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю">&#x2795;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
+                            ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">&#128465;</button>` : ''}
                         </div>
                     </div>
                     ${isExpanded && hasChildren ? renderSubtaskTree(childNodes, taskId, level + 1, baseColor) : ''}
@@ -1714,10 +1787,10 @@ async function checkAuth() {
                        (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                        dragEvents + ' ' +
                        'style="' + style + '" ' +
-                       'title="' + task.title + (canEdit ? ' (���� ��� ��������������)' : '') + '">' +
+                       'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                     '<div class="kanban-card-header">' +
                         '<div class="title">' + task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="������� ���������">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                        '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="Изменить приоритет">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
                         '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
                     '</div>' +
                 '</div>';
@@ -1727,9 +1800,9 @@ async function checkAuth() {
                    (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
                    dragEvents + ' ' +
                    'style="' + style + '" ' +
-                   'title="' + task.title + (canEdit ? ' (���� ��� ��������������)' : '') + '">' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="name">' + task.title + '</div>' +
-                '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + rootTaskId + ', ' + task.id + ')" title="������� ���������">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                '<div class="meta">' + (canEdit ? renderPrioritySelect(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                 '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + rootTaskId + ', ' + task.id + ')">' + renderAssigneeTags(assigneeIds) + '</div>' +
             '</div>';
         }
@@ -1779,7 +1852,7 @@ async function checkAuth() {
                     : '';
                 return '<div class="kanban-child ' + depthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<div class="name">' + node.task.title + '</div>' +
-                        '<div class="meta"><span class="priority-badge priority-' + (node.task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + task.id + ', ' + node.task.id + ')" title="������� ���������">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span></div>' +
+                        '<div class="meta"><span class="priority-badge priority-' + (node.task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleSubtaskPriority(' + task.id + ', ' + node.task.id + ')" title=" ">' + PRIORITY_LABELS[node.task.priority || 'medium'] + '</span></div>' +
                         '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', ' + node.task.id + ')">' + renderAssigneeTags(subAssignees) + '</div>' +
                     '</div>' + childrenHtml;
             };
@@ -1798,10 +1871,10 @@ async function checkAuth() {
             const style = styleParts.join(';');
 
             return '<div class="kanban-card" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '" ' +
-                   'title="' + task.title + (canEdit ? ' (���� ��� ��������������)' : '') + '">' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header">' +
                     '<div class="title">' + task.title + '</div>' +
-                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title="������� ���������">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
+                    '<div class="meta"><span class="priority-badge priority-' + (task.priority || 'medium') + '" onclick="event.stopPropagation(); cycleTaskPriority(' + task.id + ')" title=" ">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>' +
                     '<div class="assignees-list clickable" onclick="openAssigneePicker(event, ' + task.id + ', null)">' + renderAssigneeTags(assigneeIds) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
