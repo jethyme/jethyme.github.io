@@ -260,23 +260,6 @@
             outline-offset: -2px;
             background: rgba(233, 69, 96, 0.15);
         }
-        .task-row.drop-zone {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 50px;
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            margin-top: 8px;
-            color: var(--muted);
-            font-weight: 600;
-            transition: all 0.15s;
-        }
-        .task-row.drop-zone.drag-over {
-            border-color: var(--accent);
-            background: rgba(233, 69, 96, 0.1);
-            color: var(--accent);
-        }
         .drop-target-placeholder {
             display: flex;
             align-items: center;
@@ -1863,8 +1846,7 @@ async function checkAuth() {
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
             const filteredTasks = tasks.filter(matchesFilters);
-            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('') + 
-                (canEdit ? '<div class="task-row drop-zone" id="taskDropZone" ondragover="handleTaskDropZoneDragOver(event)" ondragleave="handleTaskDropZoneDragLeave(event)" ondrop="handleTaskDropZoneDrop(event)">Перетащить сюда как задачу</div>' : '');
+            container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
             renderKanban();
         }
 
@@ -2518,7 +2500,7 @@ async function checkAuth() {
                 const midY = rect.top + rect.height / 2;
                 const insertBefore = e.clientY < midY;
 
-                updateDropIndicator(target, insertBefore);
+                updateDropIndicator(target, insertBefore, targetTaskId);
             }
         }
 
@@ -2529,27 +2511,86 @@ async function checkAuth() {
             removeDropTargetPlaceholder();
         }
 
-        function updateDropIndicator(target, insertBefore) {
+        function updateDropIndicator(target, insertBefore, targetTaskId) {
             removeDropIndicator();
+
+            // Если перетаскиваем подзадачу и наводим на задачу - добавляем опцию "вставить как задачу"
+            const isTaskTarget = target.classList.contains('task-row');
+            const isDraggingSubtask = listDragItem?.type === 'subtask';
             
-            dropIndicator = document.createElement('div');
-            dropIndicator.className = 'insert-indicator';
-            dropIndicator.style.position = 'relative';
-            dropIndicator.style.margin = '0';
-            dropIndicator.style.height = '3px';
-            dropIndicator.style.background = 'var(--accent)';
-            dropIndicator.style.borderRadius = '2px';
-            dropIndicator.style.boxShadow = '0 0 4px var(--accent)';
-            
-            if (insertBefore) {
-                target.parentNode.insertBefore(dropIndicator, target);
+            if (isDraggingSubtask && isTaskTarget) {
+                // Создаём контейнер с двумя опциями
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.gap = '8px';
+                container.style.margin = '4px 0';
+                
+                // Индикатор вставки (между задачами)
+                const insertInd = document.createElement('div');
+                insertInd.className = 'insert-indicator';
+                insertInd.style.flex = '1';
+                insertInd.style.height = '3px';
+                insertInd.style.background = 'var(--accent)';
+                insertInd.style.borderRadius = '2px';
+                insertInd.style.cursor = 'pointer';
+                insertInd.title = 'Вставить как задачу';
+                insertInd.onclick = async (e) => {
+                    e.stopPropagation();
+                    await insertSubtaskAsTask(targetTaskId, insertBefore);
+                };
+                
+                // Разделитель
+                const separator = document.createElement('div');
+                separator.textContent = '|';
+                separator.style.color = 'var(--muted)';
+                separator.style.fontSize = '12px';
+                
+                // Индикатор подзадачи
+                const subInd = document.createElement('div');
+                subInd.className = 'insert-indicator';
+                subInd.style.flex = '1';
+                subInd.style.height = '3px';
+                subInd.style.background = 'var(--success)';
+                subInd.style.borderRadius = '2px';
+                subInd.style.cursor = 'pointer';
+                subInd.title = 'Вставить как подзадачу';
+                subInd.onclick = async (e) => {
+                    e.stopPropagation();
+                    await handleListDropOnTask(targetTaskId, insertBefore);
+                };
+                
+                container.appendChild(insertInd);
+                container.appendChild(separator);
+                container.appendChild(subInd);
+                
+                if (insertBefore) {
+                    target.parentNode.insertBefore(container, target);
+                } else {
+                    target.parentNode.insertBefore(container, target.nextSibling);
+                }
+                
+                dropIndicator = container;
             } else {
-                target.parentNode.insertBefore(dropIndicator, target.nextSibling);
+                // Обычный индикатор
+                dropIndicator = document.createElement('div');
+                dropIndicator.className = 'insert-indicator';
+                dropIndicator.style.position = 'relative';
+                dropIndicator.style.margin = '0';
+                dropIndicator.style.height = '3px';
+                dropIndicator.style.background = 'var(--accent)';
+                dropIndicator.style.borderRadius = '2px';
+                dropIndicator.style.boxShadow = '0 0 4px var(--accent)';
+                
+                if (insertBefore) {
+                    target.parentNode.insertBefore(dropIndicator, target);
+                } else {
+                    target.parentNode.insertBefore(dropIndicator, target.nextSibling);
+                }
             }
-            
+
             dropIndicator.insertBefore = insertBefore;
-            dropIndicator.targetTaskId = target.closest('[id^="task-"]')?.id.replace('task-', '') || null;
-            dropIndicator.isSubtask = target.classList.contains('subtask-item');
+            dropIndicator.targetTaskId = targetTaskId;
         }
 
         function removeDropIndicator() {
@@ -2581,34 +2622,8 @@ async function checkAuth() {
             dropTargetPlaceholder = null;
         }
 
-        function handleTaskDropZoneDragOver(e) {
-            if (!canEdit || !listDragItem) return;
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Показываем drop zone только для подзадач (их можно сделать задачами)
-            if (listDragItem.type === 'subtask') {
-                e.currentTarget.classList.add('drag-over');
-            }
-        }
-
-        function handleTaskDropZoneDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        async function handleTaskDropZoneDrop(e) {
-            if (!canEdit || !listDragItem) return;
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const dropZone = e.currentTarget;
-            dropZone.classList.remove('drag-over');
-            
-            // Только подзадачи можно сделать задачами
-            if (listDragItem.type !== 'subtask') {
-                listDragItem = null;
-                return;
-            }
+        async function insertSubtaskAsTask(targetTaskId, insertBefore) {
+            if (!listDragItem || listDragItem.type !== 'subtask') return;
             
             const sourceTask = tasks.find(t => t.id === listDragItem.taskId);
             if (!sourceTask) {
@@ -2631,11 +2646,18 @@ async function checkAuth() {
                 assignees: subtask.assignees || [],
                 color: subtask.color,
                 subtasks: subtask.children || [],
-                order_index: tasks.length
+                order_index: 0
             };
             
             // Нормализуем подзадачи новой задачи
             newTask.subtasks = normalizeSubtasksTree(newTask.subtasks);
+            
+            // Находим позицию для вставки
+            const targetIndex = tasks.findIndex(t => t.id === targetTaskId);
+            if (targetIndex === -1) {
+                listDragItem = null;
+                return;
+            }
             
             // Сохраняем новую задачу в базу
             const { data, error } = await sbClient.from('tasks').insert([{
@@ -2645,7 +2667,7 @@ async function checkAuth() {
                 assignees: newTask.assignees.join(','),
                 color: newTask.color,
                 subtasks: JSON.stringify(newTask.subtasks),
-                order_index: newTask.order_index
+                order_index: insertBefore ? targetIndex : targetIndex + 1
             }]).select();
             
             if (error) {
@@ -2657,10 +2679,13 @@ async function checkAuth() {
             
             // Добавляем задачу в локальный массив
             const newTaskId = data[0].id;
-            tasks.push({
+            tasks.splice(insertBefore ? targetIndex : targetIndex + 1, 0, {
                 id: newTaskId,
                 ...newTask
             });
+            
+            // Обновляем order_index у всех задач
+            await saveTaskOrder();
             
             // Сохраняем изменения в исходной задаче
             sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
@@ -2674,6 +2699,89 @@ async function checkAuth() {
                 status: sourceTask.status,
                 assignees: sourceTask.assignees.join(',')
             }).eq('id', sourceTask.id);
+            
+            listDragItem = null;
+            renderTasks();
+        }
+
+        async function handleListDropOnTask(targetTaskId, insertBefore) {
+            // Обработка вставки как подзадачи
+            const source = listDragItem;
+            if (!source) return;
+            
+            const targetTask = tasks.find(t => t.id === targetTaskId);
+            if (!targetTask) {
+                listDragItem = null;
+                return;
+            }
+            
+            let sourceSubtask = null;
+            
+            if (source.type === 'task') {
+                const sourceTask = tasks.find(t => t.id === source.taskId);
+                if (!sourceTask) {
+                    listDragItem = null;
+                    return;
+                }
+                sourceSubtask = {
+                    id: sourceTask.id,
+                    title: sourceTask.title,
+                    priority: sourceTask.priority || 'medium',
+                    status: sourceTask.status,
+                    assignees: sourceTask.assignees || [],
+                    color: sourceTask.color,
+                    children: sourceTask.subtasks || []
+                };
+                tasks.splice(tasks.indexOf(sourceTask), 1);
+            } else if (source.type === 'subtask') {
+                const sourceTask = tasks.find(t => t.id === source.taskId);
+                if (!sourceTask) {
+                    listDragItem = null;
+                    return;
+                }
+                sourceSubtask = findAndRemoveSubtask(sourceTask.subtasks, source.subtaskId);
+                if (!sourceSubtask) {
+                    listDragItem = null;
+                    return;
+                }
+            }
+            
+            targetTask.subtasks = targetTask.subtasks || [];
+            if (insertBefore) {
+                targetTask.subtasks.unshift(sourceSubtask);
+            } else {
+                targetTask.subtasks.push(sourceSubtask);
+            }
+            
+            targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
+            if (hasSubtasks(targetTask)) {
+                targetTask.status = calculateTaskStatus(targetTask.subtasks);
+                targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
+            }
+            
+            await sbClient.from('tasks').update({
+                subtasks: JSON.stringify(targetTask.subtasks),
+                status: targetTask.status,
+                assignees: targetTask.assignees.join(',')
+            }).eq('id', targetTaskId);
+            
+            if (source.type === 'task') {
+                await sbClient.from('tasks').delete().eq('id', source.taskId);
+            } else if (source.type === 'subtask') {
+                const sourceTask = tasks.find(t => t.id === source.taskId);
+                if (sourceTask) {
+                    sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
+                    if (hasSubtasks(sourceTask)) {
+                        sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
+                        sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
+                    }
+                    await sbClient.from('tasks').update({
+                        subtasks: JSON.stringify(sourceTask.subtasks),
+                        status: sourceTask.status,
+                        assignees: sourceTask.assignees.join(',')
+                    }).eq('id', source.taskId);
+                }
+            }
             
             listDragItem = null;
             renderTasks();
@@ -2696,133 +2804,15 @@ async function checkAuth() {
                 return;
             }
 
+            // Если есть индикатор с выбором (для подзадач) - не обрабатываем drop здесь
+            if (dropIndicator && dropIndicator.children && dropIndicator.children.length > 1) {
+                removeDropIndicator();
+                listDragItem = null;
+                return;
+            }
+
             const insertBefore = dropIndicator ? dropIndicator.insertBefore : true;
-            const source = listDragItem;
-
-            // Can't drop on itself
-            if (source.type === 'task' && source.taskId === targetTaskId) {
-                listDragItem = null;
-                return;
-            }
-            if (source.type === 'subtask' && source.subtaskId === targetSubtaskId) {
-                listDragItem = null;
-                return;
-            }
-
-            // For task reorder
-            if (source.type === 'task') {
-                const sourceTask = tasks.find(t => t.id === source.taskId);
-                if (!sourceTask) {
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Remove source from tasks array
-                const sourceIndex = tasks.findIndex(t => t.id === source.taskId);
-                if (sourceIndex === -1) {
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Find target position
-                let targetIndex = tasks.findIndex(t => t.id === targetTaskId);
-                if (targetIndex === -1) {
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Adjust index if needed
-                if (sourceIndex < targetIndex) {
-                    targetIndex--;
-                }
-                
-                // Move task in array
-                tasks.splice(sourceIndex, 1);
-                
-                if (insertBefore) {
-                    tasks.splice(targetIndex, 0, sourceTask);
-                } else {
-                    tasks.splice(targetIndex + 1, 0, sourceTask);
-                }
-                
-                // Save order to backend (need to update order field)
-                await saveTaskOrder();
-            }
-            // For subtask reorder or move
-            else if (source.type === 'subtask') {
-                const sourceTask = tasks.find(t => t.id === source.taskId);
-                if (!sourceTask) {
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Find and remove source subtask
-                const sourceSubtask = findAndRemoveSubtask(sourceTask.subtasks, source.subtaskId);
-                if (!sourceSubtask) {
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Add to target
-                const targetTask = tasks.find(t => t.id === targetTaskId);
-                if (!targetTask) {
-                    // Put back
-                    sourceTask.subtasks = sourceTask.subtasks || [];
-                    sourceTask.subtasks.push(sourceSubtask);
-                    listDragItem = null;
-                    return;
-                }
-                
-                // Find target subtask and its parent array
-                let targetArray, targetIndexInArray;
-                
-                if (targetSubtaskId) {
-                    // Insert relative to a subtask
-                    const result = findSubtaskParentArray(targetTask.subtasks, targetSubtaskId);
-                    if (result) {
-                        targetArray = result.array;
-                        targetIndexInArray = result.index;
-                        if (!insertBefore) targetIndexInArray++;
-                    } else {
-                        targetArray = targetTask.subtasks || [];
-                        targetIndexInArray = targetArray.length;
-                    }
-                } else {
-                    // Insert into task's subtasks
-                    targetArray = targetTask.subtasks || [];
-                    targetIndexInArray = insertBefore ? 0 : targetArray.length;
-                }
-                
-                targetArray.splice(targetIndexInArray, 0, sourceSubtask);
-                
-                // Normalize and save both tasks
-                sourceTask.subtasks = normalizeSubtasksTree(sourceTask.subtasks);
-                if (hasSubtasks(sourceTask)) {
-                    sourceTask.status = calculateTaskStatus(sourceTask.subtasks);
-                    sourceTask.assignees = calculateTaskAssignees(sourceTask.subtasks);
-                }
-                
-                targetTask.subtasks = normalizeSubtasksTree(targetTask.subtasks);
-                if (hasSubtasks(targetTask)) {
-                    targetTask.status = calculateTaskStatus(targetTask.subtasks);
-                    targetTask.assignees = calculateTaskAssignees(targetTask.subtasks);
-                }
-                
-                await sbClient.from('tasks').update({
-                    subtasks: JSON.stringify(sourceTask.subtasks),
-                    status: sourceTask.status,
-                    assignees: sourceTask.assignees.join(',')
-                }).eq('id', source.taskId);
-                
-                await sbClient.from('tasks').update({
-                    subtasks: JSON.stringify(targetTask.subtasks),
-                    status: targetTask.status,
-                    assignees: targetTask.assignees.join(',')
-                }).eq('id', targetTaskId);
-            }
-            
-            listDragItem = null;
-            renderTasks();
+            await handleListDropOnTask(targetTaskId, insertBefore);
         }
 
         function findAndRemoveSubtask(subtasks, subtaskId) {
