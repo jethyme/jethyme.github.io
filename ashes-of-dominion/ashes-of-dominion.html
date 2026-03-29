@@ -2366,21 +2366,30 @@ async function checkAuth() {
             remainingSubtasks.filter(item => 
                 item.depth === 1 && !item.parentSubtaskId
             ).forEach(item => {
-                const children = remainingSubtasks.filter(c => c.parentSubtaskId === item.task.id);
-                if (children.length > 0) {
+                // Собираем всех потомков рекурсивно
+                const allDescendants = [];
+                const collectDescendants = (parentId) => {
+                    remainingSubtasks.filter(c => c.parentSubtaskId === parentId).forEach(child => {
+                        allDescendants.push(child);
+                        consumedSubtasks.add(child.task.id);
+                        collectDescendants(child.task.id);
+                    });
+                };
+                collectDescendants(item.task.id);
+                
+                if (allDescendants.length > 0) {
                     const rootTask = tasks.find(t => t.id === item.rootTaskId);
                     const breadcrumb = rootTask ? [rootTask.title, item.task.title] : [item.task.title];
                     
                     result.push({
                         type: 'orphan-nested',
                         task: item.task,
-                        subtasks: children,
+                        subtasks: allDescendants,
                         rootTaskId: item.rootTaskId,
                         breadcrumb: breadcrumb
                     });
                     
                     consumedSubtasks.add(item.task.id);
-                    children.forEach(c => consumedSubtasks.add(c.task.id));
                 }
             });
 
@@ -2389,8 +2398,18 @@ async function checkAuth() {
             updatedRemaining.filter(item => 
                 item.depth > 1
             ).forEach(item => {
-                const children = updatedRemaining.filter(c => c.parentSubtaskId === item.task.id);
-                if (children.length > 0) {
+                // Собираем всех потомков рекурсивно
+                const allDescendants = [];
+                const collectDescendants = (parentId) => {
+                    updatedRemaining.filter(c => c.parentSubtaskId === parentId && !consumedSubtasks.has(c.task.id)).forEach(child => {
+                        allDescendants.push(child);
+                        consumedSubtasks.add(child.task.id);
+                        collectDescendants(child.task.id);
+                    });
+                };
+                collectDescendants(item.task.id);
+                
+                if (allDescendants.length > 0) {
                     const rootTask = tasks.find(t => t.id === item.rootTaskId);
                     const breadcrumb = rootTask ? [rootTask.title] : [];
                     
@@ -2420,13 +2439,12 @@ async function checkAuth() {
                     result.push({
                         type: 'orphan-nested',
                         task: item.task,
-                        subtasks: children,
+                        subtasks: allDescendants,
                         rootTaskId: item.rootTaskId,
                         breadcrumb: breadcrumb
                     });
                     
                     consumedSubtasks.add(item.task.id);
-                    children.forEach(c => consumedSubtasks.add(c.task.id));
                 }
             });
 
