@@ -243,6 +243,7 @@ function renderSubtaskTree(subtasks, taskId, level, baseColor) {
 
 function renderKanban() {
     const columns = { queue: [], progress: [], review: [], done: [] };
+    const showAllColumns = filterStatus.length === 0;
 
     tasks.filter(matchesFilters).forEach(task => {
         const taskStatus = STATUS_ORDER.hasOwnProperty(task.status) ? task.status : 'queue';
@@ -267,8 +268,18 @@ function renderKanban() {
 
     Object.keys(columns).forEach(status => {
         const container = document.getElementById(status + 'Tasks');
-        if (container) {
-            container.innerHTML = renderKanbanColumn(columns[status]);
+        const column = container?.closest('.kanban-column');
+        
+        if (showAllColumns || filterStatus.includes(status)) {
+            if (container) {
+                container.innerHTML = renderKanbanColumn(columns[status]);
+            }
+            column?.classList.remove('hidden-column');
+        } else {
+            if (container) {
+                container.innerHTML = '';
+            }
+            column?.classList.add('hidden-column');
         }
     });
 }
