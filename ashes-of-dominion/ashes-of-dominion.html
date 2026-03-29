@@ -2451,7 +2451,18 @@ async function checkAuth() {
             });
             
             groupsByParent.forEach((groupItems, parentId) => {
+                // Не создаём карточку если parentId === rootTaskId (это просто подзадачи root)
                 const rootTaskId = groupItems[0].rootTaskId;
+                if (parentId === rootTaskId) {
+                    // Рендерим как обычные подзадачи
+                    groupItems.forEach(item => {
+                        if (!consumedSubtasks.has(item.task.id)) {
+                            result.push({ type: 'subtask', item: item });
+                        }
+                    });
+                    return;
+                }
+                
                 const rootTask = tasks.find(t => t.id === rootTaskId);
                 const breadcrumb = rootTask ? [rootTask.title] : [];
                 
@@ -2589,8 +2600,8 @@ async function checkAuth() {
             const newBreadcrumb = [...breadcrumb, task.title];
             const childrenHtml = children && children.length > 0 ? renderKanbanChildren(task, children, rootTaskId, task.id, newBreadcrumb) : '';
             
-            //Breadcrumb для отображения
-            const breadcrumbHtml = breadcrumb.length > 0 ? '<div class="breadcrumb">' + breadcrumb.map((crumb, i) => '<span>' + crumb + '</span>').join(' → ') + '</div>' : '';
+            //Breadcrumb для отображения (только если есть и есть дети)
+            const breadcrumbHtml = (breadcrumb.length > 0 && children && children.length > 0) ? '<div class="breadcrumb">' + breadcrumb.map((crumb, i) => '<span>' + crumb + '</span>').join(' → ') + '</div>' : '';
             
             return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' + dragAttr + ' ' +
                    (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
