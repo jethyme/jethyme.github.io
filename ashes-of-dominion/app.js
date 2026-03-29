@@ -11,10 +11,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAssignees();
     renderFilterDropdowns();
     await loadTasks();
-    
-    sbClient.channel('tasks-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-            loadTasks();
-        })
-        .subscribe();
 });
