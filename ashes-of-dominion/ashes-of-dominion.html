@@ -2364,12 +2364,12 @@ async function checkAuth() {
 
             // 3. Подзадачи depth=1 с детьми → становятся карточками
             remainingSubtasks.filter(item => 
-                item.depth === 1 && (!item.parentSubtaskId || item.parentSubtaskId === item.rootTaskId)
+                item.depth === 1 && (!item.parentSubtaskId || String(item.parentSubtaskId) === String(item.rootTaskId))
             ).forEach(item => {
                 // Собираем всех потомков рекурсивно
                 const allDescendants = [];
                 const collectDescendants = (parentId) => {
-                    remainingSubtasks.filter(c => c.parentSubtaskId === parentId && !consumedSubtasks.has(c.task.id)).forEach(child => {
+                    remainingSubtasks.filter(c => String(c.parentSubtaskId) === String(parentId) && !consumedSubtasks.has(c.task.id)).forEach(child => {
                         allDescendants.push(child);
                         consumedSubtasks.add(child.task.id);
                         collectDescendants(child.task.id);
@@ -2401,7 +2401,7 @@ async function checkAuth() {
                 // Собираем всех потомков рекурсивно
                 const allDescendants = [];
                 const collectDescendants = (parentId) => {
-                    updatedRemaining.filter(c => c.parentSubtaskId === parentId && !consumedSubtasks.has(c.task.id)).forEach(child => {
+                    updatedRemaining.filter(c => String(c.parentSubtaskId) === String(parentId) && !consumedSubtasks.has(c.task.id)).forEach(child => {
                         allDescendants.push(child);
                         consumedSubtasks.add(child.task.id);
                         collectDescendants(child.task.id);
@@ -2425,8 +2425,8 @@ async function checkAuth() {
                     
                     const path = [];
                     let currentId = item.task.id;
-                    while (currentId && currentId !== item.rootTaskId) {
-                        const sub = allSubtasks.find(s => s.id === currentId);
+                    while (currentId && String(currentId) !== String(item.rootTaskId)) {
+                        const sub = allSubtasks.find(s => String(s.id) === String(currentId));
                         if (sub) {
                             path.unshift(sub.title);
                             currentId = sub.parentSubtaskId || item.rootTaskId;
@@ -2461,17 +2461,17 @@ async function checkAuth() {
                     taskIdsInColumn.has(item.rootTaskId);
                 
                 if (!hasParentInColumn) {
-                    if (!groupsByParent.has(parentId)) {
-                        groupsByParent.set(parentId, []);
+                    if (!groupsByParent.has(String(parentId))) {
+                        groupsByParent.set(String(parentId), []);
                     }
-                    groupsByParent.get(parentId).push(item);
+                    groupsByParent.get(String(parentId)).push(item);
                 }
             });
             
             groupsByParent.forEach((groupItems, parentId) => {
                 // Не создаём карточку если parentId === rootTaskId (это просто подзадачи root)
                 const rootTaskId = groupItems[0].rootTaskId;
-                if (parentId === rootTaskId) {
+                if (String(parentId) === String(rootTaskId)) {
                     // Рендерим как обычные подзадачи
                     groupItems.forEach(item => {
                         if (!consumedSubtasks.has(item.task.id)) {
@@ -2484,7 +2484,7 @@ async function checkAuth() {
                 const rootTask = tasks.find(t => t.id === rootTaskId);
                 const breadcrumb = rootTask ? [rootTask.title] : [];
                 
-                if (parentId !== rootTaskId) {
+                if (String(parentId) !== String(rootTaskId)) {
                     const allSubtasks = [];
                     const collect = (subs) => {
                         subs.forEach(s => {
@@ -2494,7 +2494,7 @@ async function checkAuth() {
                     };
                     collect(rootTask?.subtasks || []);
                     
-                    const parentSub = allSubtasks.find(s => s.id === parentId);
+                    const parentSub = allSubtasks.find(s => String(s.id) === String(parentId));
                     if (parentSub) {
                         breadcrumb.push(parentSub.title);
                     }
@@ -2502,7 +2502,7 @@ async function checkAuth() {
                 
                 const children = [];
                 const collectChildren = (pId) => {
-                    groupItems.filter(i => i.parentSubtaskId === pId).forEach(item => {
+                    groupItems.filter(i => String(i.parentSubtaskId) === String(pId)).forEach(item => {
                         children.push(item);
                         consumedSubtasks.add(item.task.id);
                         collectChildren(item.task.id);
