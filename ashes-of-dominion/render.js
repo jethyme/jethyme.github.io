@@ -1,0 +1,731 @@
+function renderAssigneeTags(ids) {
+    return (ids || []).map((id, index) => {
+        const a = assignees.find(x => x.id == id);
+        const name = a ? a.name : id;
+        const displayName = getShortName(name);
+        const color = resolveAssigneeColor(a || { id: id, name: name }, index);
+        const textColor = getContrastColor(color);
+        return '<span class="assignee-tag" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
+    }).join('');
+}
+
+function renderAssigneeCell(ids, taskId, subtaskId, canEditFlag) {
+    const tags = renderAssigneeTags(ids);
+    if (!canEditFlag) {
+        return '<div class="assignees-list">' + tags + '</div>';
+    }
+    const placeholder = '<span class="assignee-placeholder clickable-badge" data-type="assignee" data-task-id="' + taskId + '" data-subtask="' + (subtaskId || '') + '" data-value="">&#10010;</span>';
+    if (ids && ids.length > 0) {
+        return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + tags + placeholder + '</div>';
+    }
+    return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + placeholder + '</div>';
+}
+
+function renderAssigneeBadge(ids) {
+    const count = (ids || []).length;
+    if (count === 0) {
+        return '<span class="assignee-badge" data-type="assignee" data-value="">+</span>';
+    }
+    const firstNames = (ids || []).slice(0, 2).map(id => {
+        const a = assignees.find(x => x.id == id);
+        return a ? getShortName(a.name) : id;
+    }).join(', ');
+    const suffix = count > 2 ? ' +' + (count - 2) : '';
+    return '<span class="assignee-badge" data-type="assignee" data-value="' + ids.join(',') + '">' + firstNames + suffix + '</span>';
+}
+
+function renderPriorityBadge(taskId, currentPriority, isSubtask, parentTaskId) {
+    if (isSubtask) {
+        return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
+    } else {
+        return '<span class="clickable-badge priority-' + (currentPriority || 'medium') + '" data-type="priority" data-task-id="' + taskId + '" data-value="' + (currentPriority || 'medium') + '">' + PRIORITY_LABELS[currentPriority || 'medium'] + '</span>';
+    }
+}
+
+function renderStatusBadge(taskId, currentStatus, isSubtask, parentTaskId) {
+    if (isSubtask) {
+        return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + parentTaskId + '" data-subtask="' + taskId + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
+    } else {
+        return '<span class="clickable-badge status-' + (currentStatus || 'queue') + '" data-type="status" data-task-id="' + taskId + '" data-value="' + (currentStatus || 'queue') + '">' + STATUS_LABELS[currentStatus || 'queue'] + '</span>';
+    }
+}
+
+function renderAssigneesSelect(containerId = 'taskAssigneesSelect', selectedIds = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = assignees.map(a => {
+        const checked = selectedIds.includes(String(a.id)) ? 'checked' : '';
+        const checkedClass = checked ? 'checked' : '';
+        return `<label class="assignee-checkbox ${checkedClass}">
+            <input type="checkbox" value="${a.id}" ${checked} onchange="this.parentElement.classList.toggle('checked', this.checked)">${a.name}
+        </label>`;
+    }).join('');
+}
+
+function getSelectedAssignees(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(cb => cb.value);
+}
+
+function renderAssigneesList() {
+    document.getElementById('assigneesList').innerHTML = assignees.map((a, idx) => `
+        <div class="assignee-item">
+            <div class="assignee-item-name">
+                <span class="assignee-color" style="background:${resolveAssigneeColor(a, idx)}" onclick="showColorPicker(event, ${a.id})" title="Выбрать цвет"></span>
+                <span>${a.name}</span>
+            </div>
+            ${canEdit ? `<button class="btn-small btn-secondary" onclick="deleteAssignee(${a.id})">&#10005;</button>` : ''}
+        </div>
+    `).join('') || '<p style="color:#888;text-align:center">Нет исполнителей</p>';
+}
+
+function renderTaskColorPicker(selectedColor = '') {
+    const container = document.getElementById('taskColorPicker');
+    if (!container) return;
+    container.innerHTML = TASK_COLORS.map(c => {
+        const border = selectedColor === c ? '2px solid #fff' : '2px solid transparent';
+        return '<span class="color-swatch" data-color="' + c + '" style="width:28px;height:28px;border-radius:6px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
+    }).join('');
+}
+
+function matchesFilters(task) {
+    if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+        return true;
+    }
+
+    const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => task.assignees.includes(String(id)));
+    const priorityMatch = filterPriority.length === 0 || filterPriority.includes(task.priority);
+    const statusMatch = filterStatus.length === 0 || filterStatus.includes(task.status);
+
+    return assigneeMatch && priorityMatch && statusMatch;
+}
+
+function taskHasMatchingLeaf(task) {
+    if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+        return true;
+    }
+
+    const findMatchingLeaf = (subtasks) => {
+        if (!subtasks || subtasks.length === 0) return false;
+
+        for (const sub of subtasks) {
+            const hasChildren = sub.children && sub.children.length > 0;
+
+            if (hasChildren) {
+                if (findMatchingLeaf(sub.children)) return true;
+            } else {
+                const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (sub.assignees || []).includes(String(id)));
+                const priorityMatch = filterPriority.length === 0 || filterPriority.includes(sub.priority);
+                const statusMatch = filterStatus.length === 0 || filterStatus.includes(sub.status);
+
+                if (assigneeMatch && priorityMatch && statusMatch) return true;
+            }
+        }
+        return false;
+    };
+
+    if (!task.subtasks || task.subtasks.length === 0) {
+        return matchesFilters(task);
+    }
+
+    return findMatchingLeaf(task.subtasks);
+}
+
+function filterSubtasks(subtasks) {
+    if (filterAssignee.length === 0 && filterPriority.length === 0 && filterStatus.length === 0) {
+        return subtasks;
+    }
+
+    const filterTree = (nodes) => {
+        if (!nodes || nodes.length === 0) return [];
+
+        const result = [];
+        for (const node of nodes) {
+            const hasChildren = node.children && node.children.length > 0;
+
+            if (hasChildren) {
+                const filteredChildren = filterTree(node.children);
+
+                if (filteredChildren.length > 0) {
+                    result.push({ ...node, children: filteredChildren });
+                }
+            } else {
+                const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (node.assignees || []).includes(String(id)));
+                const priorityMatch = filterPriority.length === 0 || filterPriority.includes(node.priority);
+                const statusMatch = filterStatus.length === 0 || filterStatus.includes(node.status);
+
+                if (assigneeMatch && priorityMatch && statusMatch) {
+                    result.push(node);
+                }
+            }
+        }
+        return result;
+    };
+
+    return filterTree(subtasks);
+}
+
+function renderTasks() {
+    const container = document.getElementById('tasksContainer');
+    if (!container) return;
+    const filteredTasks = tasks.filter(taskHasMatchingLeaf);
+    container.innerHTML = filteredTasks.map(task => renderTaskRow(task)).join('');
+    renderKanban();
+}
+
+function renderTaskRow(task) {
+    const assigneeIds = calculateNodeAssignees(task);
+    const isExpanded = expandedTasks.has(task.id);
+    const hasSubtasksFlag = hasSubtasks(task);
+    const progressMeta = renderProgressMeta(task.subtasks);
+    const taskColor = task.color || '';
+    const rowStyleParts = [];
+    if (taskColor) {
+        rowStyleParts.push('border-left:4px solid ' + taskColor);
+        rowStyleParts.push('background: ' + taskColor);
+        rowStyleParts.push('color: ' + getContrastColor(taskColor));
+    }
+    const rowStyle = rowStyleParts.join(';');
+
+    return `
+        <div class="task-row" id="task-${task.id}" style="${rowStyle}" draggable="true" ondragstart="handleListTaskDragStart(event, ${task.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${task.id}, null, ${hasSubtasksFlag})" ondrop="handleListDrop(event, ${task.id})" ondragleave="handleListDragLeave(event)">
+            <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasksFlag ? '' : 'visibility:hidden'}">${hasSubtasksFlag ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
+            <div class="task-title">${task.title}</div>
+            <div>${canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>'}</div>
+            <div>${canEdit ? renderStatusBadge(task.id, task.status || 'queue', false) : '<span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span>'}</div>
+            <div>${renderAssigneeCell(assigneeIds, task.id, null, canEdit && !hasSubtasksFlag)}</div>
+            <div class="task-actions">
+                ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${task.id}, null, null)" title="Добавить подзадачу"><span class="icon-plus">&#10010;</span></button>` : ''}
+                ${canEdit ? `<button class="btn-icon" onclick="editTask(${task.id})" title="Редактировать">&#9998;</button>` : ''}
+                ${canEdit ? `<button class="btn-icon" onclick="deleteTask(${task.id})" title="Удалить">&#128465;</button>` : ''}
+            </div>
+        </div>
+        <div class="task-subtasks" id="subtasks-${task.id}" style="display:${isExpanded ? 'block' : 'none'}">
+            ${renderSubtaskTree(filterSubtasks(task.subtasks), task.id, 0, taskColor)}
+        </div>
+    `;
+}
+
+function renderSubtaskTree(subtasks, taskId, level, baseColor) {
+    if (!subtasks || subtasks.length === 0) return '';
+    return subtasks.map(sub => {
+        const childNodes = sub.children || sub.subtasks || [];
+        const hasChildren = childNodes.length > 0;
+        const subAssignees = calculateNodeAssignees(sub);
+        const isExpanded = expandedSubtasks.has(sub.id);
+        const levelClass = 'level-' + Math.min(level, 3);
+        const indent = level * 25;
+        const derivedColor = baseColor ? deriveTaskColor(baseColor, level + 1) : '';
+        const styleParts = [`padding-left:${indent + 15}px`];
+        if (derivedColor) {
+            styleParts.push('border-left:3px solid ' + derivedColor);
+            styleParts.push('background: ' + derivedColor);
+            styleParts.push('color: ' + getContrastColor(derivedColor));
+        }
+        const rowStyle = styleParts.join(';');
+
+        return `
+            <div class="subtask-item ${levelClass}" style="${rowStyle}" draggable="true" ondragstart="handleListSubtaskDragStart(event, ${taskId}, ${sub.id})" ondragend="handleListDragEnd(event)" ondragover="handleListDragOver(event, ${taskId}, ${sub.id}, ${hasChildren})" ondrop="handleListDrop(event, ${taskId}, ${sub.id})" ondragleave="handleListDragLeave(event)">
+                <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
+                <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
+                <div>${canEdit ? renderPriorityBadge(sub.id, sub.priority || 'medium', true, taskId) : '<span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span>'}</div>
+                <div>${canEdit ? renderStatusBadge(sub.id, sub.status || 'queue', true, taskId) : '<span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span>'}</div>
+                <div>${renderAssigneeCell(subAssignees, taskId, sub.id, canEdit && !hasChildren)}</div>
+                <div class="task-actions">
+                    ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, null, ${sub.id})" title="Добавить дочернюю"><span class="icon-plus">&#10010;</span></button>` : ''}
+                    ${canEdit ? `<button class="btn-icon" onclick="openSubtaskModal(${taskId}, ${sub.id})" title="Редактировать">&#9998;</button>` : ''}
+                    ${canEdit ? `<button class="btn-icon" onclick="deleteSubtask(${taskId}, ${sub.id})" title="Удалить">&#128465;</button>` : ''}
+                </div>
+            </div>
+            ${isExpanded && hasChildren ? renderSubtaskTree(childNodes, taskId, level + 1, baseColor) : ''}
+        `;
+    }).join('');
+}
+
+function renderKanban() {
+    const columns = { queue: [], progress: [], review: [], done: [] };
+
+    tasks.filter(matchesFilters).forEach(task => {
+        const taskStatus = STATUS_ORDER.hasOwnProperty(task.status) ? task.status : 'queue';
+        columns[taskStatus].push({ type: 'task', task: task });
+
+        const collectSubtasks = (subtasks, rootTaskId, parentSubtaskId, depth) => {
+            subtasks.forEach(sub => {
+                const subStatus = STATUS_ORDER.hasOwnProperty(sub.status) ? sub.status : 'queue';
+                columns[subStatus].push({
+                    type: 'subtask',
+                    task: sub,
+                    rootTaskId: rootTaskId,
+                    parentSubtaskId: parentSubtaskId,
+                    depth: depth
+                });
+                const kids = sub.children || sub.subtasks || [];
+                if (kids.length > 0) collectSubtasks(kids, rootTaskId, sub.id, depth + 1);
+            });
+        };
+        collectSubtasks(task.subtasks || [], task.id, null, 0);
+    });
+
+    Object.keys(columns).forEach(status => {
+        const container = document.getElementById(status + 'Tasks');
+        if (container) {
+            container.innerHTML = renderKanbanColumn(columns[status]);
+        }
+    });
+}
+
+function renderKanbanColumn(items) {
+    const result = [];
+    const consumedSubtasks = new Set();
+    const subtasksByRoot = new Map();
+    const taskIdsInColumn = new Set();
+    const subtaskIdsInColumn = new Set();
+
+    items.filter(i => i.type === 'task').forEach(t => {
+        taskIdsInColumn.add(t.task.id);
+    });
+    items.filter(i => i.type === 'subtask').forEach(s => {
+        subtaskIdsInColumn.add(s.task.id);
+    });
+
+    items.filter(i => i.type === 'subtask').forEach(sub => {
+        const list = subtasksByRoot.get(sub.rootTaskId) || [];
+        list.push(sub);
+        subtasksByRoot.set(sub.rootTaskId, list);
+    });
+
+    items.filter(i => i.type === 'task').forEach(item => {
+        const related = subtasksByRoot.get(item.task.id) || [];
+        related.forEach(s => consumedSubtasks.add(s.task.id));
+        result.push({ type: 'nested', task: item.task, subtasks: related });
+    });
+
+    const remainingSubtasks = items.filter(i =>
+        i.type === 'subtask' && !consumedSubtasks.has(i.task.id)
+    );
+
+    remainingSubtasks.forEach(item => {
+        if (consumedSubtasks.has(item.task.id)) return;
+
+        const hasParentInColumn = item.parentSubtaskId ?
+            subtaskIdsInColumn.has(item.parentSubtaskId) :
+            taskIdsInColumn.has(item.rootTaskId);
+
+        if (!hasParentInColumn) {
+            const children = remainingSubtasks.filter(c =>
+                String(c.parentSubtaskId) === String(item.task.id) && !consumedSubtasks.has(c.task.id)
+            );
+
+            if (children.length > 0) {
+                const allDescendants = [];
+                const collectDescendants = (parentId) => {
+                    remainingSubtasks.filter(c => String(c.parentSubtaskId) === String(parentId) && !consumedSubtasks.has(c.task.id)).forEach(child => {
+                        allDescendants.push(child);
+                        consumedSubtasks.add(child.task.id);
+                        collectDescendants(child.task.id);
+                    });
+                };
+                collectDescendants(item.task.id);
+
+                const rootTask = tasks.find(t => t.id === item.rootTaskId);
+                const breadcrumb = rootTask ? [rootTask.title, item.task.title] : [item.task.title];
+
+                result.push({
+                    type: 'orphan-nested',
+                    task: item.task,
+                    subtasks: allDescendants,
+                    rootTaskId: item.rootTaskId,
+                    breadcrumb: breadcrumb
+                });
+
+                consumedSubtasks.add(item.task.id);
+            }
+        }
+    });
+
+    const finalRemaining = items.filter(i =>
+        i.type === 'subtask' && !consumedSubtasks.has(i.task.id)
+    );
+
+    const groupsByParent = new Map();
+    finalRemaining.forEach(item => {
+        const parentId = item.parentSubtaskId || item.rootTaskId;
+        const hasParentInColumn = item.parentSubtaskId ?
+            subtaskIdsInColumn.has(item.parentSubtaskId) :
+            taskIdsInColumn.has(item.rootTaskId);
+
+        if (!hasParentInColumn) {
+            if (!groupsByParent.has(String(parentId))) {
+                groupsByParent.set(String(parentId), []);
+            }
+            groupsByParent.get(String(parentId)).push(item);
+        }
+    });
+
+    groupsByParent.forEach((groupItems, parentId) => {
+        const rootTaskId = groupItems[0].rootTaskId;
+        if (String(parentId) === String(rootTaskId)) {
+            groupItems.forEach(item => {
+                if (!consumedSubtasks.has(item.task.id)) {
+                    result.push({ type: 'subtask', item: item });
+                }
+            });
+            return;
+        }
+
+        const rootTask = tasks.find(t => t.id === rootTaskId);
+        const breadcrumb = rootTask ? [rootTask.title] : [];
+
+        if (String(parentId) !== String(rootTaskId)) {
+            const allSubtasks = [];
+            const collect = (subs) => {
+                subs.forEach(s => {
+                    allSubtasks.push(s);
+                    if (s.children) collect(s.children);
+                });
+            };
+            collect(rootTask?.subtasks || []);
+
+            const parentSub = allSubtasks.find(s => String(s.id) === String(parentId));
+            if (parentSub) {
+                breadcrumb.push(parentSub.title);
+            }
+        }
+
+        const children = [];
+        const collectChildren = (pId) => {
+            groupItems.filter(i => String(i.parentSubtaskId) === String(pId)).forEach(item => {
+                children.push(item);
+                consumedSubtasks.add(item.task.id);
+                collectChildren(item.task.id);
+            });
+        };
+        collectChildren(parentId);
+
+        result.push({
+            type: 'orphan-nested',
+            task: { title: breadcrumb[breadcrumb.length - 1] || 'Подзадача', id: parentId },
+            subtasks: children,
+            rootTaskId: rootTaskId,
+            breadcrumb: breadcrumb
+        });
+
+        children.forEach(c => consumedSubtasks.add(c.task.id));
+    });
+
+    finalRemaining.forEach(item => {
+        if (!consumedSubtasks.has(item.task.id)) {
+            result.push({ type: 'subtask', item: item });
+        }
+    });
+
+    const html = result.map(entry => {
+        if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks, null);
+        if (entry.type === 'task') return renderKanbanCard(entry.task, null, 0);
+        if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
+        if (entry.type === 'orphan-nested') {
+            return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, entry.breadcrumb);
+        }
+        return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
+    }).join('');
+
+    return html ? '<div class="kanban-column-content">' + html + '</div>' : '<div class="kanban-empty">Пусто</div>';
+}
+
+function renderKanbanCard(task, rootTaskId, depth, parentSubtaskId = null) {
+    const assigneeIds = task.assignees || [];
+
+    const isTask = !rootTaskId;
+    const depthClass = !isTask ? ' depth-' + Math.min(depth + 1, 3) : '';
+    const cardClass = isTask ? 'kanban-card' : ('kanban-child' + depthClass);
+    const clickHandler = isTask
+        ? (canEdit ? 'if(!event.target.closest(\'.clickable-badge\'))editTask(' + task.id + ')' : '')
+        : (canEdit ? 'if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + rootTaskId + ',' + task.id + ')' : '');
+    const dragHandler = isTask
+        ? (canEdit ? 'handleTaskDragStart(event, ' + task.id + ')' : '')
+        : (canEdit ? 'handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')' : '');
+    const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+    const dragEvents = canEdit ? ('ondragstart="' + dragHandler + '" ondragend="handleDragEnd(event)"') : '';
+    const baseColor = isTask ? (task.color || '') : getTaskColorById(rootTaskId);
+    const derivedColor = !isTask && baseColor ? deriveTaskColor(baseColor, depth + 1) : baseColor;
+    const hasColor = !!derivedColor;
+
+    const fullCardClass = cardClass + (hasColor ? '' : ' no-color');
+
+    const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
+    if (hasColor) {
+        styleParts.push('border-left:4px solid ' + derivedColor + ' !important');
+        styleParts.push('background: ' + derivedColor + ' !important');
+        styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
+    }
+    const style = styleParts.join(';');
+
+    if (isTask) {
+        return '<div class="' + fullCardClass + '" ' + dragAttr + ' ' +
+               (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
+               dragEvents + ' ' +
+               'style="' + style + '" ' +
+               'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+            '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
+                '<div class="title">' + task.title + '</div>' +
+                 '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                 '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    return '<div class="' + fullCardClass + '" ' + dragAttr + ' ' +
+           (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
+           dragEvents + ' ' +
+           'style="' + style + '" ' +
+           'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+        '<div class="name">' + task.title + '</div>' +
+        '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
+    '</div>';
+}
+
+function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = []) {
+    const assigneeIds = task.assignees || [];
+    const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
+    const hasColor = !!baseColor;
+
+    const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
+    if (hasColor) {
+        styleParts.push('border-left:4px solid ' + baseColor + ' !important');
+        styleParts.push('background: ' + baseColor + ' !important');
+        styleParts.push('color: ' + getContrastColor(baseColor) + ' !important');
+    }
+    const style = styleParts.join(';');
+
+    const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+    const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
+    const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
+
+    const newBreadcrumb = [...breadcrumb, task.title];
+    const childrenHtml = children && children.length > 0 ? renderKanbanChildren(task, children, rootTaskId, task.id, newBreadcrumb) : '';
+
+    const breadcrumbHtml = (breadcrumb.length > 0 && children && children.length > 0) ? '<div class="breadcrumb">' + breadcrumb.map((crumb, i) => '<span>' + crumb + '</span>').join(' → ') + '</div>' : '';
+
+    return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' + dragAttr + ' ' +
+           (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
+           dragEvents + ' ' +
+           'style="' + style + '" ' +
+           'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+        '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
+            '<div class="title">' + task.title + '</div>' +
+            '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+            '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
+        '</div>' +
+        '<div class="kanban-children">' + childrenHtml + '</div>' +
+        (breadcrumbHtml ? '<div class="breadcrumb-container">' + breadcrumbHtml + '</div>' : '') +
+    '</div>';
+}
+
+function renderKanbanChildren(parentTask, children, rootTaskId, orphanParentId, breadcrumb = []) {
+    const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (parentTask.color || '');
+
+    const minDepth = children.length > 0 ? Math.min(...children.map(c => c.depth)) : 0;
+
+    const buildTree = (items) => {
+        const roots = [];
+        const stack = [{ depth: -1, children: roots }];
+
+        for (const item of items) {
+            const node = { item, children: [] };
+            const normalizedDepth = item.depth - minDepth;
+            while (stack.length > 1 && stack[stack.length - 1].depth >= normalizedDepth) {
+                stack.pop();
+            }
+            stack[stack.length - 1].children.push(node);
+            stack.push({ depth: normalizedDepth, children: node.children });
+        }
+
+        return roots;
+    };
+
+    const tree = buildTree(children);
+
+    const renderNode = (node, depth, nodeBreadcrumb = []) => {
+        const item = node.item;
+        const subAssignees = item.task.assignees || [];
+        const depthClass = 'depth-' + Math.min(depth + 1, 3);
+        const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+        const actualRootId = rootTaskId || parentTask.id;
+        const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + item.task.id + ')" ondragend="handleDragEnd(event)"') : '';
+        const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + item.task.id + ')"') : '';
+        const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+        const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
+        const hasColor = !!derivedColor;
+        const fullDepthClass = depthClass + (hasColor ? '' : ' no-color');
+        const styleParts = [cursor];
+        if (hasColor) {
+            styleParts.push('border-left:4px solid ' + derivedColor + ' !important');
+            styleParts.push('background: ' + derivedColor + ' !important');
+            styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
+        }
+        const style = styleParts.join(';');
+
+        const nodeHasChildren = node.children.length > 0;
+        const priorityNum = PRIORITY_NUMS[item.task.priority || 'medium'] || '3';
+        const assigneeHtml = renderAssigneeCell(subAssignees, actualRootId, item.task.id, canEdit && !nodeHasChildren);
+
+        const childrenHtml = node.children.length > 0
+            ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1, [...nodeBreadcrumb, item.task.title])).join('') + '</div>'
+            : '';
+
+        return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
+                '<span class="priority-num p-' + priorityNum + '">' + priorityNum + '</span>' +
+                '<div class="content">' +
+                    '<div class="name">' + item.task.title + '</div>' +
+                    '<div class="assignees">' + assigneeHtml + '</div>' +
+                '</div>' +
+            '</div>' + childrenHtml;
+    };
+
+    return tree.map(n => renderNode(n, 0, breadcrumb)).join('');
+}
+
+function renderKanbanNested(task, subtasks, rootTaskId, orphanParentId = null) {
+    const assigneeIds = task.assignees || [];
+    const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
+
+    const orderIndex = new Map(subtasks.map((s, idx) => [s.task.id, idx]));
+    const byId = new Map();
+    subtasks.forEach(sub => {
+        byId.set(sub.task.id, { ...sub, children: [] });
+    });
+
+    const roots = [];
+    byId.forEach(node => {
+        const parentId = node.parentSubtaskId;
+        if (parentId === orphanParentId) {
+            roots.push(node);
+        } else if (parentId && byId.has(parentId)) {
+            byId.get(parentId).children.push(node);
+        } else {
+            roots.push(node);
+        }
+    });
+
+    const sortTree = (nodes) => {
+        nodes.sort((a, b) => (orderIndex.get(a.task.id) ?? 0) - (orderIndex.get(b.task.id) ?? 0));
+        nodes.forEach(n => sortTree(n.children));
+    };
+    sortTree(roots);
+
+    const renderNode = (node, depth) => {
+        const subAssignees = node.task.assignees || [];
+        const depthClass = 'depth-' + Math.min(depth + 1, 3);
+        const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+        const actualRootId = rootTaskId || task.id;
+        const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + node.task.id + ')" ondragend="handleDragEnd(event)"') : '';
+        const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + node.task.id + ')"') : '';
+        const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+        const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
+        const hasColor = !!derivedColor;
+        const fullDepthClass = depthClass + (hasColor ? '' : ' no-color');
+        const styleParts = [cursor];
+        if (hasColor) {
+            styleParts.push('border-left:4px solid ' + derivedColor + ' !important');
+            styleParts.push('background: ' + derivedColor + ' !important');
+            styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
+        }
+        const style = styleParts.join(';');
+        const childrenHtml = node.children.length > 0
+            ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
+            : '';
+        const nodeHasChildren = node.children.length > 0;
+        const priorityNum = PRIORITY_NUMS[node.task.priority || 'medium'] || '3';
+        const assigneeHtml = renderAssigneeCell(subAssignees, actualRootId, node.task.id, canEdit && !nodeHasChildren);
+        return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
+                '<span class="priority-num p-' + priorityNum + '">' + priorityNum + '</span>' +
+                '<div class="content">' +
+                    '<div class="name">' + node.task.title + '</div>' +
+                    '<div class="assignees">' + assigneeHtml + '</div>' +
+                '</div>' +
+            '</div>' + childrenHtml;
+    };
+
+    const childrenHtml = roots.map(n => renderNode(n, 0)).join('');
+    const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+    const dragEvents = canEdit ? ('ondragstart="handleTaskDragStart(event, ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
+    const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();editTask(' + task.id + ')"') : '';
+    const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
+    const styleParts = [cursor];
+    if (baseColor) {
+        styleParts.push('border-left:4px solid ' + baseColor);
+        styleParts.push('background: ' + baseColor);
+        styleParts.push('color: ' + getContrastColor(baseColor));
+    }
+    const style = styleParts.join(';');
+
+    return '<div class="kanban-card" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '" ' +
+           'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+        '<div class="kanban-card-header">' +
+            '<div class="title">' + task.title + '</div>' +
+             '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+               '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
+          '</div>' +
+        '<div class="kanban-children">' + childrenHtml + '</div>' +
+    '</div>';
+}
+
+function renderFilterDropdowns() {
+    const assigneeDropdown = document.getElementById('filterAssigneeDropdown');
+    if (assigneeDropdown) {
+        assigneeDropdown.innerHTML = assignees.map(a => {
+            const isChecked = filterAssignee.includes(String(a.id));
+            const color = a.color || '#888';
+            const textColor = getContrastColor(color);
+            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                <div class="filter-option-content">
+                    <span class="filter-badge" style="background:${color};color:${textColor}">${a.name}</span>
+                </div>
+                <span class="filter-check">&#10003;</span>
+                <input type="checkbox" value="${a.id}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('assignee', '${a.id}')" style="display:none">
+            </label>`;
+        }).join('');
+        updateFilterCount('assignee', filterAssignee.length);
+    }
+
+    const priorityDropdown = document.getElementById('filterPriorityDropdown');
+    if (priorityDropdown) {
+        priorityDropdown.innerHTML = PRIORITY_ORDER.map(p => {
+            const isChecked = filterPriority.includes(p);
+            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                <div class="filter-option-content">
+                    <span class="filter-badge priority-${p}">${PRIORITY_LABELS[p]}</span>
+                </div>
+                <span class="filter-check">&#10003;</span>
+                <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('priority', '${p}')" style="display:none">
+            </label>`;
+        }).join('');
+        updateFilterCount('priority', filterPriority.length);
+    }
+
+    const statusDropdown = document.getElementById('filterStatusDropdown');
+    if (statusDropdown) {
+        statusDropdown.innerHTML = STATUS_LIST.map(s => {
+            const isChecked = filterStatus.includes(s);
+            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
+                <div class="filter-option-content">
+                    <span class="filter-badge status-${s}">${STATUS_LABELS[s]}</span>
+                </div>
+                <span class="filter-check">&#10003;</span>
+                <input type="checkbox" value="${s}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('status', '${s}')" style="display:none">
+            </label>`;
+        }).join('');
+        updateFilterCount('status', filterStatus.length);
+    }
+}
+
+function updateFilterCount(type, count) {
+    const el = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Count`);
+    if (el) el.textContent = count > 0 ? `(${count})` : '';
+}
+
+window.renderTasks = renderTasks;
+window.renderAssigneesSelect = renderAssigneesSelect;
+window.renderAssigneesList = renderAssigneesList;
+window.renderTaskColorPicker = renderTaskColorPicker;
+window.renderFilterDropdowns = renderFilterDropdowns;
