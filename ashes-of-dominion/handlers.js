@@ -346,8 +346,8 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
         id: id ? parseInt(id) : null,
         title: document.getElementById('taskTitle').value,
         color: document.getElementById('taskColor').value || null,
-        priority: document.getElementById('taskPriority').value,
-        status: document.getElementById('taskStatus').value,
+        priority: getSelectedBadgeValue('taskPrioritySelect'),
+        status: getSelectedBadgeValue('taskStatusSelect'),
         assignees: getSelectedAssignees('taskAssigneesSelect'),
         subtasks: task ? task.subtasks : []
     });
