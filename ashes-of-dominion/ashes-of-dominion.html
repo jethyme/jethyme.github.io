@@ -421,6 +421,17 @@
             background: var(--surface);
         }
         .kanban-card-header .title { font-weight: 600; font-size: 0.9em; flex: 1; min-width: 100px; }
+        .kanban-card-header .breadcrumb {
+            font-size: 0.75em;
+            color: var(--muted);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kanban-card-header .breadcrumb span {
+            opacity: 0.7;
+        }
         .kanban-card-header .meta { display: flex; gap: 4px; flex-shrink: 0; }
         .kanban-card-header .assignees { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
         .kanban-children { padding: 8px 10px; border-top: 1px solid var(--border); }
@@ -2376,7 +2387,9 @@ async function checkAuth() {
                 if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
                 if (entry.type === 'orphan-nested') {
                     // Рендерим orphan-подзадачу как карточку задачи с её детьми внутри
-                    return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId);
+                    const rootTask = tasks.find(t => t.id === entry.rootTaskId);
+                    const rootName = rootTask ? rootTask.title : 'Задача';
+                    return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, [rootName]);
                 }
                 return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
             }).join('');
@@ -2438,7 +2451,7 @@ async function checkAuth() {
             '</div>';
         }
 
-        function renderKanbanCardWithChildren(task, children, rootTaskId) {
+        function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = []) {
             // Рендерим orphan-подзадачу как карточку задачи с её детьми внутри
             const assigneeIds = task.assignees || [];
             const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
@@ -2457,7 +2470,11 @@ async function checkAuth() {
             const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
             
             // Рендерим детей
-            const childrenHtml = children && children.length > 0 ? renderKanbanChildren(task, children, rootTaskId, task.id) : '';
+            const newBreadcrumb = [...breadcrumb, task.title];
+            const childrenHtml = children && children.length > 0 ? renderKanbanChildren(task, children, rootTaskId, task.id, newBreadcrumb) : '';
+            
+            //Breadcrumb для отображения
+            const breadcrumbHtml = breadcrumb.length > 0 ? '<div class="breadcrumb">' + breadcrumb.map((crumb, i) => '<span>' + crumb + '</span>').join(' → ') + '</div>' : '';
             
             return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' + dragAttr + ' ' +
                    (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
@@ -2466,6 +2483,7 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
                     '<div class="title">' + task.title + '</div>' +
+                    breadcrumbHtml +
                     '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                     '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
                 '</div>' +
@@ -2473,7 +2491,7 @@ async function checkAuth() {
             '</div>';
         }
 
-        function renderKanbanChildren(parentTask, children, rootTaskId, orphanParentId) {
+        function renderKanbanChildren(parentTask, children, rootTaskId, orphanParentId, breadcrumb = []) {
             // Рендерим только детей (kanban-child) без обёртки kanban-card
             // Дети уже отсортированы по порядку, строим иерархию на основе depth
             const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (parentTask.color || '');
@@ -2498,7 +2516,7 @@ async function checkAuth() {
             
             const tree = buildTree(children);
             
-            const renderNode = (node, depth) => {
+            const renderNode = (node, depth, nodeBreadcrumb = []) => {
                 const item = node.item;
                 const subAssignees = item.task.assignees || [];
                 const depthClass = 'depth-' + Math.min(depth + 1, 3);
@@ -2517,12 +2535,16 @@ async function checkAuth() {
                     styleParts.push('color: ' + getContrastColor(derivedColor) + ' !important');
                 }
                 const style = styleParts.join(';');
-                const childrenHtml = node.children.length > 0
-                    ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
-                    : '';
+                
+                // Если у этого узла есть дети (kanban-child с детьми), рендерим их как карточку
                 const nodeHasChildren = node.children.length > 0;
                 const priorityNum = PRIORITY_NUMS[item.task.priority || 'medium'] || '3';
                 const assigneeHtml = renderAssigneeCell(subAssignees, actualRootId, item.task.id, canEdit && !nodeHasChildren);
+                
+                const childrenHtml = node.children.length > 0
+                    ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1, [...nodeBreadcrumb, item.task.title])).join('') + '</div>'
+                    : '';
+                
                 return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<span class="priority-num p-' + priorityNum + '">' + priorityNum + '</span>' +
                         '<div class="content">' +
@@ -2532,7 +2554,7 @@ async function checkAuth() {
                     '</div>' + childrenHtml;
             };
             
-            return tree.map(n => renderNode(n, 0)).join('');
+            return tree.map(n => renderNode(n, 0, breadcrumb)).join('');
         }
 
         function renderKanbanNested(task, subtasks, rootTaskId, orphanParentId = null) {
