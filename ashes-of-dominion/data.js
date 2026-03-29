@@ -7,6 +7,8 @@ const LOCAL_FILTERS_KEY = 'aod.filters';
 
 let tasks = window.tasks || [];
 let assignees = window.assignees || [];
+window.tasks = tasks;
+window.assignees = assignees;
 let currentUser = null;
 let canEdit = false;
 let taskColorDbSupported = true;
@@ -141,6 +143,7 @@ async function loadAssignees() {
         ...a,
         color: resolveAssigneeColor(a, idx)
     }));
+    window.assignees = assignees;
     window.renderAssigneesSelect();
 }
 
@@ -160,6 +163,7 @@ async function loadTasks() {
         subtasks: typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : (t.subtasks || []),
         order_index: t.order_index ?? idx
     }));
+    window.tasks = tasks;
 
     const tasksNeedingOrder = tasks.filter(t => t.order_index === undefined || t.order_index === null);
     if (tasksNeedingOrder.length > 0) {
