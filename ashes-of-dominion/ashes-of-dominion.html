@@ -423,14 +423,13 @@
         .kanban-card-header .title { font-weight: 600; font-size: 0.9em; flex: 1; min-width: 100px; }
         .kanban-card-header .breadcrumb {
             font-size: 0.75em;
-            color: var(--muted);
-            margin-top: 4px;
+            margin-bottom: 4px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .kanban-card-header .breadcrumb span {
-            opacity: 0.7;
+            opacity: 0.8;
         }
         .kanban-card-header .meta { display: flex; gap: 4px; flex-shrink: 0; }
         .kanban-card-header .assignees { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
@@ -2482,8 +2481,8 @@ async function checkAuth() {
                    'style="' + style + '" ' +
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
-                    '<div class="title">' + task.title + '</div>' +
                     breadcrumbHtml +
+                    '<div class="title">' + task.title + '</div>' +
                     '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                     '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
                 '</div>' +
