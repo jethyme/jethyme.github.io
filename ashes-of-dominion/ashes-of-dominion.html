@@ -422,7 +422,7 @@
         }
         .kanban-card-header .title { font-weight: 600; font-size: 0.9em; flex: 1; min-width: 100px; }
         .kanban-card-header .breadcrumb {
-            font-size: 0.7em !important;
+            font-size: 0.75em !important;
             padding: 6px 10px;
             white-space: nowrap;
             overflow: hidden;
@@ -434,6 +434,7 @@
         .breadcrumb-container {
             border-top: 1px solid rgba(0,0,0,0.3);
             padding-bottom: 6px;
+            padding-right: 10px;
         }
         .breadcrumb-container .breadcrumb {
             text-align: right !important;
@@ -2366,19 +2367,25 @@ async function checkAuth() {
                     
                     if (!hasParentInColumn && item.depth === 0) {
                         // Родителя нет в колонке - это orphan, собираем всех его потомков
-                        // Дети orphan имеют depth > 0 и идут после него пока не встретится элемент с depth=0
+                        // Дети orphan имеют parentSubtaskId === item.id или являются потомками таких детей
                         const children = [];
-                        const orphanDepth = item.depth;
+                        const orphanId = item.task.id;
+                        const collectedIds = new Set([orphanId]);
+                        
                         let j = i + 1;
                         while (j < items.length) {
                             const nextItem = items[j];
-                            // Останавливаемся когда доходим до элемента того же или меньшего depth
-                            if (nextItem.type === 'task' || nextItem.depth <= orphanDepth) {
+                            // Останавливаемся когда доходим до элемента того же уровня (depth=0)
+                            if (nextItem.type === 'task' || nextItem.depth === 0) {
                                 break;
                             }
                             if (nextItem.type === 'subtask' && nextItem.rootTaskId === item.rootTaskId) {
-                                children.push(nextItem);
-                                consumedSubtasks.add(nextItem.task.id);
+                                // Проверяем, является ли этот элемент потомком orphan или его детей
+                                if (nextItem.parentSubtaskId && collectedIds.has(nextItem.parentSubtaskId)) {
+                                    children.push(nextItem);
+                                    collectedIds.add(nextItem.task.id);
+                                    consumedSubtasks.add(nextItem.task.id);
+                                }
                             }
                             j++;
                         }
