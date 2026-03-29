@@ -2364,7 +2364,7 @@ async function checkAuth() {
 
             // 3. Подзадачи depth=1 с детьми → становятся карточками
             remainingSubtasks.filter(item => 
-                item.depth === 1 && !item.parentSubtaskId
+                item.depth === 1 && (!item.parentSubtaskId || item.parentSubtaskId === item.rootTaskId)
             ).forEach(item => {
                 // Собираем всех потомков рекурсивно
                 const allDescendants = [];
