@@ -2350,6 +2350,34 @@ async function checkAuth() {
                 subtasksByRoot.set(sub.rootTaskId, list);
             });
 
+            // Группируем orphan подзадачи по отсутствующему родителю
+            const orphansByParent = new Map();
+            
+            items.filter(i => i.type === 'subtask').forEach(item => {
+                const parentId = item.parentSubtaskId || item.rootTaskId;
+                const hasParentInColumn = item.parentSubtaskId ?
+                    subtaskIdsInColumn.has(item.parentSubtaskId) :
+                    taskIdsInColumn.has(item.rootTaskId);
+                
+                if (!hasParentInColumn && !orphansByParent.has(parentId)) {
+                    orphansByParent.set(parentId, []);
+                }
+            });
+            
+            // Собираем детей для каждого orphan родителя
+            orphansByParent.forEach((children, parentId) => {
+                const collectChildren = (pId) => {
+                    items.filter(i => i.type === 'subtask' && !consumedSubtasks.has(i.task.id)).forEach(item => {
+                        if (item.parentSubtaskId === pId || item.rootTaskId === pId) {
+                            children.push(item);
+                            consumedSubtasks.add(item.task.id);
+                            collectChildren(item.task.id);
+                        }
+                    });
+                };
+                collectChildren(parentId);
+            });
+
             let i = 0;
             while (i < items.length) {
                 const item = items[i];
@@ -2362,44 +2390,56 @@ async function checkAuth() {
                         result.push({ type: 'task', task: item.task });
                     }
                 } else if (!consumedSubtasks.has(item.task.id)) {
-                    // Проверяем, есть ли родитель в этой колонке
-                    const hasParentInColumn = item.parentSubtaskId ? 
-                        subtaskIdsInColumn.has(item.parentSubtaskId) :
-                        taskIdsInColumn.has(item.rootTaskId);
-                    
-                    if (!hasParentInColumn && item.depth === 0) {
-                        // Родителя нет в колонке - это orphan, собираем всех его потомков
-                        // Дети orphan имеют parentSubtaskId === item.id или являются потомками таких детей
-                        const children = [];
-                        const orphanId = item.task.id;
-                        const collectedIds = new Set([orphanId]);
-                        
-                        let j = i + 1;
-                        while (j < items.length) {
-                            const nextItem = items[j];
-                            // Останавливаемся когда доходим до элемента того же уровня (depth=0)
-                            if (nextItem.type === 'task' || nextItem.depth === 0) {
-                                break;
-                            }
-                            if (nextItem.type === 'subtask' && nextItem.rootTaskId === item.rootTaskId) {
-                                // Проверяем, является ли этот элемент потомком orphan или его детей
-                                if (nextItem.parentSubtaskId && collectedIds.has(nextItem.parentSubtaskId)) {
-                                    children.push(nextItem);
-                                    collectedIds.add(nextItem.task.id);
-                                    consumedSubtasks.add(nextItem.task.id);
-                                }
-                            }
-                            j++;
-                        }
-
-                        consumedSubtasks.add(item.task.id);
-                        result.push({ type: 'orphan-nested', task: item.task, subtasks: children, rootTaskId: item.rootTaskId });
-                    } else {
-                        result.push({ type: 'subtask', item: item });
-                    }
+                    result.push({ type: 'subtask', item: item });
                 }
                 i++;
             }
+            
+            // Добавляем orphan группы
+            orphansByParent.forEach((children, parentId) => {
+                // Находим root task и строим breadcrumb
+                const rootTaskId = children[0]?.rootTaskId;
+                const rootTask = tasks.find(t => t.id === rootTaskId);
+                
+                // Строим breadcrumb от root до parentId
+                const breadcrumb = [];
+                if (rootTask) {
+                    breadcrumb.push(rootTask.title);
+                    // Если parentId не root, ищем промежуточные подзадачи
+                    if (parentId !== rootTaskId) {
+                        const allSubtasks = [];
+                        const collect = (subs) => {
+                            subs.forEach(s => {
+                                allSubtasks.push(s);
+                                if (s.children) collect(s.children);
+                            });
+                        };
+                        collect(rootTask.subtasks || []);
+                        
+                        // Строим путь от root до parentId
+                        const path = [];
+                        let currentId = parentId;
+                        while (currentId && currentId !== rootTaskId) {
+                            const sub = allSubtasks.find(s => s.id === currentId);
+                            if (sub) {
+                                path.unshift(sub.title);
+                                currentId = sub.parentSubtaskId || rootTaskId;
+                            } else {
+                                break;
+                            }
+                        }
+                        breadcrumb.push(...path);
+                    }
+                }
+                
+                result.push({
+                    type: 'orphan-nested',
+                    task: { title: breadcrumb[breadcrumb.length - 1] || 'Подзадача', id: parentId },
+                    subtasks: children,
+                    rootTaskId: rootTaskId,
+                    breadcrumb: breadcrumb
+                });
+            });
 
             const html = result.map(entry => {
                 if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks, null);
@@ -2407,9 +2447,7 @@ async function checkAuth() {
                 if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
                 if (entry.type === 'orphan-nested') {
                     // Рендерим orphan-подзадачу как карточку задачи с её детьми внутри
-                    const rootTask = tasks.find(t => t.id === entry.rootTaskId);
-                    const rootName = rootTask ? rootTask.title : 'Задача';
-                    return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, [rootName]);
+                    return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, entry.breadcrumb);
                 }
                 return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
             }).join('');
