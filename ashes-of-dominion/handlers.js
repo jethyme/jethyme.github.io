@@ -388,6 +388,13 @@ document.addEventListener('click', (e) => {
     }
 });
 
+document.addEventListener('click', (e) => {
+    const modal = e.target.closest('.modal');
+    if (modal && !e.target.closest('.modal-content')) {
+        modal.classList.remove('active');
+    }
+});
+
 function handleTaskDragStart(e, taskId) { 
     if (!canEdit) return; 
     draggedItem = { type: 'task', taskId }; 
