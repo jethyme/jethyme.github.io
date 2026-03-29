@@ -1108,7 +1108,7 @@
                 const displayName = getShortName(name);
                 const color = resolveAssigneeColor(a || { id: id, name: name }, index);
                 const textColor = getContrastColor(color);
-                return '<span class="assignee-tag clickable-badge" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
+                return '<span class="assignee-tag" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
             }).join('');
         }
 
