@@ -2570,7 +2570,7 @@ async function checkAuth() {
             
             const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
             const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
-            const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\')))return;event.stopPropagation();openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
+            const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
             
             // Рендерим детей
             const newBreadcrumb = [...breadcrumb, task.title];
@@ -2586,7 +2586,7 @@ async function checkAuth() {
                    'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
                 '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
                     '<div class="title">' + task.title + '</div>' +
-                    '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                    '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                     '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
@@ -2631,7 +2631,7 @@ async function checkAuth() {
                 const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
                 const actualRootId = rootTaskId || parentTask.id;
                 const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + item.task.id + ')" ondragend="handleDragEnd(event)"') : '';
-                const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\')))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + item.task.id + ')"') : '';
+                const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + item.task.id + ')"') : '';
                 const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
                 const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
                 const hasColor = !!derivedColor;
@@ -2703,7 +2703,7 @@ async function checkAuth() {
                 const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
                 const actualRootId = rootTaskId || task.id;
                 const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + node.task.id + ')" ondragend="handleDragEnd(event)"') : '';
-                const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\')))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + node.task.id + ')"') : '';
+                const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + actualRootId + ',' + node.task.id + ')"') : '';
                 const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
                 const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
                 const hasColor = !!derivedColor;
@@ -2733,7 +2733,7 @@ async function checkAuth() {
             const childrenHtml = roots.map(n => renderNode(n, 0)).join('');
             const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
             const dragEvents = canEdit ? ('ondragstart="handleTaskDragStart(event, ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
-            const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\')))return;event.stopPropagation();editTask(' + task.id + ')"') : '';
+            const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();editTask(' + task.id + ')"') : '';
             const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
             const styleParts = [cursor];
             if (baseColor) {
