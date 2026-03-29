@@ -146,30 +146,22 @@ function taskHasMatchingLeaf(task) {
         return true;
     }
 
-    const findMatchingLeaf = (subtasks) => {
-        if (!subtasks || subtasks.length === 0) return false;
-
-        for (const sub of subtasks) {
-            const hasChildren = sub.children && sub.children.length > 0;
-
-            if (hasChildren) {
-                if (findMatchingLeaf(sub.children)) return true;
-            } else {
-                const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (sub.assignees || []).includes(String(id)));
-                const priorityMatch = filterPriority.length === 0 || filterPriority.includes(sub.priority);
-                const statusMatch = filterStatus.length === 0 || filterStatus.includes(sub.status);
-
-                if (assigneeMatch && priorityMatch && statusMatch) return true;
-            }
+    const matchesLeaf = (node) => {
+        const kids = node.children || node.subtasks || [];
+        if (kids.length === 0) {
+            const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (node.assignees || []).includes(String(id)));
+            const priorityMatch = filterPriority.length === 0 || filterPriority.includes(node.priority);
+            const statusMatch = filterStatus.length === 0 || filterStatus.includes(node.status);
+            return assigneeMatch && priorityMatch && statusMatch;
         }
-        return false;
+        return kids.some(child => matchesLeaf(child));
     };
 
     if (!task.subtasks || task.subtasks.length === 0) {
         return matchesFilters(task);
     }
 
-    return findMatchingLeaf(task.subtasks);
+    return task.subtasks.some(sub => matchesLeaf(sub));
 }
 
 function filterSubtasks(subtasks) {
@@ -322,23 +314,39 @@ function findSubtaskById(rootTask, subtaskId) {
 }
 
 function shouldShowTask(task) {
-    if (matchesFilters(task)) return true;
-    if (filterAssignee.length === 0 && filterPriority.length === 0) return false;
-    
-    const checkSubtasks = (subtasks) => {
-        for (const sub of subtasks || []) {
-            const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (sub.assignees || []).includes(String(id)));
-            const priorityMatch = filterPriority.length === 0 || filterPriority.includes(sub.priority);
-            if (assigneeMatch && priorityMatch) return true;
-            if (checkSubtasks(sub.children || sub.subtasks || [])) return true;
+    const checkLeaf = (node) => {
+        const kids = node.children || node.subtasks || [];
+        if (kids.length === 0) {
+            const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (node.assignees || []).includes(String(id)));
+            const priorityMatch = filterPriority.length === 0 || filterPriority.includes(node.priority);
+            return assigneeMatch && priorityMatch;
         }
-        return false;
+        return kids.some(child => checkLeaf(child));
     };
     
-    return checkSubtasks(task.subtasks);
+    if (!task.subtasks || task.subtasks.length === 0) {
+        return matchesFilters(task);
+    }
+    
+    return task.subtasks.some(sub => checkLeaf(sub));
 }
 
 function shouldShowSubtask(subtask) {
+    const hasChildren = (subtask.children || subtask.subtasks || []).length > 0;
+    
+    if (hasChildren) {
+        const checkLeafDescendants = (node) => {
+            const kids = node.children || node.subtasks || [];
+            if (kids.length === 0) {
+                const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (node.assignees || []).includes(String(id)));
+                const priorityMatch = filterPriority.length === 0 || filterPriority.includes(node.priority);
+                return assigneeMatch && priorityMatch;
+            }
+            return kids.some(child => checkLeafDescendants(child));
+        };
+        return checkLeafDescendants(subtask);
+    }
+    
     const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (subtask.assignees || []).includes(String(id)));
     const priorityMatch = filterPriority.length === 0 || filterPriority.includes(subtask.priority);
     return assigneeMatch && priorityMatch;
