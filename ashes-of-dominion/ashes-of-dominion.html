@@ -2359,8 +2359,22 @@ async function checkAuth() {
                     subtaskIdsInColumn.has(item.parentSubtaskId) :
                     taskIdsInColumn.has(item.rootTaskId);
                 
-                if (!hasParentInColumn && !orphansByParent.has(parentId)) {
-                    orphansByParent.set(parentId, []);
+                // Не создаём карточку если родитель - root задача и у подзадачи нет своих детей
+                if (!hasParentInColumn) {
+                    // Если parent это root задача (parentId === rootTaskId), проверяем есть ли у подзадачи дети
+                    if (parentId === item.rootTaskId && item.depth === 1) {
+                        // Это подзадача первого уровня без родителя-задачи в колонке
+                        // Проверяем, есть ли у неё дети в этой колонке
+                        const hasChildren = items.some(c => c.type === 'subtask' && c.parentSubtaskId === item.task.id);
+                        if (!hasChildren) {
+                            // Одиночная подзадача без детей - не создаём карточку, пусть рендерится как subtask
+                            return;
+                        }
+                    }
+                    
+                    if (!orphansByParent.has(parentId)) {
+                        orphansByParent.set(parentId, []);
+                    }
                 }
             });
             
