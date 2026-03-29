@@ -2,76 +2,465 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Так надо</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Jethyme Projects</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 40px;
+            background: #0a0a0f;
             min-height: 100vh;
-            color: #fff;
+            overflow-x: hidden;
+            position: relative;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
+
+        /* Анимированный фон */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 50, 200, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(50, 120, 200, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(200, 50, 120, 0.2) 0%, transparent 40%);
+            animation: bgRotate 30s linear infinite;
+        }
+
+        @keyframes bgRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Плавающие частицы */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Заголовок */
+        .header {
             text-align: center;
+            padding: 60px 20px 40px;
+            position: relative;
         }
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+
+        .title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(
+                45deg,
+                #ff6b6b,
+                #feca57,
+                #48dbfb,
+                #ff9ff3,
+                #54a0ff
+            );
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 5s ease infinite;
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
         }
-        .link-box {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 15px 0;
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
-        .link-box:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            background: rgba(255, 255, 255, 0.15);
-        }
-        a {
-            color: #fff;
-            text-decoration: none;
+
+        .subtitle {
             font-size: 1.2rem;
-            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 10px;
+            font-weight: 300;
         }
-        a:hover::after {
-            transform: translateX(5px);
+
+        /* Сетка проектов */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Карточка проекта */
+        .project-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            transition: left 0.5s;
+        }
+
+        .project-card:hover::before {
+            left: 100%;
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Иконка проекта */
+        .project-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            display: block;
+            transition: transform 0.3s;
+        }
+
+        .project-card:hover .project-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .project-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .project-desc {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.5;
+        }
+
+        /* Уникальные стили для каждой карточки */
+        .project-card.bookworm {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+        }
+
+        .project-card.bookworm:hover {
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .project-card.lich {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(22, 160, 133, 0.2));
+        }
+
+        .project-card.lich:hover {
+            box-shadow: 0 20px 40px rgba(46, 204, 113, 0.4);
+        }
+
+        .project-card.cows {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(243, 156, 18, 0.2));
+        }
+
+        .project-card.cows:hover {
+            box-shadow: 0 20px 40px rgba(241, 196, 15, 0.4);
+        }
+
+        .project-card.bulls {
+            background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(211, 84, 0, 0.2));
+        }
+
+        .project-card.bulls:hover {
+            box-shadow: 0 20px 40px rgba(230, 126, 34, 0.4);
+        }
+
+        .project-card.ashes {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.2));
+        }
+
+        .project-card.ashes:hover {
+            box-shadow: 0 20px 40px rgba(231, 76, 60, 0.4);
+        }
+
+        /* Бейдж */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .badge.ranobe {
+            background: rgba(102, 126, 234, 0.3);
+            color: #a29bfe;
+        }
+
+        .badge.puzzle {
+            background: rgba(46, 204, 113, 0.3);
+            color: #58d68d;
+        }
+
+        .badge.game {
+            background: rgba(241, 196, 15, 0.3);
+            color: #f9e79f;
+        }
+
+        .badge.solver {
+            background: rgba(230, 126, 34, 0.3);
+            color: #f5b041;
+        }
+
+        .badge.roguelike {
+            background: rgba(231, 76, 60, 0.3);
+            color: #f1948a;
+        }
+
+        /* Анимация появления */
+        .project-card {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .project-card:nth-child(1) { animation-delay: 0.1s; }
+        .project-card:nth-child(2) { animation-delay: 0.2s; }
+        .project-card:nth-child(3) { animation-delay: 0.3s; }
+        .project-card:nth-child(4) { animation-delay: 0.4s; }
+        .project-card:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Футер */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+        }
+
+        .footer-heart {
+            display: inline-block;
+            animation: heartbeat 1.5s ease infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Глитч-эффект при наведении на заголовок */
+        .title:hover {
+            animation: glitch 0.3s ease;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Так надо</h1>
+    <!-- Анимированный фон -->
+    <div class="bg-animation"></div>
+    
+    <!-- Плавающие частицы -->
+    <div class="particles" id="particles"></div>
 
-        <div class="link-box">
-            <p>Hello World!</p>
-        </div>
+    <header class="header">
+        <h1 class="title">🚀 Jethyme Projects</h1>
+        <p class="subtitle">Выбери своё приключение</p>
+    </header>
 
-        <div class="link-box">
-            <a href="bookworm/index.html">
-                <p>Bookworm</p>
-            </a>
-        </div>
+    <main class="projects-grid">
+        <!-- Bookworm -->
+        <a href="bookworm/index.html" class="project-card bookworm">
+            <span class="project-icon">📚</span>
+            <h2 class="project-name">Власть Книжного Червя</h2>
+            <p class="project-desc">
+                Погрузись в мир ранобэ! Исследуй историю и приключения в стиле японских новелл.
+            </p>
+            <span class="badge ranobe">Ранобэ</span>
+        </a>
 
-        <div class="link-box">
-            <a href="cows/cows.html">
-                <p>Быки и коровы</p>
-            </a>
-        </div>
+        <!-- Ashes of Dominion -->
+        <a href="ashes-of-dominion/ashes-of-dominion.html" class="project-card ashes">
+            <span class="project-icon">🔥</span>
+            <h2 class="project-name">Ashes of Dominion</h2>
+            <p class="project-desc">
+                Разработка рогалика. Следи за прогрессом, задачами и планами на проект.
+            </p>
+            <span class="badge roguelike">Roguelike Dev</span>
+        </a>
+		
+        <!-- Lich's Laboratory -->
+        <a href="lichs-laboratory/lichs-laboratory.html" class="project-card lich">
+            <span class="project-icon">🧙‍♂️</span>
+            <h2 class="project-name">Лаборатория Лича</h2>
+            <p class="project-desc">
+                Головоломка-дверь для D&D. Разгадай магические символы и открой портал!
+            </p>
+            <span class="badge puzzle">D&D Пазл</span>
+        </a>
 
-        <div class="link-box">
-            <a href="lichs-laboratory/lichs-laboratory.html">
-                <p>Головоломка-дверь</p>
-            </a>
-        </div>
-    </div>
+        <!-- Cows -->
+        <a href="cows/cows.html" class="project-card cows">
+            <span class="project-icon">🐮</span>
+            <h2 class="project-name">Быки и Коровы</h2>
+            <p class="project-desc">
+                Классическая логическая игра. Угадай секретное слово за минимальное количество попыток!
+            </p>
+            <span class="badge game">Игра</span>
+        </a>
+
+        <!-- Bulls Solver -->
+        <a href="cows/bulls.html" class="project-card bulls">
+            <span class="project-icon">🐂</span>
+            <h2 class="project-name">Табун</h2>
+            <p class="project-desc">
+                Умный решатель для «Быков и Коров». Пусть компьютер ломает голову за тебя!
+            </p>
+            <span class="badge solver">Решатель</span>
+        </a>
+
+    </main>
+
+    <footer class="footer">
+        <p>Сделано машиной без души <span class="footer-heart">❤️</span></p>
+    </footer>
+
+    <script>
+        // Создание плавающих частиц
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 50;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particle.style.opacity = Math.random() * 0.5 + 0.2;
+            particlesContainer.appendChild(particle);
+        }
+
+        // Параллакс-эффект для карточек
+        document.querySelectorAll('.project-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 10;
+                const rotateY = (centerX - x) / 10;
+                
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+            });
+        });
+
+        // Звуковой эффект при клике (опционально)
+        document.querySelectorAll('.project-card').forEach(card => {
+            card.addEventListener('click', () => {
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                }, 100);
+            });
+        });
+    </script>
 </body>
 </html>
