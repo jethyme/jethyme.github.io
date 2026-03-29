@@ -2345,19 +2345,22 @@ async function checkAuth() {
                         taskIdsInColumn.has(item.rootTaskId);
                     
                     if (!hasParentInColumn && item.depth === 0) {
-                        // Родителя нет в колонке - собираем всех детей этой подзадачи
+                        // Родителя нет в колонке - это orphan, собираем всех его потомков
+                        // Дети orphan имеют depth > 0 и идут после него пока не встретится элемент с depth=0
                         const children = [];
-                        const collectChildren = (parentId) => {
-                            items.filter(it => it.type === 'subtask' && it.item && it.item.parentSubtaskId === parentId).forEach(s => {
-                                if (!consumedSubtasks.has(s.task.id)) {
-                                    children.push(s);
-                                    consumedSubtasks.add(s.task.id);
-                                    collectChildren(s.task.id);
-                                }
-                            });
-                        };
-                        collectChildren(item.task.id);
-                        
+                        let j = i + 1;
+                        while (j < items.length) {
+                            const nextItem = items[j];
+                            if (nextItem.type === 'task' || (nextItem.type === 'subtask' && nextItem.depth === 0)) {
+                                break; // Дошли до следующего элемента того же уровня
+                            }
+                            if (nextItem.type === 'subtask' && nextItem.rootTaskId === item.rootTaskId) {
+                                children.push(nextItem);
+                                consumedSubtasks.add(nextItem.task.id);
+                            }
+                            j++;
+                        }
+
                         consumedSubtasks.add(item.task.id);
                         result.push({ type: 'orphan-nested', task: item.task, subtasks: children, rootTaskId: item.rootTaskId });
                     } else {
@@ -2472,39 +2475,37 @@ async function checkAuth() {
 
         function renderKanbanChildren(parentTask, children, rootTaskId, orphanParentId) {
             // Рендерим только детей (kanban-child) без обёртки kanban-card
+            // Дети уже отсортированы по порядку, строим иерархию на основе depth
             const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (parentTask.color || '');
             
-            const orderIndex = new Map(children.map((s, idx) => [s.task.id, idx]));
-            const byId = new Map();
-            children.forEach(sub => {
-                byId.set(sub.task.id, { ...sub, children: [] });
-            });
-
-            const roots = [];
-            byId.forEach(node => {
-                const parentId = node.parentSubtaskId;
-                if (parentId === orphanParentId) {
-                    roots.push(node);
-                } else if (parentId && byId.has(parentId)) {
-                    byId.get(parentId).children.push(node);
-                } else {
-                    roots.push(node);
+            // Строим дерево на основе depth
+            const buildTree = (items) => {
+                const roots = [];
+                const stack = [{ depth: -1, children: roots }];
+                
+                for (const item of items) {
+                    const node = { item, children: [] };
+                    // Ищем родителя - последний элемент с depth меньше текущего
+                    while (stack.length > 1 && stack[stack.length - 1].depth >= item.depth) {
+                        stack.pop();
+                    }
+                    stack[stack.length - 1].children.push(node);
+                    stack.push({ depth: item.depth, children: node.children });
                 }
-            });
-
-            const sortTree = (nodes) => {
-                nodes.sort((a, b) => (orderIndex.get(a.task.id) ?? 0) - (orderIndex.get(b.task.id) ?? 0));
-                nodes.forEach(n => sortTree(n.children));
+                
+                return roots;
             };
-            sortTree(roots);
-
+            
+            const tree = buildTree(children);
+            
             const renderNode = (node, depth) => {
-                const subAssignees = node.task.assignees || [];
+                const item = node.item;
+                const subAssignees = item.task.assignees || [];
                 const depthClass = 'depth-' + Math.min(depth + 1, 3);
                 const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
                 const actualRootId = rootTaskId || parentTask.id;
-                const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + node.task.id + ')" ondragend="handleDragEnd(event)"') : '';
-                const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + actualRootId + ',' + node.task.id + ')"') : '';
+                const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + actualRootId + ', ' + item.task.id + ')" ondragend="handleDragEnd(event)"') : '';
+                const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + actualRootId + ',' + item.task.id + ')"') : '';
                 const cursor = canEdit ? 'cursor:pointer' : 'cursor:default';
                 const derivedColor = baseColor ? deriveTaskColor(baseColor, depth + 1) : '';
                 const hasColor = !!derivedColor;
@@ -2520,18 +2521,18 @@ async function checkAuth() {
                     ? '<div class="kanban-children" style="margin-left:12px;">' + node.children.map(child => renderNode(child, depth + 1)).join('') + '</div>'
                     : '';
                 const nodeHasChildren = node.children.length > 0;
-                const priorityNum = PRIORITY_NUMS[node.task.priority || 'medium'] || '3';
-                const assigneeHtml = renderAssigneeCell(subAssignees, actualRootId, node.task.id, canEdit && !nodeHasChildren);
+                const priorityNum = PRIORITY_NUMS[item.task.priority || 'medium'] || '3';
+                const assigneeHtml = renderAssigneeCell(subAssignees, actualRootId, item.task.id, canEdit && !nodeHasChildren);
                 return '<div class="kanban-child ' + fullDepthClass + '" ' + dragAttr + ' ' + clickHandler + ' ' + dragEvents + ' style="' + style + '">' +
                         '<span class="priority-num p-' + priorityNum + '">' + priorityNum + '</span>' +
                         '<div class="content">' +
-                            '<div class="name">' + node.task.title + '</div>' +
+                            '<div class="name">' + item.task.title + '</div>' +
                             '<div class="assignees">' + assigneeHtml + '</div>' +
                         '</div>' +
                     '</div>' + childrenHtml;
             };
-
-            return roots.map(n => renderNode(n, 0)).join('');
+            
+            return tree.map(n => renderNode(n, 0)).join('');
         }
 
         function renderKanbanNested(task, subtasks, rootTaskId, orphanParentId = null) {
