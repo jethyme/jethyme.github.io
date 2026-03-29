@@ -2371,7 +2371,10 @@ async function checkAuth() {
                 if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks, null);
                 if (entry.type === 'task') return renderKanbanCard(entry.task, null, 0);
                 if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
-                if (entry.type === 'orphan-nested') return renderKanbanNested(entry.task, entry.subtasks, entry.rootTaskId, entry.task.id);
+                if (entry.type === 'orphan-nested') {
+                    // Рендерим orphan-подзадачу как карточку задачи с её детьми внутри
+                    return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId);
+                }
                 return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
             }).join('');
 
@@ -2429,6 +2432,41 @@ async function checkAuth() {
                 '<div class="name">' + task.title + '</div>' +
                 '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
                 '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
+            '</div>';
+        }
+
+        function renderKanbanCardWithChildren(task, children, rootTaskId) {
+            // Рендерим orphan-подзадачу как карточку задачи с её детьми внутри
+            const assigneeIds = task.assignees || [];
+            const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
+            const hasColor = !!baseColor;
+            
+            const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
+            if (hasColor) {
+                styleParts.push('border-left:4px solid ' + baseColor + ' !important');
+                styleParts.push('background: ' + baseColor + ' !important');
+                styleParts.push('color: ' + getContrastColor(baseColor) + ' !important');
+            }
+            const style = styleParts.join(';');
+            
+            const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
+            const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
+            const clickHandler = canEdit ? ('onclick="event.stopPropagation();if(!event.target.closest(\'.clickable-badge\'))openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
+            
+            // Рендерим детей через renderKanbanNested
+            const childrenHtml = children && children.length > 0 ? renderKanbanNested(task, children, rootTaskId, task.id) : '';
+            
+            return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' + dragAttr + ' ' +
+                   (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
+                   dragEvents + ' ' +
+                   'style="' + style + '" ' +
+                   'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
+                '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
+                    '<div class="title">' + task.title + '</div>' +
+                    '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+                    '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
+                '</div>' +
+                '<div class="kanban-children">' + childrenHtml + '</div>' +
             '</div>';
         }
 
