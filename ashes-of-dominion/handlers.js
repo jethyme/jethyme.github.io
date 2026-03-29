@@ -24,14 +24,14 @@ function openBadgeDropdown(event, badge) {
             const isSelected = selectedIds.includes(String(a.id));
             const color = a.color || '#888';
             const textColor = getContrastColor(color);
-            return '<div class="badge-option" data-id="' + a.id + '" style="background:' + color + ';color:' + textColor + ';">' + a.name + (isSelected ? '<span class="check">&#10003;</span>' : '') + '</div>';
+            return '<div class="badge-option' + (isSelected ? ' selected' : '') + '" data-id="' + a.id + '" style="background:' + color + ';color:' + textColor + ';">' + a.name + '<span class="check">&#10003;</span></div>';
         }).join('');
     } else {
         const options = type === 'priority' ? PRIORITY_ORDER.map(p => ({ value: p, label: PRIORITY_LABELS[p] })) : STATUS_LIST.map(s => ({ value: s, label: STATUS_LABELS[s] }));
         dropdown.innerHTML = options.map(opt => {
             const cls = type === 'priority' ? 'priority-' + opt.value : 'status-' + opt.value;
-            const checked = opt.value === currentValue ? '<span class="check">&#10003;</span>' : '';
-            return '<div class="badge-option ' + cls + '" data-value="' + opt.value + '">' + opt.label + checked + '</div>';
+            const isSelected = opt.value === currentValue;
+            return '<div class="badge-option ' + cls + (isSelected ? ' selected' : '') + '" data-value="' + opt.value + '">' + opt.label + '<span class="check">&#10003;</span></div>';
         }).join('');
     }
 
@@ -116,12 +116,13 @@ function closeBadgeDropdownOnce(event) {
 
 function openAddModal() {
     if (!canEdit) return;
+    closeBadgeDropdown();
     document.getElementById('modalTitle').textContent = 'Задача';
     document.getElementById('taskForm').reset();
     document.getElementById('taskId').value = '';
-    document.getElementById('taskPriority').value = 'medium';
-    document.getElementById('taskStatus').value = 'queue';
     document.getElementById('taskColor').value = '';
+    renderBadgeSelector('taskPrioritySelect', 'priority', 'medium');
+    renderBadgeSelector('taskStatusSelect', 'status', 'queue');
     renderAssigneesSelect('taskAssigneesSelect', []);
     renderTaskColorPicker();
     document.getElementById('taskModal').classList.add('active');
@@ -132,14 +133,15 @@ function closeModal() {
 }
 
 function editTask(id) {
+    closeBadgeDropdown();
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     document.getElementById('modalTitle').textContent = 'Редактировать';
     document.getElementById('taskId').value = task.id;
     document.getElementById('taskTitle').value = task.title;
-    document.getElementById('taskPriority').value = task.priority || 'medium';
-    document.getElementById('taskStatus').value = task.status;
     document.getElementById('taskColor').value = task.color || '';
+    renderBadgeSelector('taskPrioritySelect', 'priority', task.priority || 'medium');
+    renderBadgeSelector('taskStatusSelect', 'status', task.status || 'queue');
     renderAssigneesSelect('taskAssigneesSelect', task.assignees);
     renderTaskColorPicker(task.color || '');
     document.getElementById('taskModal').classList.add('active');
@@ -150,7 +152,7 @@ function renderTaskColorPicker(selectedColor = '') {
     if (!container) return;
     container.innerHTML = TASK_COLORS.map(c => {
         const border = selectedColor === c ? '2px solid #fff' : '2px solid transparent';
-        return '<span class="color-swatch" data-color="' + c + '" style="width:28px;height:28px;border-radius:6px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
+        return '<span class="color-swatch" data-color="' + c + '" style="width:22px;height:22px;border-radius:4px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
     }).join('');
 }
 
@@ -161,6 +163,7 @@ function selectTaskColor(color, el) {
 
 function openSubtaskModal(taskId, subtaskId = null, parentId = null) {
     if (!canEdit) return;
+    closeBadgeDropdown();
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
@@ -190,8 +193,12 @@ function openSubtaskModal(taskId, subtaskId = null, parentId = null) {
     }
 
     document.getElementById('subtaskTitle').value = subtask ? subtask.title : '';
-    document.getElementById('subtaskPriority').value = subtask ? (subtask.priority || 'medium') : (task.priority || 'medium');
-    document.getElementById('subtaskStatus').value = subtask ? (subtask.status || 'queue') : 'queue';
+    
+    const currentPriority = subtask ? (subtask.priority || 'medium') : (task.priority || 'medium');
+    renderBadgeSelector('subtaskPrioritySelect', 'priority', currentPriority);
+    
+    const currentStatus = subtask ? (subtask.status || 'queue') : 'queue';
+    renderBadgeSelector('subtaskStatusSelect', 'status', currentStatus);
     
     const parentNode = parentId ? findInTree(task.subtasks, parentId) : null;
     const selectedAssignees = subtask
@@ -356,8 +363,8 @@ document.getElementById('subtaskForm').addEventListener('submit', async (e) => {
         id: subtaskId ? parseInt(subtaskId) : null,
         parentId: parentId ? parseInt(parentId) : null,
         title: document.getElementById('subtaskTitle').value,
-        priority: document.getElementById('subtaskPriority').value,
-        status: document.getElementById('subtaskStatus').value,
+        priority: getSelectedBadgeValue('subtaskPrioritySelect'),
+        status: getSelectedBadgeValue('subtaskStatusSelect'),
         assignees: getSelectedAssignees('subtaskAssigneesSelect')
     });
     closeSubtaskModal();

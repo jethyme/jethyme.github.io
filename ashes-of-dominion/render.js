@@ -1,20 +1,23 @@
-function renderAssigneeTags(ids) {
+function renderAssigneeTags(ids, taskId = null, subtaskId = null, canEdit = false) {
     return (ids || []).map((id, index) => {
         const a = assignees.find(x => x.id == id);
         const name = a ? a.name : id;
         const displayName = getShortName(name);
         const color = resolveAssigneeColor(a || { id: id, name: name }, index);
         const textColor = getContrastColor(color);
-        return '<span class="assignee-tag" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
+        const clickable = canEdit ? ' clickable-badge' : '';
+        const dataAttrs = canEdit && taskId ? ` data-type="assignee" data-task-id="${taskId}" data-subtask="${subtaskId || ''}" data-value="${(ids || []).join(',')}"` : '';
+        return '<span class="assignee-tag' + clickable + '"' + dataAttrs + ' style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
     }).join('');
 }
 
 function renderAssigneeCell(ids, taskId, subtaskId, canEditFlag) {
-    const tags = renderAssigneeTags(ids);
+    const tags = renderAssigneeTags(ids, taskId, subtaskId, canEditFlag);
+    const currentValue = (ids || []).join(',');
     if (!canEditFlag) {
         return '<div class="assignees-list">' + tags + '</div>';
     }
-    const placeholder = '<span class="assignee-placeholder clickable-badge" data-type="assignee" data-task-id="' + taskId + '" data-subtask="' + (subtaskId || '') + '" data-value="">&#10010;</span>';
+    const placeholder = '<span class="assignee-placeholder clickable-badge" data-type="assignee" data-task-id="' + taskId + '" data-subtask="' + (subtaskId || '') + '" data-value="' + currentValue + '">&#10010;</span>';
     if (ids && ids.length > 0) {
         return '<div class="assignees-list clickable" data-task-id="' + taskId + '" data-subtask-id="' + (subtaskId || '') + '">' + tags + placeholder + '</div>';
     }
@@ -53,17 +56,56 @@ function renderStatusBadge(taskId, currentStatus, isSubtask, parentTaskId) {
 function renderAssigneesSelect(containerId = 'taskAssigneesSelect', selectedIds = []) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = assignees.map(a => {
-        const checked = selectedIds.includes(String(a.id)) ? 'checked' : '';
-        const checkedClass = checked ? 'checked' : '';
-        return `<label class="assignee-checkbox ${checkedClass}">
-            <input type="checkbox" value="${a.id}" ${checked} onchange="this.parentElement.classList.toggle('checked', this.checked)">${a.name}
-        </label>`;
+    container.innerHTML = assignees.map((a, idx) => {
+        const isSelected = selectedIds.includes(String(a.id));
+        const color = resolveAssigneeColor(a, idx);
+        return `<span class="badge-option ${isSelected ? 'selected' : ''}" 
+            style="background: ${color}; color: #fff;"
+            onclick="toggleAssigneeBadge(this, '${a.id}')" data-value="${a.id}">
+            ${a.name}
+            <span class="check">&#10003;</span>
+        </span>`;
     }).join('');
 }
 
+function toggleAssigneeBadge(element, assigneeId) {
+    element.classList.toggle('selected');
+}
+
 function getSelectedAssignees(containerId) {
-    return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(cb => cb.value);
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('.selected')).map(el => el.dataset.value);
+}
+
+function renderBadgeSelector(containerId, type, selectedValue) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const items = type === 'priority' ? PRIORITY_ORDER : STATUS_LIST;
+    const labels = type === 'priority' ? PRIORITY_LABELS : STATUS_LABELS;
+    
+    container.innerHTML = items.map(item => {
+        const isSelected = selectedValue === item;
+        return `<span class="badge-option ${type}-${item} ${isSelected ? 'selected' : ''}" 
+            onclick="selectBadgeOption(this, '${type}')" data-value="${item}">
+            ${labels[item]}
+            <span class="check">&#10003;</span>
+        </span>`;
+    }).join('');
+}
+
+function selectBadgeOption(element, type) {
+    const container = element.parentElement;
+    container.querySelectorAll('.badge-option').forEach(el => el.classList.remove('selected'));
+    element.classList.add('selected');
+}
+
+function getSelectedBadgeValue(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return '';
+    const selected = container.querySelector('.badge-option.selected');
+    return selected ? selected.dataset.value : '';
 }
 
 function renderAssigneesList() {
@@ -83,7 +125,7 @@ function renderTaskColorPicker(selectedColor = '') {
     if (!container) return;
     container.innerHTML = TASK_COLORS.map(c => {
         const border = selectedColor === c ? '2px solid #fff' : '2px solid transparent';
-        return '<span class="color-swatch" data-color="' + c + '" style="width:28px;height:28px;border-radius:6px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
+        return '<span class="color-swatch" data-color="' + c + '" style="width:22px;height:22px;border-radius:4px;background:' + c + ';cursor:pointer;border:' + border + ';" onclick="selectTaskColor(\'' + c + '\', this)"></span>';
     }).join('');
 }
 
@@ -241,6 +283,44 @@ function renderSubtaskTree(subtasks, taskId, level, baseColor) {
     }).join('');
 }
 
+function getFullBreadcrumb(rootTask, subtaskId) {
+    const path = rootTask ? [rootTask.title] : [];
+    
+    if (!subtaskId || !rootTask) return path;
+    
+    const findPath = (nodes, currentPath) => {
+        for (const node of nodes || []) {
+            const newPath = [...currentPath, node.title];
+            if (String(node.id) === String(subtaskId)) {
+                return newPath;
+            }
+            const result = findPath(node.children || node.subtasks || [], newPath);
+            if (result) return result;
+        }
+        return null;
+    };
+    
+    const result = findPath(rootTask.subtasks || [], path);
+    return result || path;
+}
+
+function findSubtaskById(rootTask, subtaskId) {
+    if (!rootTask || !subtaskId) return null;
+    
+    const search = (nodes) => {
+        for (const node of nodes || []) {
+            if (String(node.id) === String(subtaskId)) {
+                return node;
+            }
+            const found = search(node.children || node.subtasks || []);
+            if (found) return found;
+        }
+        return null;
+    };
+    
+    return search(rootTask.subtasks || []);
+}
+
 function shouldShowTask(task) {
     if (matchesFilters(task)) return true;
     if (filterAssignee.length === 0 && filterPriority.length === 0) return false;
@@ -362,14 +442,15 @@ function renderKanbanColumn(items) {
                 collectDescendants(item.task.id);
 
                 const rootTask = tasks.find(t => t.id === item.rootTaskId);
-                const breadcrumb = rootTask ? [rootTask.title, item.task.title] : [item.task.title];
+                const breadcrumb = getFullBreadcrumb(rootTask, item.task.id);
 
                 result.push({
                     type: 'orphan-nested',
                     task: item.task,
                     subtasks: allDescendants,
                     rootTaskId: item.rootTaskId,
-                    breadcrumb: breadcrumb
+                    breadcrumb: breadcrumb,
+                    orphanSubtaskId: item.task.id
                 });
 
                 consumedSubtasks.add(item.task.id);
@@ -382,6 +463,8 @@ function renderKanbanColumn(items) {
     );
 
     const groupsByParent = new Map();
+    const orphanSubtasksByRoot = new Map();
+
     finalRemaining.forEach(item => {
         const parentId = item.parentSubtaskId || item.rootTaskId;
         const hasParentInColumn = item.parentSubtaskId ?
@@ -401,30 +484,19 @@ function renderKanbanColumn(items) {
         if (String(parentId) === String(rootTaskId)) {
             groupItems.forEach(item => {
                 if (!consumedSubtasks.has(item.task.id)) {
-                    result.push({ type: 'subtask', item: item });
+                    if (!orphanSubtasksByRoot.has(rootTaskId)) {
+                        orphanSubtasksByRoot.set(rootTaskId, []);
+                    }
+                    orphanSubtasksByRoot.get(rootTaskId).push(item);
+                    consumedSubtasks.add(item.task.id);
                 }
             });
             return;
         }
 
         const rootTask = tasks.find(t => t.id === rootTaskId);
-        const breadcrumb = rootTask ? [rootTask.title] : [];
-
-        if (String(parentId) !== String(rootTaskId)) {
-            const allSubtasks = [];
-            const collect = (subs) => {
-                subs.forEach(s => {
-                    allSubtasks.push(s);
-                    if (s.children) collect(s.children);
-                });
-            };
-            collect(rootTask?.subtasks || []);
-
-            const parentSub = allSubtasks.find(s => String(s.id) === String(parentId));
-            if (parentSub) {
-                breadcrumb.push(parentSub.title);
-            }
-        }
+        const breadcrumb = getFullBreadcrumb(rootTask, parentId);
+        const realSubtask = findSubtaskById(rootTask, parentId);
 
         const children = [];
         const collectChildren = (pId) => {
@@ -436,15 +508,30 @@ function renderKanbanColumn(items) {
         };
         collectChildren(parentId);
 
+        const displayTitle = breadcrumb[breadcrumb.length - 1] || 'Подзадача';
         result.push({
             type: 'orphan-nested',
-            task: { title: breadcrumb[breadcrumb.length - 1] || 'Подзадача', id: parentId },
+            task: realSubtask || { title: displayTitle, id: parentId },
             subtasks: children,
             rootTaskId: rootTaskId,
-            breadcrumb: breadcrumb
+            breadcrumb: breadcrumb,
+            orphanSubtaskId: parseInt(parentId)
         });
 
         children.forEach(c => consumedSubtasks.add(c.task.id));
+    });
+
+    orphanSubtasksByRoot.forEach((items, rootId) => {
+        const rootTask = tasks.find(t => t.id === rootId);
+        if (rootTask) {
+            result.push({
+                type: 'task-as-subtask',
+                task: rootTask,
+                subtasks: items,
+                rootTaskId: rootId,
+                breadcrumb: []
+            });
+        }
     });
 
     finalRemaining.forEach(item => {
@@ -456,9 +543,9 @@ function renderKanbanColumn(items) {
     const html = result.map(entry => {
         if (entry.type === 'nested') return renderKanbanNested(entry.task, entry.subtasks, null);
         if (entry.type === 'task') return renderKanbanCard(entry.task, null, 0);
-        if (entry.type === 'task-as-subtask') return renderKanbanCard(entry.task, null, 0);
+        if (entry.type === 'task-as-subtask') return renderKanbanTaskAsSubtask(entry.task, entry.subtasks, entry.rootTaskId);
         if (entry.type === 'orphan-nested') {
-            return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, entry.breadcrumb);
+            return renderKanbanCardWithChildren(entry.task, entry.subtasks, entry.rootTaskId, entry.breadcrumb, entry.orphanSubtaskId);
         }
         return renderKanbanCard(entry.item.task, entry.item.rootTaskId, entry.item.depth, entry.item.parentSubtaskId);
     }).join('');
@@ -515,14 +602,15 @@ function renderKanbanCard(task, rootTaskId, depth, parentSubtaskId = null) {
            'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
         '<div class="name">' + task.title + '</div>' +
         '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds) + '</div>' +
+        '<div class="' + (canEdit ? 'assignees-list clickable' : 'assignees-list') + '" data-task-id="' + task.id + '" data-subtask-id="">' + renderAssigneeTags(assigneeIds, canEdit) + '</div>' +
     '</div>';
 }
 
-function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = []) {
+function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = [], orphanSubtaskId = null) {
     const assigneeIds = task.assignees || [];
     const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (task.color || '');
     const hasColor = !!baseColor;
+    const editTaskId = orphanSubtaskId || task.id;
 
     const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
     if (hasColor) {
@@ -534,7 +622,7 @@ function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = [
 
     const dragAttr = canEdit ? 'draggable="true"' : 'draggable="false"';
     const dragEvents = canEdit ? ('ondragstart="handleSubtaskDragStart(event, ' + rootTaskId + ', ' + task.id + ')" ondragend="handleDragEnd(event)"') : '';
-    const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + rootTaskId + ',' + task.id + ')"') : '';
+    const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();openSubtaskModal(' + rootTaskId + ',' + editTaskId + ')"') : '';
 
     const newBreadcrumb = [...breadcrumb, task.title];
     const childrenHtml = children && children.length > 0 ? renderKanbanChildren(task, children, rootTaskId, task.id, newBreadcrumb) : '';
@@ -542,17 +630,47 @@ function renderKanbanCardWithChildren(task, children, rootTaskId, breadcrumb = [
     const breadcrumbHtml = (breadcrumb.length > 0 && children && children.length > 0) ? '<div class="breadcrumb">' + breadcrumb.map((crumb, i) => '<span>' + crumb + '</span>').join(' → ') + '</div>' : '';
 
     return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' + dragAttr + ' ' +
-           (clickHandler ? 'onclick="' + clickHandler + '" ' : '') +
+           (clickHandler ? clickHandler + ' ' : '') +
            dragEvents + ' ' +
            'style="' + style + '" ' +
            'title="' + task.title + (canEdit ? ' (клик для редактирования)' : '') + '">' +
         '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
             '<div class="title">' + task.title + '</div>' +
-            '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-            '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
+            '<div class="meta">' + (canEdit ? renderPriorityBadge(editTaskId, task.priority || 'medium', true, rootTaskId) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+            '<div>' + renderAssigneeCell(assigneeIds, editTaskId, null, false) + '</div>' +
         '</div>' +
         '<div class="kanban-children">' + childrenHtml + '</div>' +
         (breadcrumbHtml ? '<div class="breadcrumb-container">' + breadcrumbHtml + '</div>' : '') +
+    '</div>';
+}
+
+function renderKanbanTaskAsSubtask(task, subtasks, rootTaskId) {
+    const assigneeIds = task.assignees || [];
+    const baseColor = task.color || '';
+    const hasColor = !!baseColor;
+
+    const styleParts = [canEdit ? 'cursor:pointer' : 'cursor:default'];
+    if (hasColor) {
+        styleParts.push('border-left:4px solid ' + baseColor + ' !important');
+        styleParts.push('background: ' + baseColor + ' !important');
+        styleParts.push('color: ' + getContrastColor(baseColor) + ' !important');
+    }
+    const style = styleParts.join(';');
+
+    const clickHandler = canEdit ? ('onclick="if(event.target.closest(\'.clickable-badge\'))return;event.stopPropagation();editTask(' + task.id + ')"') : '';
+
+    const childrenHtml = renderKanbanChildren(task, subtasks, rootTaskId, task.id, [task.title]);
+
+    return '<div class="kanban-card' + (hasColor ? '' : ' no-color') + '" ' +
+           (clickHandler ? clickHandler + ' ' : '') +
+           'style="' + style + '" ' +
+           'title="' + task.title + (canEdit ? ' (клик для редактирования задачи)' : '') + '">' +
+        '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
+            '<div class="title">' + task.title + '</div>' +
+            '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
+            '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
+        '</div>' +
+        '<div class="kanban-children">' + childrenHtml + '</div>' +
     '</div>';
 }
 
@@ -712,13 +830,10 @@ function renderFilterDropdowns() {
             const isChecked = filterAssignee.includes(String(a.id));
             const color = a.color || '#888';
             const textColor = getContrastColor(color);
-            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
-                <div class="filter-option-content">
-                    <span class="filter-badge" style="background:${color};color:${textColor}">${a.name}</span>
-                </div>
-                <span class="filter-check">&#10003;</span>
-                <input type="checkbox" value="${a.id}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('assignee', '${a.id}')" style="display:none">
-            </label>`;
+            return `<div class="badge-option ${isChecked ? 'selected' : ''}" style="background:${color};color:${textColor};" onclick="toggleFilter('assignee', '${a.id}')">
+                ${a.name}
+                <span class="check">&#10003;</span>
+            </div>`;
         }).join('');
         updateFilterCount('assignee', filterAssignee.length);
     }
@@ -727,13 +842,10 @@ function renderFilterDropdowns() {
     if (priorityDropdown) {
         priorityDropdown.innerHTML = PRIORITY_ORDER.map(p => {
             const isChecked = filterPriority.includes(p);
-            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
-                <div class="filter-option-content">
-                    <span class="filter-badge priority-${p}">${PRIORITY_LABELS[p]}</span>
-                </div>
-                <span class="filter-check">&#10003;</span>
-                <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('priority', '${p}')" style="display:none">
-            </label>`;
+            return `<div class="badge-option priority-${p} ${isChecked ? 'selected' : ''}" onclick="toggleFilter('priority', '${p}')">
+                ${PRIORITY_LABELS[p]}
+                <span class="check">&#10003;</span>
+            </div>`;
         }).join('');
         updateFilterCount('priority', filterPriority.length);
     }
@@ -742,13 +854,10 @@ function renderFilterDropdowns() {
     if (statusDropdown) {
         statusDropdown.innerHTML = STATUS_LIST.map(s => {
             const isChecked = filterStatus.includes(s);
-            return `<label class="filter-option ${isChecked ? 'selected' : ''}">
-                <div class="filter-option-content">
-                    <span class="filter-badge status-${s}">${STATUS_LABELS[s]}</span>
-                </div>
-                <span class="filter-check">&#10003;</span>
-                <input type="checkbox" value="${s}" ${isChecked ? 'checked' : ''} onchange="toggleFilter('status', '${s}')" style="display:none">
-            </label>`;
+            return `<div class="badge-option status-${s} ${isChecked ? 'selected' : ''}" onclick="toggleFilter('status', '${s}')">
+                ${STATUS_LABELS[s]}
+                <span class="check">&#10003;</span>
+            </div>`;
         }).join('');
         updateFilterCount('status', filterStatus.length);
     }
@@ -764,3 +873,6 @@ window.renderAssigneesSelect = renderAssigneesSelect;
 window.renderAssigneesList = renderAssigneesList;
 window.renderTaskColorPicker = renderTaskColorPicker;
 window.renderFilterDropdowns = renderFilterDropdowns;
+window.renderBadgeSelector = renderBadgeSelector;
+window.selectBadgeOption = selectBadgeOption;
+window.getSelectedBadgeValue = getSelectedBadgeValue;
