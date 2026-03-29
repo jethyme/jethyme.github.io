@@ -372,10 +372,19 @@ async function changeSubtaskPriority(taskId, subtaskId, newPriority) {
     if (!canEdit) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    const target = findSubtaskById(task.subtasks, subtaskId);
-    if (!target) return;
-    target.priority = newPriority;
-    task.subtasks = normalizeSubtasksTree(task.subtasks);
+
+    const updateInTree = (nodes) => nodes.map(n => {
+        if (String(n.id) === String(subtaskId)) {
+            return { ...n, priority: newPriority };
+        }
+        const kids = n.children || n.subtasks || [];
+        if (kids.length > 0) {
+            return { ...n, children: updateInTree(kids) };
+        }
+        return n;
+    });
+
+    task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
     if (hasSubtasks(task)) {
         task.status = calculateTaskStatus(task.subtasks);
         task.assignees = calculateTaskAssignees(task.subtasks);
