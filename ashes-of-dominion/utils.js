@@ -125,7 +125,7 @@ function getTaskColorById(taskId) {
 
 function findSubtaskById(nodes, id) {
     for (const n of nodes || []) {
-        if (n.id === id) return n;
+        if (String(n.id) === String(id)) return n;
         const kids = n.children || n.subtasks || [];
         const found = findSubtaskById(kids, id);
         if (found) return found;
