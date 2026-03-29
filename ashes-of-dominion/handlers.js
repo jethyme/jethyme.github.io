@@ -381,8 +381,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-let draggedItem = null;
-
 function handleTaskDragStart(e, taskId) { 
     if (!canEdit) return; 
     draggedItem = { type: 'task', taskId }; 
@@ -419,8 +417,6 @@ async function handleDrop(e, status) {
         draggedItem = null;
     }
 }
-
-let listDragItem = null;
 
 function isDescendant(source, targetTaskId, targetSubtaskId) {
     if (source.type === 'task') {
