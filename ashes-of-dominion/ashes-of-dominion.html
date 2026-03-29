@@ -422,17 +422,21 @@
         }
         .kanban-card-header .title { font-weight: 600; font-size: 0.9em; flex: 1; min-width: 100px; }
         .kanban-card-header .breadcrumb {
-            font-size: 0.75em;
+            font-size: 0.7em !important;
             padding: 6px 10px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             display: block;
-            text-align: right;
+            text-align: right !important;
+            opacity: 0.8;
         }
         .breadcrumb-container {
             border-top: 1px solid rgba(0,0,0,0.3);
             padding-bottom: 6px;
+        }
+        .breadcrumb-container .breadcrumb {
+            text-align: right !important;
         }
         .kanban-card-header .breadcrumb span {
             opacity: 0.8;
@@ -2364,11 +2368,13 @@ async function checkAuth() {
                         // Родителя нет в колонке - это orphan, собираем всех его потомков
                         // Дети orphan имеют depth > 0 и идут после него пока не встретится элемент с depth=0
                         const children = [];
+                        const orphanDepth = item.depth;
                         let j = i + 1;
                         while (j < items.length) {
                             const nextItem = items[j];
-                            if (nextItem.type === 'task' || (nextItem.type === 'subtask' && nextItem.depth === 0)) {
-                                break; // Дошли до следующего элемента того же уровня
+                            // Останавливаемся когда доходим до элемента того же или меньшего depth
+                            if (nextItem.type === 'task' || nextItem.depth <= orphanDepth) {
+                                break;
                             }
                             if (nextItem.type === 'subtask' && nextItem.rootTaskId === item.rootTaskId) {
                                 children.push(nextItem);
@@ -2501,19 +2507,24 @@ async function checkAuth() {
             // Дети уже отсортированы по порядку, строим иерархию на основе depth
             const baseColor = rootTaskId ? getTaskColorById(rootTaskId) : (parentTask.color || '');
             
-            // Строим дерево на основе depth
+            // Находим минимальный depth среди детей для нормализации
+            const minDepth = children.length > 0 ? Math.min(...children.map(c => c.depth)) : 0;
+            
+            // Строим дерево на основе depth (нормализуем относительно minDepth)
             const buildTree = (items) => {
                 const roots = [];
                 const stack = [{ depth: -1, children: roots }];
                 
                 for (const item of items) {
                     const node = { item, children: [] };
+                    // Нормализуем depth относительно minDepth
+                    const normalizedDepth = item.depth - minDepth;
                     // Ищем родителя - последний элемент с depth меньше текущего
-                    while (stack.length > 1 && stack[stack.length - 1].depth >= item.depth) {
+                    while (stack.length > 1 && stack[stack.length - 1].depth >= normalizedDepth) {
                         stack.pop();
                     }
                     stack[stack.length - 1].children.push(node);
-                    stack.push({ depth: item.depth, children: node.children });
+                    stack.push({ depth: normalizedDepth, children: node.children });
                 }
                 
                 return roots;
