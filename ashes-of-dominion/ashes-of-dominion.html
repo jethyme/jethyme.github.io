@@ -2350,69 +2350,88 @@ async function checkAuth() {
                 subtasksByRoot.set(sub.rootTaskId, list);
             });
 
-            // Группируем orphan подзадачи по непосредственному родителю
-            // Для depth=1 подзадач без родителя-задачи - каждая со своими детьми в отдельной карточке
-            const orphansByParent = new Map();
-            
-            items.filter(i => i.type === 'subtask').forEach(item => {
-                if (!item.parentSubtaskId) {
-                    // Это depth=1 подзадача, у которой нет родителя-задачи в колонке
-                    // Проверяем, есть ли у неё дети в этой колонке
-                    const children = items.filter(c => c.type === 'subtask' && c.parentSubtaskId === item.task.id);
-                    if (children.length > 0) {
-                        // Создаём отдельную карточку для этой подзадачи с её детьми
-                        if (!orphansByParent.has(item.task.id)) {
-                            orphansByParent.set(item.task.id, {
-                                item: item,
-                                children: children
-                            });
-                        }
-                    }
-                }
+            // 1. Рендерим задачи с их подзадачами
+            items.filter(i => i.type === 'task').forEach(item => {
+                const related = subtasksByRoot.get(item.task.id) || [];
+                related.forEach(s => consumedSubtasks.add(s.task.id));
+                result.push({ type: 'nested', task: item.task, subtasks: related });
             });
 
-            let i = 0;
-            while (i < items.length) {
-                const item = items[i];
-                if (item.type === 'task') {
-                    const related = subtasksByRoot.get(item.task.id) || [];
-                    if (related.length > 0) {
-                        related.forEach(s => consumedSubtasks.add(s.task.id));
-                        result.push({ type: 'nested', task: item.task, subtasks: related });
-                    } else {
-                        result.push({ type: 'task', task: item.task });
-                    }
-                } else if (!consumedSubtasks.has(item.task.id)) {
-                    result.push({ type: 'subtask', item: item });
-                }
-                i++;
-            }
+            // 2. Собираем неподобранные подзадачи и группируем по общему родителю
+            const remainingSubtasks = items.filter(i => 
+                i.type === 'subtask' && !consumedSubtasks.has(i.task.id)
+            );
             
-            // Добавляем orphan группы
-            orphansByParent.forEach((orphanData, parentId) => {
-                const item = orphanData.item;
-                const children = orphanData.children;
-                const rootTaskId = item.rootTaskId;
+            // Группируем по rootTaskId + parentSubtaskId (или rootTaskId если нет parentSubtaskId)
+            const groupsByParent = new Map();
+            remainingSubtasks.forEach(item => {
+                const parentId = item.parentSubtaskId || item.rootTaskId;
+                const hasParentInColumn = item.parentSubtaskId ?
+                    subtaskIdsInColumn.has(item.parentSubtaskId) :
+                    taskIdsInColumn.has(item.rootTaskId);
+                
+                if (!hasParentInColumn) {
+                    if (!groupsByParent.has(parentId)) {
+                        groupsByParent.set(parentId, []);
+                    }
+                    groupsByParent.get(parentId).push(item);
+                }
+            });
+            
+            // 3. Для каждой группы создаём карточку
+            groupsByParent.forEach((groupItems, parentId) => {
+                // Находим root task
+                const rootTaskId = groupItems[0].rootTaskId;
                 const rootTask = tasks.find(t => t.id === rootTaskId);
                 
-                // Строим breadcrumb от root до item
-                const breadcrumb = [];
-                if (rootTask) {
-                    breadcrumb.push(rootTask.title);
-                    breadcrumb.push(item.task.title);
+                // Строим breadcrumb
+                const breadcrumb = rootTask ? [rootTask.title] : [];
+                
+                // Если parentId !== rootTaskId, ищем название родителя
+                if (parentId !== rootTaskId) {
+                    const allSubtasks = [];
+                    const collect = (subs) => {
+                        subs.forEach(s => {
+                            allSubtasks.push(s);
+                            if (s.children) collect(s.children);
+                        });
+                    };
+                    collect(rootTask?.subtasks || []);
+                    
+                    const parentSub = allSubtasks.find(s => s.id === parentId);
+                    if (parentSub) {
+                        breadcrumb.push(parentSub.title);
+                    }
                 }
                 
+                // Собираем всех детей для этой группы
+                const children = [];
+                const collectChildren = (pId) => {
+                    groupItems.filter(i => i.parentSubtaskId === pId).forEach(item => {
+                        children.push(item);
+                        consumedSubtasks.add(item.task.id);
+                        collectChildren(item.task.id);
+                    });
+                };
+                collectChildren(parentId);
+                
+                // Добавляем карточку
                 result.push({
                     type: 'orphan-nested',
-                    task: item.task,
+                    task: { title: breadcrumb[breadcrumb.length - 1] || 'Подзадача', id: parentId },
                     subtasks: children,
                     rootTaskId: rootTaskId,
                     breadcrumb: breadcrumb
                 });
                 
-                // Помечаем item и детей как потреблённые
-                consumedSubtasks.add(item.task.id);
                 children.forEach(c => consumedSubtasks.add(c.task.id));
+            });
+            
+            // 4. Оставшиеся одиночные подзадачи (у которых есть родитель в колонке)
+            remainingSubtasks.forEach(item => {
+                if (!consumedSubtasks.has(item.task.id)) {
+                    result.push({ type: 'subtask', item: item });
+                }
             });
 
             const html = result.map(entry => {
