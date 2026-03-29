@@ -328,14 +328,58 @@
     const input = document.getElementById("password");
     const submit = document.getElementById("submit");
 
+    // Максимально широкий список корней слов, связанных с тёмной энергией
+    const darkEnergyRoots = [
+      // Тьма / тени
+      'тьм', 'темн', 'тень', 'тенев', 'shadow', 'dark', 'umbra', 'teneb',
+      // Пустота
+      'пуст', 'void', 'empt', 'ваку', 'abyss', 'бездн',
+      // Негативная / нечистая
+      'негат', 'нечист', 'скверн', 'negative', 'impure', 'foul', 'corrupt',
+      // Смерть / некро
+      'смерт', 'мертв', 'некр', 'death', 'dead', 'necro', 'mort', 'гроб', 'труп',
+      // Зло / демон
+      'зл', 'evil', 'wicked', 'demon', 'демон', 'бес', 'devil', 'дьявол', 'сатан', 'infernal',
+      // Хаос
+      'хаос', 'chaos', 'хаот', 'disorder', 'entrop',
+      // Проклятие
+      'проклят', 'cursed', 'curse', 'hex', 'hexed', 'doom', 'погиб', 'рок',
+      // Тлен / разложение
+      'тлен', 'разлож', 'decay', 'rot', 'гнил', 'putr', 'разлаг',
+      // Призраки
+      'призрак', 'ghost', 'spectr', 'phantom', 'призрач', 'spirit', 'дух', 'wraith', 'lich', 'лич',
+      // Ночь / мрак
+      'ноч', 'night', 'noct', 'полноч', 'midnight', 'мрак', 'gloom', 'мрач', 'dim', 'obscure', 'darkness',
+      // Кровь / жертва
+      'кров', 'blood', 'sacrif', 'жертв',
+      // Ужас / страх
+      'ужас', 'horror', 'terror', 'страх', 'fear', 'dread',
+      // Яд / токсин
+      'яд', 'poison', 'токс', 'toxic', 'venom',
+      // Огонь / ад
+      'ад', 'hell', 'hellish', 'infern', 'огонь', 'fire', 'flame', 'плам',
+      // Лёд / холод (негативная энергия)
+      'холод', 'cold', 'ice', 'лёд', 'лед', 'frost', 'замороз', 'cryo',
+      // Магия / аркана
+      'маг', 'magic', 'arcane', 'аркан', 'spell', 'заклин',
+      // Тёмные эпитеты
+      'зловещ', 'мрачн', 'гибельн', 'смертонос', 'убийствен', 'fatal', 'deadly', 'sinister', 'dire'
+    ];
+
     const checkPassword = () => {
       const val = input.value.trim().toLowerCase();
-      if (["тьма", "пустота", "негативная", "нечистая", "пустоты", "смерть", "смерти", "dark", "darkside", "dark side", "void", "negative"].includes(val)) {
+      const isAccepted = darkEnergyRoots.some(root => val.includes(root));
+      
+      if (isAccepted) {
         document.getElementById("btn5").classList.remove("hidden");
         document.getElementById("btn6").classList.remove("hidden");
         document.getElementById("input-container").remove();
       } else {
         input.value = "";
+        input.placeholder = "не та энергия...";
+        setTimeout(() => {
+          input.placeholder = "энергия";
+        }, 1500);
       }
     };
 
