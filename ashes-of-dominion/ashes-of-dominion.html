@@ -2369,7 +2369,7 @@ async function checkAuth() {
                 // Собираем всех потомков рекурсивно
                 const allDescendants = [];
                 const collectDescendants = (parentId) => {
-                    remainingSubtasks.filter(c => c.parentSubtaskId === parentId).forEach(child => {
+                    remainingSubtasks.filter(c => c.parentSubtaskId === parentId && !consumedSubtasks.has(c.task.id)).forEach(child => {
                         allDescendants.push(child);
                         consumedSubtasks.add(child.task.id);
                         collectDescendants(child.task.id);
@@ -2396,7 +2396,7 @@ async function checkAuth() {
             // 4. Подзадачи depth>1 с детьми → становятся карточками
             const updatedRemaining = remainingSubtasks.filter(i => !consumedSubtasks.has(i.task.id));
             updatedRemaining.filter(item => 
-                item.depth > 1
+                item.depth > 1 && !consumedSubtasks.has(item.task.id)
             ).forEach(item => {
                 // Собираем всех потомков рекурсивно
                 const allDescendants = [];
