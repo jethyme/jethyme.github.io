@@ -241,16 +241,40 @@ function renderSubtaskTree(subtasks, taskId, level, baseColor) {
     }).join('');
 }
 
+function shouldShowTask(task) {
+    if (matchesFilters(task)) return true;
+    if (filterAssignee.length === 0 && filterPriority.length === 0) return false;
+    
+    const checkSubtasks = (subtasks) => {
+        for (const sub of subtasks || []) {
+            const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (sub.assignees || []).includes(String(id)));
+            const priorityMatch = filterPriority.length === 0 || filterPriority.includes(sub.priority);
+            if (assigneeMatch && priorityMatch) return true;
+            if (checkSubtasks(sub.children || sub.subtasks || [])) return true;
+        }
+        return false;
+    };
+    
+    return checkSubtasks(task.subtasks);
+}
+
+function shouldShowSubtask(subtask) {
+    const assigneeMatch = filterAssignee.length === 0 || filterAssignee.some(id => (subtask.assignees || []).includes(String(id)));
+    const priorityMatch = filterPriority.length === 0 || filterPriority.includes(subtask.priority);
+    return assigneeMatch && priorityMatch;
+}
+
 function renderKanban() {
     const columns = { queue: [], progress: [], review: [], done: [] };
     const showAllColumns = filterStatus.length === 0;
 
-    tasks.filter(matchesFilters).forEach(task => {
+    tasks.filter(shouldShowTask).forEach(task => {
         const taskStatus = STATUS_ORDER.hasOwnProperty(task.status) ? task.status : 'queue';
         columns[taskStatus].push({ type: 'task', task: task });
 
         const collectSubtasks = (subtasks, rootTaskId, parentSubtaskId, depth) => {
             subtasks.forEach(sub => {
+                if (!shouldShowSubtask(sub)) return;
                 const subStatus = STATUS_ORDER.hasOwnProperty(sub.status) ? sub.status : 'queue';
                 columns[subStatus].push({
                     type: 'subtask',
