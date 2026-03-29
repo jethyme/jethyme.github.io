@@ -2357,14 +2357,86 @@ async function checkAuth() {
                 result.push({ type: 'nested', task: item.task, subtasks: related });
             });
 
-            // 2. Собираем неподобранные подзадачи и группируем по общему родителю
+            // 2. Собираем неподобранные подзадачи
             const remainingSubtasks = items.filter(i => 
                 i.type === 'subtask' && !consumedSubtasks.has(i.task.id)
             );
+
+            // 3. Подзадачи depth=1 с детьми → становятся карточками
+            remainingSubtasks.filter(item => 
+                item.depth === 1 && !item.parentSubtaskId
+            ).forEach(item => {
+                const children = remainingSubtasks.filter(c => c.parentSubtaskId === item.task.id);
+                if (children.length > 0) {
+                    const rootTask = tasks.find(t => t.id === item.rootTaskId);
+                    const breadcrumb = rootTask ? [rootTask.title, item.task.title] : [item.task.title];
+                    
+                    result.push({
+                        type: 'orphan-nested',
+                        task: item.task,
+                        subtasks: children,
+                        rootTaskId: item.rootTaskId,
+                        breadcrumb: breadcrumb
+                    });
+                    
+                    consumedSubtasks.add(item.task.id);
+                    children.forEach(c => consumedSubtasks.add(c.task.id));
+                }
+            });
+
+            // 4. Подзадачи depth>1 с детьми → становятся карточками
+            const updatedRemaining = remainingSubtasks.filter(i => !consumedSubtasks.has(i.task.id));
+            updatedRemaining.filter(item => 
+                item.depth > 1
+            ).forEach(item => {
+                const children = updatedRemaining.filter(c => c.parentSubtaskId === item.task.id);
+                if (children.length > 0) {
+                    const rootTask = tasks.find(t => t.id === item.rootTaskId);
+                    const breadcrumb = rootTask ? [rootTask.title] : [];
+                    
+                    // Строим путь от root до item
+                    const allSubtasks = [];
+                    const collect = (subs) => {
+                        subs.forEach(s => {
+                            allSubtasks.push(s);
+                            if (s.children) collect(s.children);
+                        });
+                    };
+                    collect(rootTask?.subtasks || []);
+                    
+                    const path = [];
+                    let currentId = item.task.id;
+                    while (currentId && currentId !== item.rootTaskId) {
+                        const sub = allSubtasks.find(s => s.id === currentId);
+                        if (sub) {
+                            path.unshift(sub.title);
+                            currentId = sub.parentSubtaskId || item.rootTaskId;
+                        } else {
+                            break;
+                        }
+                    }
+                    breadcrumb.push(...path);
+                    
+                    result.push({
+                        type: 'orphan-nested',
+                        task: item.task,
+                        subtasks: children,
+                        rootTaskId: item.rootTaskId,
+                        breadcrumb: breadcrumb
+                    });
+                    
+                    consumedSubtasks.add(item.task.id);
+                    children.forEach(c => consumedSubtasks.add(c.task.id));
+                }
+            });
+
+            // 5. Оставшиеся без родителей → группируем по общему предку
+            const finalRemaining = items.filter(i => 
+                i.type === 'subtask' && !consumedSubtasks.has(i.task.id)
+            );
             
-            // Группируем по rootTaskId + parentSubtaskId (или rootTaskId если нет parentSubtaskId)
             const groupsByParent = new Map();
-            remainingSubtasks.forEach(item => {
+            finalRemaining.forEach(item => {
                 const parentId = item.parentSubtaskId || item.rootTaskId;
                 const hasParentInColumn = item.parentSubtaskId ?
                     subtaskIdsInColumn.has(item.parentSubtaskId) :
@@ -2378,16 +2450,11 @@ async function checkAuth() {
                 }
             });
             
-            // 3. Для каждой группы создаём карточку
             groupsByParent.forEach((groupItems, parentId) => {
-                // Находим root task
                 const rootTaskId = groupItems[0].rootTaskId;
                 const rootTask = tasks.find(t => t.id === rootTaskId);
-                
-                // Строим breadcrumb
                 const breadcrumb = rootTask ? [rootTask.title] : [];
                 
-                // Если parentId !== rootTaskId, ищем название родителя
                 if (parentId !== rootTaskId) {
                     const allSubtasks = [];
                     const collect = (subs) => {
@@ -2404,7 +2471,6 @@ async function checkAuth() {
                     }
                 }
                 
-                // Собираем всех детей для этой группы
                 const children = [];
                 const collectChildren = (pId) => {
                     groupItems.filter(i => i.parentSubtaskId === pId).forEach(item => {
@@ -2415,7 +2481,6 @@ async function checkAuth() {
                 };
                 collectChildren(parentId);
                 
-                // Добавляем карточку
                 result.push({
                     type: 'orphan-nested',
                     task: { title: breadcrumb[breadcrumb.length - 1] || 'Подзадача', id: parentId },
@@ -2426,9 +2491,9 @@ async function checkAuth() {
                 
                 children.forEach(c => consumedSubtasks.add(c.task.id));
             });
-            
-            // 4. Оставшиеся одиночные подзадачи (у которых есть родитель в колонке)
-            remainingSubtasks.forEach(item => {
+
+            // 6. Оставшиеся одиночные подзадачи
+            finalRemaining.forEach(item => {
                 if (!consumedSubtasks.has(item.task.id)) {
                     result.push({ type: 'subtask', item: item });
                 }
