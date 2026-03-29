@@ -445,7 +445,7 @@
             opacity: 0.8;
         }
         .kanban-card-header .meta { display: flex; gap: 4px; flex-shrink: 0; }
-        .kanban-card-header .assignees { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
+        .kanban-card-header .assignees { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; margin-left: auto; }
         .kanban-children { padding: 8px 10px; border-top: 1px solid var(--border); }
         .kanban-child {
             display: flex;
@@ -1108,7 +1108,7 @@
                 const displayName = getShortName(name);
                 const color = resolveAssigneeColor(a || { id: id, name: name }, index);
                 const textColor = getContrastColor(color);
-                return '<span class="assignee-tag" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
+                return '<span class="assignee-tag clickable-badge" style="background:' + color + ';color:' + textColor + ';">' + displayName + '</span>';
             }).join('');
         }
 
@@ -2538,7 +2538,7 @@ async function checkAuth() {
                     '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
                         '<div class="title">' + task.title + '</div>' +
                          '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                         '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
+                         '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
                     '</div>' +
                 '</div>';
             }
@@ -2587,7 +2587,7 @@ async function checkAuth() {
                 '<div class="kanban-card-header' + (hasColor ? '' : ' no-color') + '">' +
                     '<div class="title">' + task.title + '</div>' +
                     '<div class="meta">' + (canEdit ? renderPriorityBadge(task.id, task.priority || 'medium', false) : '<span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span>') + '</div>' +
-                    '<div>' + renderAssigneeCell(assigneeIds, task.id, null, canEdit) + '</div>' +
+                    '<div>' + renderAssigneeCell(assigneeIds, task.id, null, false) + '</div>' +
                 '</div>' +
                 '<div class="kanban-children">' + childrenHtml + '</div>' +
                 (breadcrumbHtml ? '<div class="breadcrumb-container">' + breadcrumbHtml + '</div>' : '') +
