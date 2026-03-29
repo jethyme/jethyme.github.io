@@ -118,7 +118,8 @@ function showToast(msg, type = 'info') {
 }
 
 function getTaskColorById(taskId) {
-    const task = window.tasks.find(t => t.id == taskId);
+    const tasks = window.tasks || [];
+    const task = tasks.find(t => t.id == taskId);
     return task ? (task.color || '') : '';
 }
 
