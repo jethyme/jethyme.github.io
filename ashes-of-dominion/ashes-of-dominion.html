@@ -23,29 +23,54 @@
                 <div class="view-toggle">
                     <button class="btn-secondary active" onclick="setView('list')">📋</button>
                     <button class="btn-secondary" onclick="setView('kanban')">📊</button>
+                    <button class="btn-secondary" onclick="setView('history')">📜</button>
                 </div>
                 <button class="btn-primary" onclick="openAddModal()" id="addTaskBtn" disabled>+ Задача</button>
             </div>
         </header>
 
         <div class="filters">
-            <div class="filter-dropdown">
+            <div class="filter-dropdown" id="filterAssigneeContainer">
                 <button class="filter-btn" onclick="toggleFilterDropdown('assignee')" id="filterAssigneeBtn">
                     👥 Исполнители <span id="filterAssigneeCount"></span>
                 </button>
                 <div class="filter-dropdown-content" id="filterAssigneeDropdown"></div>
             </div>
-            <div class="filter-dropdown">
+            <div class="filter-dropdown" id="filterPriorityContainer">
                 <button class="filter-btn" onclick="toggleFilterDropdown('priority')" id="filterPriorityBtn">
                     ⚡ Приоритет <span id="filterPriorityCount"></span>
                 </button>
                 <div class="filter-dropdown-content" id="filterPriorityDropdown"></div>
             </div>
-            <div class="filter-dropdown">
+            <div class="filter-dropdown" id="filterStatusContainer">
                 <button class="filter-btn" onclick="toggleFilterDropdown('status')" id="filterStatusBtn">
                     📊 Статус <span id="filterStatusCount"></span>
                 </button>
                 <div class="filter-dropdown-content" id="filterStatusDropdown"></div>
+            </div>
+            <div class="filter-dropdown history-filter-dropdown" id="filterHistoryTypeContainer" style="display:none;">
+                <button class="filter-btn" onclick="toggleFilterDropdown('historyType')" id="filterHistoryTypeBtn">
+                    🔄 История <span id="filterHistoryTypeCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterHistoryTypeDropdown"></div>
+            </div>
+            <div class="filter-dropdown history-filter-dropdown" id="filterHistoryAssigneeContainer" style="display:none;">
+                <button class="filter-btn" onclick="toggleFilterDropdown('historyAssignee')" id="filterHistoryAssigneeBtn">
+                    👥 Исполнители <span id="filterHistoryAssigneeCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterHistoryAssigneeDropdown"></div>
+            </div>
+            <div class="filter-dropdown history-filter-dropdown" id="filterHistoryPriorityContainer" style="display:none;">
+                <button class="filter-btn" onclick="toggleFilterDropdown('historyPriority')" id="filterHistoryPriorityBtn">
+                    ⚡ Приоритет <span id="filterHistoryPriorityCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterHistoryPriorityDropdown"></div>
+            </div>
+            <div class="filter-dropdown history-filter-dropdown" id="filterHistoryStatusContainer" style="display:none;">
+                <button class="filter-btn" onclick="toggleFilterDropdown('historyStatus')" id="filterHistoryStatusBtn">
+                    📊 Статус <span id="filterHistoryStatusCount"></span>
+                </button>
+                <div class="filter-dropdown-content" id="filterHistoryStatusDropdown"></div>
             </div>
             <button class="filter-reset" onclick="resetFilters()">✕ Сбросить</button>
         </div>
@@ -79,6 +104,19 @@
                 <h3>✅ Готово</h3>
                 <div class="kanban-column-content" id="doneTasks"></div>
             </div>
+        </div>
+
+        <div id="historyBoard" class="history-board">
+            <div class="history-header">
+                <span>Дата</span>
+                <span>Задача/Подзадача</span>
+                <span>Изменение</span>
+                <span>Статус</span>
+                <span>Приоритет</span>
+                <span>Исполнители</span>
+                <span></span>
+            </div>
+            <div id="historyContainer"></div>
         </div>
     </div>
 

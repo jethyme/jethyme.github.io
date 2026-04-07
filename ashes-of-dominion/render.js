@@ -869,11 +869,170 @@ function renderFilterDropdowns() {
         }).join('');
         updateFilterCount('status', filterStatus.length);
     }
+    
+    const historyTypeDropdown = document.getElementById('filterHistoryTypeDropdown');
+    if (historyTypeDropdown) {
+        const types = [
+            { value: 'creation', label: 'Создание' },
+            { value: 'status', label: 'Смена статуса' },
+            { value: 'priority', label: 'Смена приоритета' },
+            { value: 'assignee', label: 'Смена исполнителей' }
+        ];
+        historyTypeDropdown.innerHTML = types.map(t => {
+            const isChecked = historyFilterTypes.includes(t.value);
+            return `<div class="badge-option ${isChecked ? 'selected' : ''}" onclick="toggleHistoryFilter('${t.value}')">
+                ${t.label}
+                <span class="check">&#10003;</span>
+            </div>`;
+        }).join('');
+        updateFilterCount('historyType', historyFilterTypes.length);
+    }
+    
+    const historyAssigneeDropdown = document.getElementById('filterHistoryAssigneeDropdown');
+    if (historyAssigneeDropdown) {
+        historyAssigneeDropdown.innerHTML = assignees.map(a => {
+            const isChecked = filterHistoryAssignee.includes(String(a.id));
+            const color = a.color || '#888';
+            const textColor = getContrastColor(color);
+            return `<div class="badge-option ${isChecked ? 'selected' : ''}" style="background:${color};color:${textColor};" onclick="toggleHistoryAssigneeFilter('${a.id}')">
+                ${a.name}
+                <span class="check">&#10003;</span>
+            </div>`;
+        }).join('');
+        updateFilterCount('historyAssignee', filterHistoryAssignee.length);
+    }
+    
+    const historyPriorityDropdown = document.getElementById('filterHistoryPriorityDropdown');
+    if (historyPriorityDropdown) {
+        historyPriorityDropdown.innerHTML = PRIORITY_ORDER.map(p => {
+            const isChecked = filterHistoryPriority.includes(p);
+            return `<div class="badge-option priority-${p} ${isChecked ? 'selected' : ''}" onclick="toggleHistoryPriorityFilter('${p}')">
+                ${PRIORITY_LABELS[p]}
+                <span class="check">&#10003;</span>
+            </div>`;
+        }).join('');
+        updateFilterCount('historyPriority', filterHistoryPriority.length);
+    }
+    
+    const historyStatusDropdown = document.getElementById('filterHistoryStatusDropdown');
+    if (historyStatusDropdown) {
+        historyStatusDropdown.innerHTML = STATUS_LIST.map(s => {
+            const isChecked = filterHistoryStatus.includes(s);
+            return `<div class="badge-option status-${s} ${isChecked ? 'selected' : ''}" onclick="toggleHistoryStatusFilter('${s}')">
+                ${STATUS_LABELS[s]}
+                <span class="check">&#10003;</span>
+            </div>`;
+        }).join('');
+        updateFilterCount('historyStatus', filterHistoryStatus.length);
+    }
 }
 
 function updateFilterCount(type, count) {
     const el = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Count`);
     if (el) el.textContent = count > 0 ? `(${count})` : '';
+    if (type === 'historyType') {
+        const countEl = document.getElementById('filterHistoryTypeCount');
+        if (countEl) countEl.textContent = historyFilterTypes.length > 0 ? `(${historyFilterTypes.length})` : '';
+    }
+}
+
+function matchesHistoryFilters(entry) {
+    if (historyFilterTypes.length === 0) return false;
+    if (!historyFilterTypes.includes(entry.change_type)) return false;
+    
+    const task = tasks.find(t => t.id === entry.task_id);
+    if (!task) return false;
+    
+    if (entry.subtask_id) {
+        const subtask = findSubtaskById(task, entry.subtask_id);
+        if (!subtask) return false;
+        const children = subtask.children || subtask.subtasks || [];
+        if (children.length > 0) return false;
+    } else {
+        const children = task.subtasks || [];
+        if (children.length > 0) return false;
+    }
+    
+    if (filterHistoryAssignee.length > 0) {
+        const entryAssignees = entry.new_assignees ? entry.new_assignees.split(',').filter(a => a) : [];
+        const hasMatch = entryAssignees.some(a => filterHistoryAssignee.includes(a));
+        if (!hasMatch) return false;
+    }
+    if (filterHistoryPriority.length > 0 && entry.new_priority && !filterHistoryPriority.includes(entry.new_priority)) return false;
+    if (filterHistoryStatus.length > 0 && entry.new_status && !filterHistoryStatus.includes(entry.new_status)) return false;
+    
+    return true;
+}
+
+function getTaskCurrentState(taskId, subtaskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return null;
+    if (!subtaskId) {
+        return { status: task.status, priority: task.priority, assignees: task.assignees };
+    }
+    const subtask = findSubtaskById(task, subtaskId);
+    if (!subtask) return null;
+    return { status: subtask.status, priority: subtask.priority, assignees: subtask.assignees };
+}
+
+function renderHistoryItem(entry) {
+    const task = tasks.find(t => t.id === entry.task_id);
+    const taskColor = task ? task.color : '';
+    const textColor = taskColor ? getContrastColor(taskColor) : '';
+    const rowStyle = taskColor ? 'border-left:4px solid ' + taskColor + '; background: ' + taskColor + '; color: ' + textColor + ';' : '';
+    const changeLabels = { creation: 'Создание', status: 'Смена статуса', priority: 'Смена приоритета', assignee: 'Смена исполнителей' };
+    const changeLabel = changeLabels[entry.change_type] || entry.change_type;
+    const priorityLabel = PRIORITY_LABELS[entry.new_priority || 'medium'];
+    const statusLabel = STATUS_LABELS[entry.new_status || 'queue'];
+    const statusBadge = '<span class="clickable-badge status-' + (entry.new_status || 'queue') + '">' + statusLabel + '</span>';
+    const priorityBadge = '<span class="clickable-badge priority-' + (entry.new_priority || 'medium') + '">' + priorityLabel + '</span>';
+    const assigneeHtml = entry.new_assignees ? renderAssigneeTags(entry.new_assignees.split(',').filter(a => a)) : '';
+    const canDrag = canEdit ? 'draggable="true" ondragstart="handleHistoryDragStart(event, ' + entry.id + ')" ondragend="handleHistoryDragEnd(event)"' : '';
+    return `
+        <div class="history-item" id="history-${entry.id}" ${canDrag} style="${rowStyle}">
+            <div class="history-date-cell">
+                <input type="date" value="${entry.changed_at}" onchange="handleHistoryDateChange(event, ${entry.id})" ${!canEdit ? 'disabled' : ''}>
+            </div>
+            <div class="history-title-cell">
+                <div class="history-task-title">${entry.task_title}</div>
+                <div class="history-task-path">${entry.task_path}</div>
+            </div>
+            <div class="history-change-cell">
+                <span class="change-type-badge change-type-${entry.change_type}">${changeLabel}</span>
+            </div>
+            <div class="history-status-cell">${statusBadge}</div>
+            <div class="history-priority-cell">${priorityBadge}</div>
+            <div class="history-assignees-cell">${assigneeHtml || '-'}</div>
+            <div class="history-actions-cell">
+                ${canEdit ? '<button class="btn-icon history-delete-btn" onclick="deleteHistoryEntry(' + entry.id + ')" title="Удалить">🗑️</button>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function renderTaskHistory() {
+    const container = document.getElementById('historyContainer');
+    if (!container) return;
+    const filtered = taskHistory.filter(matchesHistoryFilters);
+    const byDate = {};
+    filtered.forEach(entry => {
+        const date = entry.changed_at || 'unknown';
+        if (!byDate[date]) byDate[date] = [];
+        byDate[date].push(entry);
+    });
+    const dates = Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a));
+    let html = '';
+    dates.forEach(date => {
+        const dateEntries = byDate[date].sort((a, b) => a.order_index - b.order_index);
+        const formattedDate = new Date(date).toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        html += `<div class="history-date-header">${formattedDate}</div>`;
+        html += '<div class="history-date-entries" data-date="' + date + '" ondragover="handleHistoryDragOver(event)" ondragleave="handleHistoryDragLeave(event)" ondrop="handleHistoryDrop(event, \'' + date + '\')">';
+        dateEntries.forEach(entry => {
+            html += renderHistoryItem(entry);
+        });
+        html += '</div>';
+    });
+    container.innerHTML = html || '<div class="history-empty">Нет записей истории</div>';
 }
 
 window.renderTasks = renderTasks;
@@ -884,3 +1043,5 @@ window.renderFilterDropdowns = renderFilterDropdowns;
 window.renderBadgeSelector = renderBadgeSelector;
 window.selectBadgeOption = selectBadgeOption;
 window.getSelectedBadgeValue = getSelectedBadgeValue;
+window.renderTaskHistory = renderTaskHistory;
+window.findSubtaskById = findSubtaskById;

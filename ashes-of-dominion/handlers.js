@@ -267,6 +267,8 @@ function toggleFilterDropdown(type) {
     const dropdown = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`);
     const btn = document.getElementById(`filter${type.charAt(0).toUpperCase() + type.slice(1)}Btn`);
     
+    if (!dropdown || !btn) return;
+    
     document.querySelectorAll('.filter-dropdown-content').forEach(d => {
         if (d !== dropdown) d.classList.remove('active');
     });
@@ -289,15 +291,22 @@ function toggleFilter(type, value) {
     saveFilters();
     renderFilterDropdowns();
     renderTasks();
+    renderTaskHistory();
 }
 
 function resetFilters() {
     filterAssignee = [];
     filterPriority = [];
     filterStatus = [];
+    filterHistoryAssignee = [];
+    filterHistoryPriority = [];
+    filterHistoryStatus = [];
     saveFilters();
     renderFilterDropdowns();
     renderTasks();
+    if (currentView === 'history') {
+        renderTaskHistory();
+    }
 }
 
 function applyFilters() {
@@ -319,11 +328,423 @@ function toggleSubtask(subtaskId) {
 }
 
 function setView(view) {
+    currentView = view;
     document.getElementById('taskList').classList.toggle('hidden', view !== 'list');
     document.getElementById('kanbanBoard').classList.toggle('active', view === 'kanban');
+    document.getElementById('historyBoard').classList.toggle('active', view === 'history');
+    document.getElementById('filterHistoryTypeContainer').style.display = view === 'history' ? 'block' : 'none';
+    document.getElementById('filterHistoryAssigneeContainer').style.display = view === 'history' ? 'block' : 'none';
+    document.getElementById('filterHistoryPriorityContainer').style.display = view === 'history' ? 'block' : 'none';
+    document.getElementById('filterHistoryStatusContainer').style.display = view === 'history' ? 'block' : 'none';
+    document.getElementById('filterAssigneeContainer').style.display = view === 'history' ? 'none' : 'block';
+    document.getElementById('filterPriorityContainer').style.display = view === 'history' ? 'none' : 'block';
+    document.getElementById('filterStatusContainer').style.display = view === 'history' ? 'none' : 'block';
     document.querySelectorAll('.view-toggle .btn-secondary').forEach((b, i) => {
-        b.classList.toggle('active', (view === 'list') === (i === 0));
+        const active = (view === 'list' && i === 0) || (view === 'kanban' && i === 1) || (view === 'history' && i === 2);
+        b.classList.toggle('active', active);
     });
+    if (view === 'history') {
+        renderFilterDropdowns();
+    }
+}
+
+function toggleHistoryFilter(type) {
+    const idx = historyFilterTypes.indexOf(type);
+    if (idx >= 0) {
+        if (historyFilterTypes.length > 1) {
+            historyFilterTypes.splice(idx, 1);
+        }
+    } else {
+        historyFilterTypes.push(type);
+    }
+    renderFilterDropdowns();
+    renderTaskHistory();
+}
+
+function toggleHistoryAssigneeFilter(id) {
+    const idx = filterHistoryAssignee.indexOf(id);
+    if (idx >= 0) {
+        filterHistoryAssignee.splice(idx, 1);
+    } else {
+        filterHistoryAssignee.push(id);
+    }
+    updateFilterCount('historyAssignee', filterHistoryAssignee.length);
+    renderTaskHistory();
+}
+
+function toggleHistoryPriorityFilter(value) {
+    const idx = filterHistoryPriority.indexOf(value);
+    if (idx >= 0) {
+        filterHistoryPriority.splice(idx, 1);
+    } else {
+        filterHistoryPriority.push(value);
+    }
+    updateFilterCount('historyPriority', filterHistoryPriority.length);
+    renderTaskHistory();
+}
+
+function toggleHistoryStatusFilter(value) {
+    const idx = filterHistoryStatus.indexOf(value);
+    if (idx >= 0) {
+        filterHistoryStatus.splice(idx, 1);
+    } else {
+        filterHistoryStatus.push(value);
+    }
+    updateFilterCount('historyStatus', filterHistoryStatus.length);
+    renderTaskHistory();
+}
+
+function handleHistoryDragStart(e, entryId) {
+    if (!canEdit || !e.dataTransfer) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', entryId);
+    window.historyDragItem = entryId;
+    e.target.classList.add('dragging');
+}
+
+function handleHistoryDragEnd(e) {
+    document.querySelectorAll('.history-item.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.history-item').forEach(el => {
+        el.classList.remove('drag-insert-before', 'drag-insert-after');
+    });
+    document.querySelectorAll('.history-date-entries').forEach(el => el.classList.remove('drag-over'));
+    window.historyDragItem = null;
+}
+
+function handleHistoryDragOver(e) {
+    if (!canEdit) return;
+    e.preventDefault();
+    const container = e.currentTarget;
+    container.classList.add('drag-over');
+    
+    const items = Array.from(container.querySelectorAll('.history-item:not(.dragging)'));
+    if (items.length === 0) {
+        container.dataset.insertAfterId = '';
+        return;
+    }
+    
+    const mouseY = e.clientY;
+    let insertIdx = 0;
+    for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (mouseY < rect.top + rect.height / 2) {
+            break;
+        }
+        insertIdx = i + 1;
+    }
+    
+    items.forEach(item => item.classList.remove('drag-insert-before', 'drag-insert-after'));
+    
+    if (insertIdx < items.length) {
+        items[insertIdx].classList.add('drag-insert-before');
+    } else if (items.length > 0) {
+        items[items.length - 1].classList.add('drag-insert-after');
+    }
+    
+    const afterId = insertIdx > 0 ? items[insertIdx - 1].id.replace('history-', '') : '';
+    container.dataset.insertAfterId = afterId;
+}
+
+function handleHistoryDragLeave(e) {
+    const container = e.currentTarget;
+    container.classList.remove('drag-over');
+    container.querySelectorAll('.history-item').forEach(item => {
+        item.classList.remove('drag-insert-before', 'drag-insert-after');
+    });
+}
+
+async function handleHistoryDrop(e, targetDate) {
+    if (!canEdit || !window.historyDragItem) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('drag-over');
+    
+    const entryId = window.historyDragItem;
+    const target = e.currentTarget;
+    const insertAfterId = target.dataset.insertAfterId;
+    
+    const draggedEntry = taskHistory.find(h => h.id === entryId);
+    if (!draggedEntry) {
+        window.historyDragItem = null;
+        return;
+    }
+    
+    const sourceDate = draggedEntry.changed_at;
+    const taskId = draggedEntry.task_id;
+    const subtaskId = draggedEntry.subtask_id;
+    
+    if (sourceDate === targetDate) {
+        const taskIdNum = parseInt(taskId);
+        const subtaskIdNum = subtaskId ? parseInt(subtaskId) : null;
+        
+        const allEntries = taskHistory.filter(h => 
+            h.task_id === taskIdNum && h.changed_at === sourceDate
+        ).sort((a, b) => a.order_index - b.order_index);
+        
+        const currentIdx = allEntries.findIndex(h => h.id === entryId);
+        
+        let targetIdx = 0;
+        if (insertAfterId) {
+            const afterIdx = allEntries.findIndex(h => h.id === parseInt(insertAfterId));
+            targetIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
+        }
+        
+        if (targetIdx < 0) targetIdx = 0;
+        
+        if (currentIdx !== targetIdx && currentIdx >= 0) {
+            const movedEntry = allEntries[currentIdx];
+            const movedSubtaskId = movedEntry.subtask_id;
+            const isCreation = movedEntry.change_type === 'creation';
+            
+            let newOrder;
+            
+            const movedGroup = allEntries.filter(h => {
+                if (movedSubtaskId === null || movedSubtaskId === undefined) {
+                    return h.subtask_id === null || h.subtask_id === undefined;
+                }
+                return h.subtask_id === movedSubtaskId;
+            });
+            
+            const otherEntries = allEntries.filter(h => {
+                if (movedSubtaskId === null || movedSubtaskId === undefined) {
+                    return !(h.subtask_id === null || h.subtask_id === undefined);
+                }
+                return h.subtask_id !== movedSubtaskId;
+            });
+            
+            if (subtaskIdNum !== null) {
+                let insertAt = targetIdx;
+                
+                if (targetIdx < allEntries.length) {
+                    const targetEntry = allEntries[targetIdx];
+                    const targetSubtaskId = targetEntry.subtask_id;
+                    
+                    if (targetEntry.change_type === 'creation' || isCreation) {
+                        const targetGroupStart = otherEntries.findIndex(h => {
+                            if (targetSubtaskId === null || targetSubtaskId === undefined) {
+                                return h.subtask_id === null || h.subtask_id === undefined;
+                            }
+                            return h.subtask_id === targetSubtaskId;
+                        });
+                        if (targetGroupStart >= 0) {
+                            const targetGroup = otherEntries.filter(h => {
+                                if (targetSubtaskId === null || targetSubtaskId === undefined) {
+                                    return h.subtask_id === null || h.subtask_id === undefined;
+                                }
+                                return h.subtask_id === targetSubtaskId;
+                            });
+                            insertAt = targetGroupStart + targetGroup.length;
+                        }
+                    }
+                }
+                
+                insertAt = Math.min(insertAt, otherEntries.length);
+                otherEntries.splice(insertAt, 0, ...movedGroup);
+                newOrder = otherEntries;
+            } else {
+                const [moved] = allEntries.splice(currentIdx, 1);
+                allEntries.splice(targetIdx, 0, moved);
+                newOrder = allEntries;
+            }
+            
+            const updates = newOrder.map((h, i) => 
+                sbClient.from('task_history').update({ order_index: i }).eq('id', h.id)
+            );
+            await Promise.all(updates);
+        }
+    } else {
+        const taskIdNum = parseInt(taskId);
+        
+        const creationEntry = taskHistory.find(h => 
+            h.task_id === taskIdNum && h.subtask_id === subtaskId && h.change_type === 'creation'
+        );
+        
+        if (creationEntry) {
+            const creationDate = new Date(creationEntry.changed_at);
+            const targetDateObj = new Date(targetDate);
+            
+            if (targetDateObj < creationDate) {
+                const updates = [];
+                updates.push(sbClient.from('task_history').update({ changed_at: targetDate, order_index: 0 }).eq('id', creationEntry.id));
+                updates.push(sbClient.from('task_history').update({ changed_at: targetDate, order_index: 1 }).eq('id', entryId));
+                
+                const otherTargetEntries = taskHistory.filter(h => 
+                    h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === targetDate && h.id !== entryId && h.id !== creationEntry.id
+                );
+                otherTargetEntries.forEach((h, i) => {
+                    updates.push(sbClient.from('task_history').update({ order_index: i + 2 }).eq('id', h.id));
+                });
+                
+                const sourceEntries = taskHistory.filter(h => 
+                    h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === sourceDate
+                );
+                sourceEntries.forEach((h, i) => {
+                    updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
+                });
+                
+                await Promise.all(updates);
+            } else {
+                const targetEntries = taskHistory.filter(h => 
+                    h.task_id === taskIdNum && h.changed_at === targetDate
+                ).sort((a, b) => a.order_index - b.order_index);
+                
+                const movedEntry = taskHistory.find(h => h.id === entryId);
+                const movedSubtaskId = movedEntry ? movedEntry.subtask_id : null;
+                const isCreation = movedEntry && movedEntry.change_type === 'creation';
+                
+                const movedGroup = taskHistory.filter(h => {
+                    if (movedSubtaskId === null || movedSubtaskId === undefined) {
+                        return h.task_id === taskIdNum && (h.subtask_id === null || h.subtask_id === undefined) && h.changed_at === sourceDate;
+                    }
+                    return h.task_id === taskIdNum && h.subtask_id === movedSubtaskId && h.changed_at === sourceDate;
+                }).sort((a, b) => a.order_index - b.order_index);
+                
+                const otherSourceEntries = taskHistory.filter(h => 
+                    h.task_id === taskIdNum && h.changed_at === sourceDate && 
+                    !movedGroup.some(m => m.id === h.id)
+                ).sort((a, b) => a.order_index - b.order_index);
+                
+                let insertIdx = 0;
+                if (insertAfterId) {
+                    const afterIdx = targetEntries.findIndex(h => h.id === parseInt(insertAfterId));
+                    insertIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
+                }
+                
+                let finalInsertIdx = insertIdx;
+                if (targetEntries.length > 0 && insertIdx < targetEntries.length) {
+                    const targetEntry = targetEntries[insertIdx];
+                    const targetSubtaskId = targetEntry.subtask_id;
+                    
+                    if (targetEntry.change_type === 'creation' || isCreation) {
+                        const groupStart = targetEntries.findIndex(h => {
+                            if (targetSubtaskId === null || targetSubtaskId === undefined) {
+                                return h.subtask_id === null || h.subtask_id === undefined;
+                            }
+                            return h.subtask_id === targetSubtaskId;
+                        });
+                        if (groupStart >= 0) {
+                            const groupLen = targetEntries.filter(h => {
+                                if (targetSubtaskId === null || targetSubtaskId === undefined) {
+                                    return h.subtask_id === null || h.subtask_id === undefined;
+                                }
+                                return h.subtask_id === targetSubtaskId;
+                            }).length;
+                            finalInsertIdx = groupStart + groupLen;
+                        }
+                    }
+                }
+                
+                finalInsertIdx = Math.min(finalInsertIdx, targetEntries.length);
+                
+                const newTargetOrder = [...targetEntries];
+                newTargetOrder.splice(finalInsertIdx, 0, ...movedGroup.map(h => ({ ...h, changed_at: targetDate })));
+                
+                const updates = newTargetOrder.map((h, i) => 
+                    sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', h.id)
+                );
+                
+                otherSourceEntries.forEach((h, i) => {
+                    updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
+                });
+                
+                await Promise.all(updates);
+            }
+        } else {
+            const targetEntries = taskHistory.filter(h => 
+                h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === targetDate
+            ).sort((a, b) => a.order_index - b.order_index);
+            
+            let insertIdx = 0;
+            if (insertAfterId) {
+                const afterIdx = targetEntries.findIndex(h => h.id === parseInt(insertAfterId));
+                insertIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
+            }
+            
+            const sourceEntries = taskHistory.filter(h => 
+                h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === sourceDate && h.id !== entryId
+            ).sort((a, b) => a.order_index - b.order_index);
+            
+            const newOrder = [...targetEntries];
+            newOrder.splice(insertIdx, 0, { id: entryId });
+            
+            const updates = newOrder.map((h, i) => {
+                if (h.id === entryId) {
+                    return sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', entryId);
+                }
+                return sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', h.id);
+            });
+            
+            sourceEntries.forEach((h, i) => {
+                updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
+            });
+            
+            await Promise.all(updates);
+        }
+    }
+    
+    await loadTaskHistory();
+    applyCurrentStateFromHistory(taskId, subtaskId);
+    
+    window.historyDragItem = null;
+    delete target.dataset.insertAfterId;
+}
+
+async function applyCurrentStateFromHistory(taskId, subtaskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    const taskEntries = taskHistory.filter(e => e.task_id === taskId && e.subtask_id === subtaskId);
+    taskEntries.sort((a, b) => {
+        const dateCompare = new Date(b.changed_at) - new Date(a.changed_at);
+        if (dateCompare !== 0) return dateCompare;
+        return b.order_index - a.order_index;
+    });
+    
+    if (taskEntries.length === 0) return;
+    
+    const latestEntry = taskEntries[0];
+    
+    if (!subtaskId) {
+        if (latestEntry.change_type === 'status' || latestEntry.change_type === 'creation') {
+            await changeTaskStatusDirect(taskId, latestEntry.new_status || 'queue');
+        }
+        if (latestEntry.change_type === 'priority' || latestEntry.change_type === 'creation') {
+            await changeTaskPriorityDirect(taskId, latestEntry.new_priority || 'medium');
+        }
+        if (latestEntry.change_type === 'assignee' || latestEntry.change_type === 'creation') {
+            const assignees = latestEntry.new_assignees ? latestEntry.new_assignees.split(',').filter(a => a) : [];
+            await updateTaskAssigneesDirect(taskId, assignees);
+        }
+    } else {
+        if (latestEntry.change_type === 'status' || latestEntry.change_type === 'creation') {
+            await changeSubtaskStatusDirect(taskId, subtaskId, latestEntry.new_status || 'queue');
+        }
+        if (latestEntry.change_type === 'priority' || latestEntry.change_type === 'creation') {
+            await changeSubtaskPriorityDirect(taskId, subtaskId, latestEntry.new_priority || 'medium');
+        }
+        if (latestEntry.change_type === 'assignee' || latestEntry.change_type === 'creation') {
+            const assignees = latestEntry.new_assignees ? latestEntry.new_assignees.split(',').filter(a => a) : [];
+            await updateSubtaskAssigneesDirect(taskId, subtaskId, assignees);
+        }
+    }
+}
+
+async function handleHistoryDateChange(e, entryId) {
+    if (!canEdit) return;
+    const newDate = e.target.value;
+    const entry = taskHistory.find(h => h.id === entryId);
+    if (!entry) return;
+    const oldDate = entry.changed_at;
+    const oldOrder = entry.order_index;
+    const entriesOnNewDate = taskHistory.filter(h => h.changed_at === newDate && h.id !== entryId);
+    const newOrder = entriesOnNewDate.length;
+    
+    await sbClient.from('task_history').update({ changed_at: newDate, order_index: newOrder }).eq('id', entryId);
+    await loadTaskHistory();
+    
+    if (oldDate !== newDate) {
+        await applyCurrentStateFromHistory(entry.task_id, entry.subtask_id);
+    }
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {

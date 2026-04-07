@@ -11,4 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAssignees();
     renderFilterDropdowns();
     await loadTasks();
+    await loadTaskHistory();
+    await initializeHistoryForExistingTasks();
 });

@@ -22,6 +22,12 @@ let dropTargetPlaceholder = null;
 let filterAssignee = [];
 let filterPriority = [];
 let filterStatus = [];
+let taskHistory = [];
+let historyFilterTypes = ['creation', 'status'];
+let filterHistoryAssignee = [];
+let filterHistoryPriority = [];
+let filterHistoryStatus = [];
+let currentView = 'list';
 
 function getExpandedStateKey() {
     const userEmail = currentUser?.email || 'anonymous';
@@ -254,13 +260,13 @@ async function saveTask(taskData) {
             }
         }
     } else {
-        const { error } = await sbClient.from('tasks').insert([payload]);
+        const { error, data } = await sbClient.from('tasks').insert([payload]).select();
         if (error) {
             if (payload.color !== undefined) {
                 taskColorDbSupported = false;
                 const fallback = { ...payload };
                 delete fallback.color;
-                const { error: fallbackError } = await sbClient.from('tasks').insert([fallback]);
+                const { error: fallbackError } = await sbClient.from('tasks').insert([fallback]).select();
                 if (fallbackError) {
                     console.error(fallbackError);
                     showToast('Ошибка сохранения', 'error');
@@ -274,14 +280,31 @@ async function saveTask(taskData) {
         }
     }
     await loadTasks();
+    const newTask = tasks.find(t => t.title === taskData.title && !taskData.id);
+    if (newTask) {
+        await saveHistoryEntry({
+            task_id: newTask.id,
+            subtask_id: null,
+            change_type: 'creation',
+            changed_at: new Date().toISOString().split('T')[0],
+            order_index: 0,
+            task_title: newTask.title,
+            task_path: newTask.title,
+            new_status: newTask.status || 'queue',
+            new_priority: newTask.priority || 'medium',
+            new_assignees: (newTask.assignees || []).join(',')
+        });
+    }
     showToast('', 'success');
     return true;
 }
 
 async function deleteTask(id) {
     if (!canEdit || !confirm('Удалить?')) return;
+    await sbClient.from('task_history').delete().eq('task_id', id);
     await sbClient.from('tasks').delete().eq('id', id);
     await loadTasks();
+    await loadTaskHistory();
     showToast('Удалено', 'success');
 }
 
@@ -314,6 +337,45 @@ async function updateTaskStatus(taskId, newStatus) {
         subtasks: JSON.stringify(newSubtasks),
         assignees: task.assignees.join(',')
     }).eq('id', taskId);
+    
+    await saveHistoryEntry({
+        task_id: taskId,
+        subtask_id: null,
+        change_type: 'status',
+        changed_at: new Date().toISOString().split('T')[0],
+        task_title: task.title,
+        task_path: task.title,
+        new_status: newStatus,
+        new_priority: task.priority || 'medium',
+        new_assignees: (task.assignees || []).join(',')
+    });
+    
+    if (task.subtasks && task.subtasks.length > 0) {
+        const updateSubtasksStatus = (subtasks, path) => {
+            subtasks.forEach(sub => {
+                const subPath = path + ' → ' + sub.title;
+                const children = sub.children || sub.subtasks || [];
+                if (children.length === 0 && sub.status !== (newStatus === 'done' ? 'done' : (newStatus === 'progress' ? 'progress' : (newStatus === 'review' ? 'review' : 'queue')))) {
+                    saveHistoryEntry({
+                        task_id: taskId,
+                        subtask_id: sub.id,
+                        change_type: 'status',
+                        changed_at: new Date().toISOString().split('T')[0],
+                        task_title: sub.title,
+                        task_path: subPath,
+                        new_status: sub.status,
+                        new_priority: sub.priority || 'medium',
+                        new_assignees: (sub.assignees || []).join(',')
+                    });
+                }
+                if (children.length > 0) {
+                    updateSubtasksStatus(children, subPath);
+                }
+            });
+        };
+        updateSubtasksStatus(task.subtasks, task.title);
+    }
+    
     await loadTasks();
 }
 
@@ -321,6 +383,9 @@ async function updateSubtaskStatus(taskId, subtaskId, newStatus) {
     if (!canEdit) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    const subtask = findSubtaskById(task, subtaskId);
+    const subtaskPath = subtask ? task.title + ' → ' + subtask.title : '';
 
     const updateInTree = (nodes) => nodes.map(n => {
         if (n.id === subtaskId) {
@@ -351,6 +416,18 @@ async function updateSubtaskStatus(taskId, subtaskId, newStatus) {
         subtasks: JSON.stringify(task.subtasks),
         assignees: task.assignees.join(',')
     }).eq('id', taskId);
+    await saveHistoryEntry({
+        task_id: taskId,
+        subtask_id: subtaskId,
+        change_type: 'status',
+        changed_at: new Date().toISOString().split('T')[0],
+        order_index: 0,
+        task_title: subtask ? subtask.title : '',
+        task_path: subtaskPath,
+        new_status: newStatus,
+        new_priority: subtask ? (subtask.priority || 'medium') : 'medium',
+        new_assignees: subtask ? (subtask.assignees || []).join(',') : ''
+    });
     await loadTasks();
 }
 
@@ -360,6 +437,18 @@ async function changeTaskPriority(taskId, newPriority) {
     if (!task) return;
     task.priority = newPriority;
     await sbClient.from('tasks').update({ priority: newPriority }).eq('id', taskId).select();
+    await saveHistoryEntry({
+        task_id: taskId,
+        subtask_id: null,
+        change_type: 'priority',
+        changed_at: new Date().toISOString().split('T')[0],
+        order_index: 0,
+        task_title: task.title,
+        task_path: task.title,
+        new_status: task.status || 'queue',
+        new_priority: newPriority,
+        new_assignees: (task.assignees || []).join(',')
+    });
     window.renderTasks();
 }
 
@@ -372,6 +461,9 @@ async function changeSubtaskPriority(taskId, subtaskId, newPriority) {
     if (!canEdit) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    const subtask = findSubtaskById(task, subtaskId);
+    const subtaskPath = subtask ? task.title + ' → ' + subtask.title : '';
 
     const updateInTree = (nodes) => nodes.map(n => {
         if (String(n.id) === String(subtaskId)) {
@@ -394,6 +486,20 @@ async function changeSubtaskPriority(taskId, subtaskId, newPriority) {
         subtasks: JSON.stringify(task.subtasks),
         assignees: task.assignees.join(',')
     }).eq('id', taskId);
+    if (subtask) {
+        await saveHistoryEntry({
+            task_id: taskId,
+            subtask_id: subtaskId,
+            change_type: 'priority',
+            changed_at: new Date().toISOString().split('T')[0],
+            order_index: 0,
+            task_title: subtask.title,
+            task_path: subtaskPath,
+            new_status: subtask.status || 'queue',
+            new_priority: newPriority,
+            new_assignees: (subtask.assignees || []).join(',')
+        });
+    }
     await loadTasks();
 }
 
@@ -408,6 +514,18 @@ async function updateTaskAssignees(taskId, newAssignees) {
     if (!task) return;
     task.assignees = newAssignees || [];
     await sbClient.from('tasks').update({ assignees: task.assignees.join(',') }).eq('id', taskId);
+    await saveHistoryEntry({
+        task_id: taskId,
+        subtask_id: null,
+        change_type: 'assignee',
+        changed_at: new Date().toISOString().split('T')[0],
+        order_index: 0,
+        task_title: task.title,
+        task_path: task.title,
+        new_status: task.status || 'queue',
+        new_priority: task.priority || 'medium',
+        new_assignees: (newAssignees || []).join(',')
+    });
     await loadTasks();
 }
 
@@ -415,6 +533,8 @@ async function updateSubtaskAssignees(taskId, subtaskId, newAssignees) {
     if (!canEdit) return;
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
+    const subtask = findSubtaskById(task, subtaskId);
+    const subtaskPath = subtask ? task.title + ' → ' + subtask.title : '';
     const updateInTree = (nodes) => nodes.map(n => {
         if (n.id === subtaskId) return { ...n, assignees: newAssignees };
         const kids = n.children || n.subtasks || [];
@@ -431,6 +551,20 @@ async function updateSubtaskAssignees(taskId, subtaskId, newAssignees) {
         subtasks: JSON.stringify(task.subtasks),
         assignees: task.assignees.join(',')
     }).eq('id', taskId);
+    if (subtask) {
+        await saveHistoryEntry({
+            task_id: taskId,
+            subtask_id: subtaskId,
+            change_type: 'assignee',
+            changed_at: new Date().toISOString().split('T')[0],
+            order_index: 0,
+            task_title: subtask.title,
+            task_path: subtaskPath,
+            new_status: subtask.status || 'queue',
+            new_priority: subtask.priority || 'medium',
+            new_assignees: (newAssignees || []).join(',')
+        });
+    }
     await loadTasks();
 }
 
@@ -466,6 +600,22 @@ async function saveSubtask(taskId, subtaskData) {
             task.subtasks = addToParent(task.subtasks);
         } else {
             task.subtasks.push(newSubtask);
+        }
+        const newSubtaskFull = task.subtasks.find(s => s.id === newSubtask.id);
+        if (newSubtaskFull) {
+            const subtaskPath = task.title + ' → ' + newSubtaskFull.title;
+            await saveHistoryEntry({
+                task_id: taskId,
+                subtask_id: newSubtaskFull.id,
+                change_type: 'creation',
+                changed_at: new Date().toISOString().split('T')[0],
+                order_index: 0,
+                task_title: newSubtaskFull.title,
+                task_path: subtaskPath,
+                new_status: newSubtaskFull.status || 'queue',
+                new_priority: newSubtaskFull.priority || 'medium',
+                new_assignees: (newSubtaskFull.assignees || []).join(',')
+            });
         }
     }
 
@@ -507,7 +657,9 @@ async function deleteSubtask(taskId, subtaskId) {
         subtasks: JSON.stringify(task.subtasks),
         assignees: task.assignees.join(',')
     }).eq('id', taskId);
+    await sbClient.from('task_history').delete().match({ task_id: taskId, subtask_id: subtaskId });
     await loadTasks();
+    await loadTaskHistory();
     showToast('Удалено', 'success');
 }
 
@@ -605,3 +757,260 @@ function findSubtaskParentArray(subtasks, subtaskId) {
 window.findAndRemoveSubtask = findAndRemoveSubtask;
 window.findSubtaskParentArray = findSubtaskParentArray;
 window.saveTaskOrder = saveTaskOrder;
+
+async function loadTaskHistory() {
+    const { data, error } = await sbClient.from('task_history').select('*').order('changed_at', { ascending: false }).order('order_index', { ascending: true });
+    if (error) {
+        console.error(error);
+        showToast('Ошибка загрузки истории', 'error');
+        return;
+    }
+    taskHistory = data || [];
+    window.renderTaskHistory();
+}
+
+async function saveHistoryEntry(entryData) {
+    if (!canEdit) return false;
+    const date = entryData.changed_at || new Date().toISOString().split('T')[0];
+    const existingOnDate = taskHistory.filter(h => h.changed_at === date);
+    let orderIndex = entryData.order_index;
+    if (orderIndex === undefined || orderIndex === null) {
+        if (existingOnDate.length > 0) {
+            const maxOrder = Math.max(...existingOnDate.map(h => h.order_index));
+            orderIndex = maxOrder + 1;
+        } else {
+            orderIndex = 0;
+        }
+    }
+    const payload = {
+        task_id: entryData.task_id,
+        subtask_id: entryData.subtask_id || null,
+        change_type: entryData.change_type,
+        changed_at: date,
+        order_index: orderIndex,
+        task_title: entryData.task_title,
+        task_path: entryData.task_path || '',
+        new_status: entryData.new_status || null,
+        new_priority: entryData.new_priority || null,
+        new_assignees: entryData.new_assignees || null
+    };
+    const { error } = await sbClient.from('task_history').insert([payload]);
+    if (error) {
+        console.error(error);
+        showToast('Ошибка сохранения записи истории', 'error');
+        return false;
+    }
+    await loadTaskHistory();
+    return true;
+}
+
+async function deleteHistoryEntry(id) {
+    if (!canEdit || !confirm('Удалить запись истории?')) return;
+    const entry = taskHistory.find(e => e.id === id);
+    if (!entry) return;
+    
+    if (entry.change_type === 'creation') {
+        const allTaskEntries = taskHistory.filter(e => 
+            e.task_id === entry.task_id && 
+            e.subtask_id === entry.subtask_id
+        );
+        for (const e of allTaskEntries) {
+            await sbClient.from('task_history').delete().eq('id', e.id);
+        }
+        
+        if (entry.subtask_id) {
+            await deleteSubtask(entry.task_id, entry.subtask_id);
+        } else {
+            await deleteTask(entry.task_id);
+        }
+    } else {
+        await sbClient.from('task_history').delete().eq('id', id);
+        await loadTaskHistory();
+        applyCurrentStateFromHistory(entry.task_id, entry.subtask_id);
+    }
+    await loadTaskHistory();
+    await loadTasks();
+    showToast('Удалено', 'success');
+}
+
+function determineLatestEntry(taskId, subtaskId) {
+    const taskEntries = taskHistory.filter(e => e.task_id === taskId && e.subtask_id === subtaskId);
+    if (taskEntries.length === 0) return null;
+    taskEntries.sort((a, b) => {
+        const dateCompare = new Date(b.changed_at) - new Date(a.changed_at);
+        if (dateCompare !== 0) return dateCompare;
+        return b.order_index - a.order_index;
+    });
+    return taskEntries[0].id;
+}
+
+async function updateHistoryEntryDate(id, newDate) {
+    if (!canEdit) return;
+    const { error } = await sbClient.from('task_history').update({ changed_at: newDate }).eq('id', id);
+    if (error) {
+        console.error(error);
+        showToast('Ошибка обновления даты', 'error');
+        return;
+    }
+    await loadTaskHistory();
+}
+
+async function updateHistoryEntryOrder(id, newOrder, newDate) {
+    if (!canEdit) return;
+    const entry = taskHistory.find(e => e.id === id);
+    if (!entry) return;
+    const sameDateEntries = taskHistory.filter(e => e.changed_at === newDate && e.id !== id);
+    const updates = sameDateEntries.map(e => {
+        const idx = e.order_index >= newOrder ? e.order_index + 1 : e.order_index;
+        return sbClient.from('task_history').update({ order_index: idx, changed_at: newDate }).eq('id', e.id);
+    });
+    updates.push(sbClient.from('task_history').update({ order_index: newOrder, changed_at: newDate }).eq('id', id));
+    await Promise.all(updates);
+    await loadTaskHistory();
+}
+
+async function initializeHistoryForExistingTasks() {
+    const existingHistory = await sbClient.from('task_history').select('id').limit(1);
+    if (existingHistory.data && existingHistory.data.length > 0) return;
+    const historyEntries = [];
+    tasks.forEach(task => {
+        const taskPath = task.title;
+        historyEntries.push({
+            task_id: task.id,
+            subtask_id: null,
+            change_type: 'creation',
+            changed_at: '2026-03-27',
+            order_index: 0,
+            task_title: task.title,
+            task_path: taskPath,
+            new_status: task.status || 'queue',
+            new_priority: task.priority || 'medium',
+            new_assignees: (task.assignees || []).join(',')
+        });
+        const collectLeafSubtasks = (subtasks, path) => {
+            subtasks.forEach(sub => {
+                const subPath = path + ' → ' + sub.title;
+                const children = sub.children || sub.subtasks || [];
+                if (children.length === 0) {
+                    historyEntries.push({
+                        task_id: task.id,
+                        subtask_id: sub.id,
+                        change_type: 'creation',
+                        changed_at: '2026-03-27',
+                        order_index: 0,
+                        task_title: sub.title,
+                        task_path: subPath,
+                        new_status: sub.status || 'queue',
+                        new_priority: sub.priority || 'medium',
+                        new_assignees: (sub.assignees || []).join(',')
+                    });
+                } else {
+                    collectLeafSubtasks(children, subPath);
+                }
+            });
+        };
+        if (task.subtasks && task.subtasks.length > 0) {
+            collectLeafSubtasks(task.subtasks, taskPath);
+        }
+    });
+    if (historyEntries.length > 0) {
+        const { error } = await sbClient.from('task_history').insert(historyEntries);
+        if (error) console.error(error);
+        else showToast('История инициализирована', 'success');
+    }
+    await loadTaskHistory();
+}
+
+window.loadTaskHistory = loadTaskHistory;
+window.saveHistoryEntry = saveHistoryEntry;
+window.deleteHistoryEntry = deleteHistoryEntry;
+window.updateHistoryEntryDate = updateHistoryEntryDate;
+window.updateHistoryEntryOrder = updateHistoryEntryOrder;
+window.initializeHistoryForExistingTasks = initializeHistoryForExistingTasks;
+window.findSubtaskById = findSubtaskById;
+
+async function changeTaskStatusDirect(taskId, newStatus) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    task.status = newStatus;
+    await sbClient.from('tasks').update({ status: newStatus }).eq('id', taskId);
+    window.renderTasks();
+}
+
+async function changeTaskPriorityDirect(taskId, newPriority) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    task.priority = newPriority;
+    await sbClient.from('tasks').update({ priority: newPriority }).eq('id', taskId);
+    window.renderTasks();
+}
+
+async function updateTaskAssigneesDirect(taskId, newAssignees) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    task.assignees = newAssignees || [];
+    await sbClient.from('tasks').update({ assignees: (newAssignees || []).join(',') }).eq('id', taskId);
+    window.renderTasks();
+}
+
+async function changeSubtaskStatusDirect(taskId, subtaskId, newStatus) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const updateInTree = (nodes) => nodes.map(n => {
+        if (n.id === subtaskId) return { ...n, status: newStatus };
+        const kids = n.children || n.subtasks || [];
+        if (kids.length > 0) return { ...n, children: updateInTree(kids) };
+        return n;
+    });
+    task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
+    if (hasSubtasks(task)) {
+        task.status = calculateTaskStatus(task.subtasks);
+        task.assignees = calculateTaskAssignees(task.subtasks);
+    }
+    await sbClient.from('tasks').update({
+        status: task.status,
+        subtasks: JSON.stringify(task.subtasks),
+        assignees: task.assignees.join(',')
+    }).eq('id', taskId);
+    window.renderTasks();
+}
+
+async function changeSubtaskPriorityDirect(taskId, subtaskId, newPriority) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const updateInTree = (nodes) => nodes.map(n => {
+        if (n.id === subtaskId) return { ...n, priority: newPriority };
+        const kids = n.children || n.subtasks || [];
+        if (kids.length > 0) return { ...n, children: updateInTree(kids) };
+        return n;
+    });
+    task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
+    await sbClient.from('tasks').update({ subtasks: JSON.stringify(task.subtasks) }).eq('id', taskId);
+    window.renderTasks();
+}
+
+async function updateSubtaskAssigneesDirect(taskId, subtaskId, newAssignees) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const updateInTree = (nodes) => nodes.map(n => {
+        if (n.id === subtaskId) return { ...n, assignees: newAssignees };
+        const kids = n.children || n.subtasks || [];
+        if (kids.length > 0) return { ...n, children: updateInTree(kids) };
+        return n;
+    });
+    task.subtasks = normalizeSubtasksTree(updateInTree(task.subtasks));
+    await sbClient.from('tasks').update({ subtasks: JSON.stringify(task.subtasks) }).eq('id', taskId);
+    window.renderTasks();
+}
+
+window.changeTaskStatusDirect = changeTaskStatusDirect;
+window.changeTaskPriorityDirect = changeTaskPriorityDirect;
+window.updateTaskAssigneesDirect = updateTaskAssigneesDirect;
+window.changeSubtaskStatusDirect = changeSubtaskStatusDirect;
+window.changeSubtaskPriorityDirect = changeSubtaskPriorityDirect;
+window.updateSubtaskAssigneesDirect = updateSubtaskAssigneesDirect;
+window.applyCurrentStateFromHistoryInternal = applyCurrentStateFromHistory;
+
+function applyCurrentStateFromHistory(taskId, subtaskId) {
+    return applyCurrentStateFromHistory(taskId, subtaskId);
+}
