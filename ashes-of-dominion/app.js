@@ -12,5 +12,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderFilterDropdowns();
     await loadTasks();
     await loadTaskHistory();
-    await initializeHistoryForExistingTasks();
 });

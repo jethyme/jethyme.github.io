@@ -453,6 +453,23 @@ function handleHistoryDragLeave(e) {
     });
 }
 
+function canMoveEntry() {
+    return true;
+}
+
+function reorderEntriesForTaskOnDate(taskId, subtaskId, date, entryOrder) {
+    return entryOrder.map((entry, newIndex) => {
+        const updates = [];
+        if (entry.changed_at !== date || entry.order_index !== newIndex) {
+            updates.push(sbClient.from('task_history').update({ 
+                changed_at: date, 
+                order_index: newIndex 
+            }).eq('id', entry.id));
+        }
+        return updates;
+    }).flat();
+}
+
 async function handleHistoryDrop(e, targetDate) {
     if (!canEdit || !window.historyDragItem) return;
     e.preventDefault();
@@ -463,7 +480,7 @@ async function handleHistoryDrop(e, targetDate) {
     const target = e.currentTarget;
     const insertAfterId = target.dataset.insertAfterId;
     
-    const draggedEntry = taskHistory.find(h => h.id === entryId);
+    const draggedEntry = window.taskHistory.find(h => h.id === entryId);
     if (!draggedEntry) {
         window.historyDragItem = null;
         return;
@@ -472,214 +489,58 @@ async function handleHistoryDrop(e, targetDate) {
     const sourceDate = draggedEntry.changed_at;
     const taskId = draggedEntry.task_id;
     const subtaskId = draggedEntry.subtask_id;
+    const isCreation = draggedEntry.change_type === 'creation';
+    const isReorderSameDate = sourceDate === targetDate;
     
-    if (sourceDate === targetDate) {
-        const taskIdNum = parseInt(taskId);
-        const subtaskIdNum = subtaskId ? parseInt(subtaskId) : null;
-        
-        const allEntries = taskHistory.filter(h => 
-            h.task_id === taskIdNum && h.changed_at === sourceDate
-        ).sort((a, b) => a.order_index - b.order_index);
-        
-        const currentIdx = allEntries.findIndex(h => h.id === entryId);
-        
-        let targetIdx = 0;
-        if (insertAfterId) {
-            const afterIdx = allEntries.findIndex(h => h.id === parseInt(insertAfterId));
-            targetIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
-        }
-        
-        if (targetIdx < 0) targetIdx = 0;
-        
-        if (currentIdx !== targetIdx && currentIdx >= 0) {
-            const movedEntry = allEntries[currentIdx];
-            const movedSubtaskId = movedEntry.subtask_id;
-            const isCreation = movedEntry.change_type === 'creation';
-            
-            let newOrder;
-            
-            const movedGroup = allEntries.filter(h => {
-                if (movedSubtaskId === null || movedSubtaskId === undefined) {
-                    return h.subtask_id === null || h.subtask_id === undefined;
-                }
-                return h.subtask_id === movedSubtaskId;
-            });
-            
-            const otherEntries = allEntries.filter(h => {
-                if (movedSubtaskId === null || movedSubtaskId === undefined) {
-                    return !(h.subtask_id === null || h.subtask_id === undefined);
-                }
-                return h.subtask_id !== movedSubtaskId;
-            });
-            
-            if (subtaskIdNum !== null) {
-                let insertAt = targetIdx;
-                
-                if (targetIdx < allEntries.length) {
-                    const targetEntry = allEntries[targetIdx];
-                    const targetSubtaskId = targetEntry.subtask_id;
-                    
-                    if (targetEntry.change_type === 'creation' || isCreation) {
-                        const targetGroupStart = otherEntries.findIndex(h => {
-                            if (targetSubtaskId === null || targetSubtaskId === undefined) {
-                                return h.subtask_id === null || h.subtask_id === undefined;
-                            }
-                            return h.subtask_id === targetSubtaskId;
-                        });
-                        if (targetGroupStart >= 0) {
-                            const targetGroup = otherEntries.filter(h => {
-                                if (targetSubtaskId === null || targetSubtaskId === undefined) {
-                                    return h.subtask_id === null || h.subtask_id === undefined;
-                                }
-                                return h.subtask_id === targetSubtaskId;
-                            });
-                            insertAt = targetGroupStart + targetGroup.length;
-                        }
-                    }
-                }
-                
-                insertAt = Math.min(insertAt, otherEntries.length);
-                otherEntries.splice(insertAt, 0, ...movedGroup);
-                newOrder = otherEntries;
-            } else {
-                const [moved] = allEntries.splice(currentIdx, 1);
-                allEntries.splice(targetIdx, 0, moved);
-                newOrder = allEntries;
-            }
-            
-            const updates = newOrder.map((h, i) => 
-                sbClient.from('task_history').update({ order_index: i }).eq('id', h.id)
-            );
-            await Promise.all(updates);
-        }
-    } else {
-        const taskIdNum = parseInt(taskId);
-        
-        const creationEntry = taskHistory.find(h => 
-            h.task_id === taskIdNum && h.subtask_id === subtaskId && h.change_type === 'creation'
-        );
-        
-        if (creationEntry) {
-            const creationDate = new Date(creationEntry.changed_at);
-            const targetDateObj = new Date(targetDate);
-            
-            if (targetDateObj < creationDate) {
-                const updates = [];
-                updates.push(sbClient.from('task_history').update({ changed_at: targetDate, order_index: 0 }).eq('id', creationEntry.id));
-                updates.push(sbClient.from('task_history').update({ changed_at: targetDate, order_index: 1 }).eq('id', entryId));
-                
-                const otherTargetEntries = taskHistory.filter(h => 
-                    h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === targetDate && h.id !== entryId && h.id !== creationEntry.id
-                );
-                otherTargetEntries.forEach((h, i) => {
-                    updates.push(sbClient.from('task_history').update({ order_index: i + 2 }).eq('id', h.id));
-                });
-                
-                const sourceEntries = taskHistory.filter(h => 
-                    h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === sourceDate
-                );
-                sourceEntries.forEach((h, i) => {
-                    updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
-                });
-                
-                await Promise.all(updates);
-            } else {
-                const targetEntries = taskHistory.filter(h => 
-                    h.task_id === taskIdNum && h.changed_at === targetDate
-                ).sort((a, b) => a.order_index - b.order_index);
-                
-                const movedEntry = taskHistory.find(h => h.id === entryId);
-                const movedSubtaskId = movedEntry ? movedEntry.subtask_id : null;
-                const isCreation = movedEntry && movedEntry.change_type === 'creation';
-                
-                const movedGroup = taskHistory.filter(h => {
-                    if (movedSubtaskId === null || movedSubtaskId === undefined) {
-                        return h.task_id === taskIdNum && (h.subtask_id === null || h.subtask_id === undefined) && h.changed_at === sourceDate;
-                    }
-                    return h.task_id === taskIdNum && h.subtask_id === movedSubtaskId && h.changed_at === sourceDate;
-                }).sort((a, b) => a.order_index - b.order_index);
-                
-                const otherSourceEntries = taskHistory.filter(h => 
-                    h.task_id === taskIdNum && h.changed_at === sourceDate && 
-                    !movedGroup.some(m => m.id === h.id)
-                ).sort((a, b) => a.order_index - b.order_index);
-                
-                let insertIdx = 0;
-                if (insertAfterId) {
-                    const afterIdx = targetEntries.findIndex(h => h.id === parseInt(insertAfterId));
-                    insertIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
-                }
-                
-                let finalInsertIdx = insertIdx;
-                if (targetEntries.length > 0 && insertIdx < targetEntries.length) {
-                    const targetEntry = targetEntries[insertIdx];
-                    const targetSubtaskId = targetEntry.subtask_id;
-                    
-                    if (targetEntry.change_type === 'creation' || isCreation) {
-                        const groupStart = targetEntries.findIndex(h => {
-                            if (targetSubtaskId === null || targetSubtaskId === undefined) {
-                                return h.subtask_id === null || h.subtask_id === undefined;
-                            }
-                            return h.subtask_id === targetSubtaskId;
-                        });
-                        if (groupStart >= 0) {
-                            const groupLen = targetEntries.filter(h => {
-                                if (targetSubtaskId === null || targetSubtaskId === undefined) {
-                                    return h.subtask_id === null || h.subtask_id === undefined;
-                                }
-                                return h.subtask_id === targetSubtaskId;
-                            }).length;
-                            finalInsertIdx = groupStart + groupLen;
-                        }
-                    }
-                }
-                
-                finalInsertIdx = Math.min(finalInsertIdx, targetEntries.length);
-                
-                const newTargetOrder = [...targetEntries];
-                newTargetOrder.splice(finalInsertIdx, 0, ...movedGroup.map(h => ({ ...h, changed_at: targetDate })));
-                
-                const updates = newTargetOrder.map((h, i) => 
-                    sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', h.id)
-                );
-                
-                otherSourceEntries.forEach((h, i) => {
-                    updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
-                });
-                
-                await Promise.all(updates);
-            }
+    if (!canMoveEntry(draggedEntry, targetDate, isReorderSameDate)) {
+        let msg = 'Нельзя переместить запись';
+        if (isCreation && subtaskId === null) {
+            msg += ': задача должна быть создана раньше всех её подзадач';
+        } else if (isCreation && subtaskId !== null) {
+            msg += ': подзадача должна быть создана не позже изменений задачи';
         } else {
-            const targetEntries = taskHistory.filter(h => 
-                h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === targetDate
-            ).sort((a, b) => a.order_index - b.order_index);
-            
-            let insertIdx = 0;
-            if (insertAfterId) {
-                const afterIdx = targetEntries.findIndex(h => h.id === parseInt(insertAfterId));
-                insertIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
-            }
-            
-            const sourceEntries = taskHistory.filter(h => 
-                h.task_id === taskIdNum && h.subtask_id === subtaskId && h.changed_at === sourceDate && h.id !== entryId
-            ).sort((a, b) => a.order_index - b.order_index);
-            
-            const newOrder = [...targetEntries];
-            newOrder.splice(insertIdx, 0, { id: entryId });
-            
-            const updates = newOrder.map((h, i) => {
-                if (h.id === entryId) {
-                    return sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', entryId);
-                }
-                return sbClient.from('task_history').update({ changed_at: targetDate, order_index: i }).eq('id', h.id);
-            });
-            
-            sourceEntries.forEach((h, i) => {
-                updates.push(sbClient.from('task_history').update({ order_index: i }).eq('id', h.id));
-            });
-            
-            await Promise.all(updates);
+            msg += ' раньше даты создания';
         }
+        showToast(msg, 'error');
+        window.historyDragItem = null;
+        delete target.dataset.insertAfterId;
+        return;
+    }
+    
+    const taskIdNum = parseInt(taskId);
+    
+    const allEntries = [...window.taskHistory].sort((a, b) => {
+        const dateCompare = new Date(b.changed_at) - new Date(a.changed_at);
+        if (dateCompare !== 0) return dateCompare;
+        return b.order_index - a.order_index;
+    });
+    
+    const currentIdx = allEntries.findIndex(h => h.id === entryId);
+    const movedEntry = allEntries[currentIdx];
+    if (!movedEntry || currentIdx < 0) {
+        window.historyDragItem = null;
+        return;
+    }
+    
+    let targetIdx;
+    if (insertAfterId) {
+        const afterIdx = allEntries.findIndex(h => h.id === parseInt(insertAfterId));
+        targetIdx = afterIdx >= 0 ? afterIdx + 1 : 0;
+    } else {
+        targetIdx = allEntries.findIndex(h => h.changed_at === targetDate);
+        if (targetIdx < 0) targetIdx = 0;
+    }
+    
+    if (currentIdx !== targetIdx) {
+        const [removed] = allEntries.splice(currentIdx, 1);
+        const adjustedPos = targetIdx > currentIdx ? targetIdx - 1 : targetIdx;
+        allEntries.splice(adjustedPos, 0, { ...removed, changed_at: targetDate });
+        
+        const maxIdx = allEntries.length - 1;
+        const updates = allEntries.map((entry, newIndex) => 
+            sbClient.from('task_history').update({ order_index: maxIdx - newIndex }).eq('id', entry.id)
+        );
+        await Promise.all(updates);
     }
     
     await loadTaskHistory();
@@ -693,11 +554,11 @@ async function applyCurrentStateFromHistory(taskId, subtaskId) {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     
-    const taskEntries = taskHistory.filter(e => e.task_id === taskId && e.subtask_id === subtaskId);
+    const taskEntries = window.taskHistory.filter(e => e.task_id === taskId && e.subtask_id === subtaskId);
     taskEntries.sort((a, b) => {
         const dateCompare = new Date(b.changed_at) - new Date(a.changed_at);
         if (dateCompare !== 0) return dateCompare;
-        return b.order_index - a.order_index;
+        return a.order_index - b.order_index;
     });
     
     if (taskEntries.length === 0) return;
@@ -732,11 +593,11 @@ async function applyCurrentStateFromHistory(taskId, subtaskId) {
 async function handleHistoryDateChange(e, entryId) {
     if (!canEdit) return;
     const newDate = e.target.value;
-    const entry = taskHistory.find(h => h.id === entryId);
+    const entry = window.taskHistory.find(h => h.id === entryId);
     if (!entry) return;
     const oldDate = entry.changed_at;
-    const oldOrder = entry.order_index;
-    const entriesOnNewDate = taskHistory.filter(h => h.changed_at === newDate && h.id !== entryId);
+    
+    const entriesOnNewDate = window.taskHistory.filter(h => h.changed_at === newDate && h.id !== entryId);
     const newOrder = entriesOnNewDate.length;
     
     await sbClient.from('task_history').update({ changed_at: newDate, order_index: newOrder }).eq('id', entryId);
@@ -1280,3 +1141,6 @@ function showToast(msg, type = 'info') {
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
 }
+
+window.applyCurrentStateFromHistory = applyCurrentStateFromHistory;
+window.applyCurrentStateFromHistoryInternal = applyCurrentStateFromHistory;

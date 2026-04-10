@@ -29,6 +29,11 @@ let filterHistoryPriority = [];
 let filterHistoryStatus = [];
 let currentView = 'list';
 
+window.historyFilterTypes = historyFilterTypes;
+window.filterHistoryAssignee = filterHistoryAssignee;
+window.filterHistoryPriority = filterHistoryPriority;
+window.filterHistoryStatus = filterHistoryStatus;
+
 function getExpandedStateKey() {
     const userEmail = currentUser?.email || 'anonymous';
     return LOCAL_EXPANDED_KEY + ':' + userEmail;
@@ -287,7 +292,7 @@ async function saveTask(taskData) {
             subtask_id: null,
             change_type: 'creation',
             changed_at: new Date().toISOString().split('T')[0],
-            order_index: 0,
+            
             task_title: newTask.title,
             task_path: newTask.title,
             new_status: newTask.status || 'queue',
@@ -421,7 +426,7 @@ async function updateSubtaskStatus(taskId, subtaskId, newStatus) {
         subtask_id: subtaskId,
         change_type: 'status',
         changed_at: new Date().toISOString().split('T')[0],
-        order_index: 0,
+        
         task_title: subtask ? subtask.title : '',
         task_path: subtaskPath,
         new_status: newStatus,
@@ -442,7 +447,7 @@ async function changeTaskPriority(taskId, newPriority) {
         subtask_id: null,
         change_type: 'priority',
         changed_at: new Date().toISOString().split('T')[0],
-        order_index: 0,
+        
         task_title: task.title,
         task_path: task.title,
         new_status: task.status || 'queue',
@@ -492,7 +497,7 @@ async function changeSubtaskPriority(taskId, subtaskId, newPriority) {
             subtask_id: subtaskId,
             change_type: 'priority',
             changed_at: new Date().toISOString().split('T')[0],
-            order_index: 0,
+            
             task_title: subtask.title,
             task_path: subtaskPath,
             new_status: subtask.status || 'queue',
@@ -519,7 +524,7 @@ async function updateTaskAssignees(taskId, newAssignees) {
         subtask_id: null,
         change_type: 'assignee',
         changed_at: new Date().toISOString().split('T')[0],
-        order_index: 0,
+        
         task_title: task.title,
         task_path: task.title,
         new_status: task.status || 'queue',
@@ -557,7 +562,7 @@ async function updateSubtaskAssignees(taskId, subtaskId, newAssignees) {
             subtask_id: subtaskId,
             change_type: 'assignee',
             changed_at: new Date().toISOString().split('T')[0],
-            order_index: 0,
+            
             task_title: subtask.title,
             task_path: subtaskPath,
             new_status: subtask.status || 'queue',
@@ -583,8 +588,9 @@ async function saveSubtask(taskId, subtaskData) {
         });
         task.subtasks = updateInTree(task.subtasks);
     } else {
+        const newSubtaskId = Date.now();
         const newSubtask = {
-            id: Date.now(),
+            id: newSubtaskId,
             title: subtaskData.title,
             priority: subtaskData.priority,
             status: subtaskData.status,
@@ -593,7 +599,7 @@ async function saveSubtask(taskId, subtaskData) {
         };
         if (subtaskData.parentId) {
             const addToParent = (nodes) => nodes.map(n => {
-                if (n.id === subtaskData.parentId) return { ...n, children: [...(n.children || []), newSubtask] };
+                if (String(n.id) === String(subtaskData.parentId)) return { ...n, children: [...(n.children || []), newSubtask] };
                 if (n.children) return { ...n, children: addToParent(n.children) };
                 return n;
             });
@@ -601,15 +607,79 @@ async function saveSubtask(taskId, subtaskData) {
         } else {
             task.subtasks.push(newSubtask);
         }
-        const newSubtaskFull = task.subtasks.find(s => s.id === newSubtask.id);
+        const findInTree = (nodes, id) => {
+            for (const n of nodes) {
+                if (String(n.id) === String(id)) return n;
+                if (n.children) {
+                    const found = findInTree(n.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        const newSubtaskFull = findInTree(task.subtasks, newSubtaskId);
         if (newSubtaskFull) {
-            const subtaskPath = task.title + ' → ' + newSubtaskFull.title;
+            if (subtaskData.parentId) {
+                const getSubtaskById = (nodes, id) => {
+                    for (const n of nodes) {
+                        if (n.id === id) return n;
+                        if (n.children) {
+                            const found = getSubtaskById(n.children, id);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                };
+                const parentSubtask = getSubtaskById(task.subtasks, subtaskData.parentId);
+                if (parentSubtask) {
+                    const existingParentEntry = window.taskHistory.find(h => 
+                        h.task_id === taskId && h.subtask_id === parentSubtask.id && h.change_type === 'creation'
+                    );
+                    if (!existingParentEntry) {
+                        const getParentPath = (nodes, id, path = []) => {
+                            for (const n of nodes) {
+                                if (String(n.id) === String(id)) return [...path, n.title];
+                                if (n.children) {
+                                    const found = getParentPath(n.children, id, [...path, n.title]);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        };
+                        const parentFullPath = getParentPath(task.subtasks, parentSubtask.id, [task.title]);
+                        const parentPath = parentFullPath ? parentFullPath.join(' → ') : task.title + ' → ' + parentSubtask.title;
+                        await saveHistoryEntry({
+                            task_id: taskId,
+                            subtask_id: parentSubtask.id,
+                            change_type: 'creation',
+                            changed_at: new Date().toISOString().split('T')[0],
+                            task_title: parentSubtask.title,
+                            task_path: parentPath,
+                            new_status: parentSubtask.status || 'queue',
+                            new_priority: parentSubtask.priority || 'medium',
+                            new_assignees: (parentSubtask.assignees || []).join(',')
+                        });
+                    }
+                }
+            }
+            
+            const getFullPath = (nodes, id, path = []) => {
+                for (const n of nodes) {
+                    if (String(n.id) === String(id)) return [...path, n.title];
+                    if (n.children) {
+                        const found = getFullPath(n.children, id, [...path, n.title]);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+            const fullPath = getFullPath(task.subtasks, newSubtaskFull.id, [task.title]);
+            const subtaskPath = fullPath ? fullPath.join(' → ') : task.title + ' → ' + newSubtaskFull.title;
             await saveHistoryEntry({
                 task_id: taskId,
                 subtask_id: newSubtaskFull.id,
                 change_type: 'creation',
                 changed_at: new Date().toISOString().split('T')[0],
-                order_index: 0,
                 task_title: newSubtaskFull.title,
                 task_path: subtaskPath,
                 new_status: newSubtaskFull.status || 'queue',
@@ -766,25 +836,28 @@ async function loadTaskHistory() {
         return;
     }
     taskHistory = data || [];
+    window.taskHistory = data || [];
     window.renderTaskHistory();
 }
 
 async function saveHistoryEntry(entryData) {
     if (!canEdit) return false;
     const date = entryData.changed_at || new Date().toISOString().split('T')[0];
-    const existingOnDate = taskHistory.filter(h => h.changed_at === date);
+    const taskId = entryData.task_id;
+    const subtaskId = entryData.subtask_id;
+    const existingOnDate = window.taskHistory.filter(h => 
+        h.changed_at === date && 
+        h.task_id === taskId &&
+        h.subtask_id === subtaskId
+    );
     let orderIndex = entryData.order_index;
     if (orderIndex === undefined || orderIndex === null) {
-        if (existingOnDate.length > 0) {
-            const maxOrder = Math.max(...existingOnDate.map(h => h.order_index));
-            orderIndex = maxOrder + 1;
-        } else {
-            orderIndex = 0;
-        }
+        const maxIdx = window.taskHistory.reduce((max, e) => Math.max(max, e.order_index || 0), 0);
+        orderIndex = maxIdx + 1;
     }
     const payload = {
         task_id: entryData.task_id,
-        subtask_id: entryData.subtask_id || null,
+        subtask_id: entryData.subtask_id != null ? entryData.subtask_id : null,
         change_type: entryData.change_type,
         changed_at: date,
         order_index: orderIndex,
@@ -806,11 +879,11 @@ async function saveHistoryEntry(entryData) {
 
 async function deleteHistoryEntry(id) {
     if (!canEdit || !confirm('Удалить запись истории?')) return;
-    const entry = taskHistory.find(e => e.id === id);
+    const entry = window.taskHistory.find(e => e.id === id);
     if (!entry) return;
     
     if (entry.change_type === 'creation') {
-        const allTaskEntries = taskHistory.filter(e => 
+        const allTaskEntries = window.taskHistory.filter(e => 
             e.task_id === entry.task_id && 
             e.subtask_id === entry.subtask_id
         );
@@ -826,7 +899,7 @@ async function deleteHistoryEntry(id) {
     } else {
         await sbClient.from('task_history').delete().eq('id', id);
         await loadTaskHistory();
-        applyCurrentStateFromHistory(entry.task_id, entry.subtask_id);
+        await window.applyCurrentStateFromHistoryInternal(entry.task_id, entry.subtask_id);
     }
     await loadTaskHistory();
     await loadTasks();
@@ -870,8 +943,7 @@ async function updateHistoryEntryOrder(id, newOrder, newDate) {
 }
 
 async function initializeHistoryForExistingTasks() {
-    const existingHistory = await sbClient.from('task_history').select('id').limit(1);
-    if (existingHistory.data && existingHistory.data.length > 0) return;
+    await sbClient.from('task_history').delete().neq('id', 0);
     const historyEntries = [];
     tasks.forEach(task => {
         const taskPath = task.title;
@@ -880,7 +952,7 @@ async function initializeHistoryForExistingTasks() {
             subtask_id: null,
             change_type: 'creation',
             changed_at: '2026-03-27',
-            order_index: 0,
+            
             task_title: task.title,
             task_path: taskPath,
             new_status: task.status || 'queue',
@@ -897,7 +969,7 @@ async function initializeHistoryForExistingTasks() {
                         subtask_id: sub.id,
                         change_type: 'creation',
                         changed_at: '2026-03-27',
-                        order_index: 0,
+                        
                         task_title: sub.title,
                         task_path: subPath,
                         new_status: sub.status || 'queue',
@@ -1009,8 +1081,3 @@ window.updateTaskAssigneesDirect = updateTaskAssigneesDirect;
 window.changeSubtaskStatusDirect = changeSubtaskStatusDirect;
 window.changeSubtaskPriorityDirect = changeSubtaskPriorityDirect;
 window.updateSubtaskAssigneesDirect = updateSubtaskAssigneesDirect;
-window.applyCurrentStateFromHistoryInternal = applyCurrentStateFromHistory;
-
-function applyCurrentStateFromHistory(taskId, subtaskId) {
-    return applyCurrentStateFromHistory(taskId, subtaskId);
-}

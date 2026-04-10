@@ -298,10 +298,11 @@ function getFullBreadcrumb(rootTask, subtaskId) {
 
 function findSubtaskById(rootTask, subtaskId) {
     if (!rootTask || !subtaskId) return null;
+    const subtaskIdStr = String(subtaskId);
     
     const search = (nodes) => {
         for (const node of nodes || []) {
-            if (String(node.id) === String(subtaskId)) {
+            if (String(node.id) === subtaskIdStr) {
                 return node;
             }
             const found = search(node.children || node.subtasks || []);
@@ -937,29 +938,20 @@ function updateFilterCount(type, count) {
 }
 
 function matchesHistoryFilters(entry) {
-    if (historyFilterTypes.length === 0) return false;
-    if (!historyFilterTypes.includes(entry.change_type)) return false;
+    const types = window.historyFilterTypes || [];
+    if (types.length === 0) return true;
+    if (!types.includes(entry.change_type)) return false;
     
-    const task = tasks.find(t => t.id === entry.task_id);
-    if (!task) return false;
-    
-    if (entry.subtask_id) {
-        const subtask = findSubtaskById(task, entry.subtask_id);
-        if (!subtask) return false;
-        const children = subtask.children || subtask.subtasks || [];
-        if (children.length > 0) return false;
-    } else {
-        const children = task.subtasks || [];
-        if (children.length > 0) return false;
-    }
-    
-    if (filterHistoryAssignee.length > 0) {
+    const assignees = window.filterHistoryAssignee || [];
+    if (assignees.length > 0) {
         const entryAssignees = entry.new_assignees ? entry.new_assignees.split(',').filter(a => a) : [];
-        const hasMatch = entryAssignees.some(a => filterHistoryAssignee.includes(a));
+        const hasMatch = entryAssignees.some(a => assignees.includes(a));
         if (!hasMatch) return false;
     }
-    if (filterHistoryPriority.length > 0 && entry.new_priority && !filterHistoryPriority.includes(entry.new_priority)) return false;
-    if (filterHistoryStatus.length > 0 && entry.new_status && !filterHistoryStatus.includes(entry.new_status)) return false;
+    const priorities = window.filterHistoryPriority || [];
+    if (priorities.length > 0 && entry.new_priority && !priorities.includes(entry.new_priority)) return false;
+    const statuses = window.filterHistoryStatus || [];
+    if (statuses.length > 0 && entry.new_status && !statuses.includes(entry.new_status)) return false;
     
     return true;
 }
@@ -1013,7 +1005,8 @@ function renderHistoryItem(entry) {
 function renderTaskHistory() {
     const container = document.getElementById('historyContainer');
     if (!container) return;
-    const filtered = taskHistory.filter(matchesHistoryFilters);
+    const historyData = window.taskHistory || [];
+    const filtered = historyData.filter(matchesHistoryFilters);
     const byDate = {};
     filtered.forEach(entry => {
         const date = entry.changed_at || 'unknown';
@@ -1023,7 +1016,10 @@ function renderTaskHistory() {
     const dates = Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a));
     let html = '';
     dates.forEach(date => {
-        const dateEntries = byDate[date].sort((a, b) => a.order_index - b.order_index);
+        const dateEntries = byDate[date].sort((a, b) => {
+            if (a.order_index !== b.order_index) return b.order_index - a.order_index;
+            return b.id - a.id;
+        });
         const formattedDate = new Date(date).toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         html += `<div class="history-date-header">${formattedDate}</div>`;
         html += '<div class="history-date-entries" data-date="' + date + '" ondragover="handleHistoryDragOver(event)" ondragleave="handleHistoryDragLeave(event)" ondrop="handleHistoryDrop(event, \'' + date + '\')">';
