@@ -189,22 +189,19 @@ function updateAttemptEmojis() {
     const input = document.getElementById("attemptInput");
     const container = document.getElementById("attemptEmojis");
     const val = parseInt(input.value) || 0;
-    const maxEmojis = 10; // show up to 10 emojis
+    const maxCows = 8;
 
     let html = "";
-    if (val === 0) {
-        html = `<span class="emoji active" onclick="setAttemptEmoji(0)">♾️</span>`;
-    } else {
-        for (let i = 1; i <= maxEmojis; i++) {
-            const active = i <= val;
-            html += `<span class="emoji ${active ? 'active' : ''}" onclick="setAttemptEmoji(${i})">🐄</span>`;
-        }
+    for (let i = 1; i <= maxCows; i++) {
+        const active = i <= val;
+        html += `<span class="emoji ${active ? 'active' : ''}" onclick="setAttemptEmoji(${i})">🐄</span>`;
     }
+    html += `<span class="emoji ${val === 0 ? 'active' : ''}" onclick="setAttemptEmoji(0)">♾️</span>`;
     container.innerHTML = html;
 }
 
 window.setAttemptEmoji = function(val) {
-    document.getElementById("attemptInput").value = val || '';
+    document.getElementById("attemptInput").value = val === 0 ? '' : val;
     updateAttemptEmojis();
 };
 
