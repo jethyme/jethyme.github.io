@@ -46,8 +46,8 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
 <label style="font-weight:bold;">Длина слова:</label>
 <div style="display:flex;flex-direction:column;align-items:center;">
-<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()" style="width:80px;text-align:center;">
-<div id="lenEmojis" class="emoji-row" style="width:80px;"></div>
+<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()" style="width:150px;text-align:center;">
+<div id="lenEmojis" class="emoji-row" style="width:150px;"></div>
 </div>
 </div>
 <button onclick="start()">Старт</button>
@@ -496,8 +496,8 @@ window.setEmoji = function(type, val) {
 // ------------------- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ -------------------
 window.start = function() {
     const val = parseInt(lenInput.value);
-    if (!val || val < 1 || val > 20) {
-        showError("Введите длину слова от 1 до 20");
+    if (!val || val < 1) {
+        showError("Введите длину слова от 1");
         return;
     }
     length = val;
