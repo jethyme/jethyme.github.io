@@ -30,6 +30,9 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
 .loading{ color:#aaa; font-size:14px; margin-top:5px;}
 @media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
+.emoji-row{display:flex;gap:2px;margin-top:4px;justify-content:center;}
+.emoji{cursor:pointer;opacity:0.5;transition:opacity 0.2s;font-size:18px;user-select:none;}
+.emoji.active{opacity:1;}
 </style>
 </head>
 <body>
@@ -45,12 +48,18 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div id="solution" class="solution"></div>
 
 <div class="row">
-<input id="word" placeholder="Слово для проверки">
+<input id="word" placeholder="Слово для проверки" onkeydown="if(event.key==='Enter') add()">
 </div>
 
 <div class="row">
-<input id="bulls" type="number" placeholder="🐂">
-<input id="cows" type="number" placeholder="🐄">
+<div>
+<input id="bulls" type="number" placeholder="🐂" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
+<div id="bullsEmojis" class="emoji-row"></div>
+</div>
+<div>
+<input id="cows" type="number" placeholder="🐄" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
+<div id="cowsEmojis" class="emoji-row"></div>
+</div>
 </div>
 
 <button onclick="add()">➕ Добавить</button>
@@ -288,6 +297,9 @@ function recalc() {
     updateSolution();
     renderAlphabet();
     renderHistory();
+    if (!document.getElementById("wordsList").classList.contains("hidden")) {
+        updateWordsList();
+    }
 }
 
 // ------------------- ОТРИСОВКА -------------------
@@ -430,6 +442,28 @@ function renderHistory() {
     }
 }
 
+function updateEmojis() {
+    const maxLen = length || 10;
+    for (let type of ["bulls", "cows"]) {
+        const input = document.getElementById(type);
+        const container = document.getElementById(type + "Emojis");
+        const val = parseInt(input.value) || 0;
+        const emoji = type === "bulls" ? "🐂" : "🐄";
+
+        let html = "";
+        for (let i = 1; i <= maxLen; i++) {
+            const active = i <= val;
+            html += `<span class="emoji ${active ? 'active' : ''}" onclick="setEmoji('${type}', ${i})">${emoji}</span>`;
+        }
+        container.innerHTML = html;
+    }
+}
+
+window.setEmoji = function(type, val) {
+    document.getElementById(type).value = val;
+    updateEmojis();
+};
+
 // ------------------- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ -------------------
 window.start = function() {
     const val = parseInt(lenInput.value);
@@ -449,6 +483,7 @@ window.start = function() {
     startDiv.classList.add("hidden");
     gameDiv.classList.remove("hidden");
     buildSolution();
+    updateEmojis();
     recalc();
 };
 
@@ -476,6 +511,7 @@ window.add = function() {
     wordInput.value = "";
     bullsInput.value = "";
     cowsInput.value = "";
+    updateEmojis();
     recalc();
 };
 
@@ -526,6 +562,11 @@ window.toggleWords = function() {
         return;
     }
 
+    updateWordsList();
+};
+
+function updateWordsList() {
+    const wordsListDiv = document.getElementById("wordsList");
     let candidates = dictionary.filter(word => wordMatches(word));
 
     if (candidates.length === 0) {
@@ -535,7 +576,7 @@ window.toggleWords = function() {
 
     wordsListDiv.innerHTML = `<b>Подходящие слова (${candidates.length}):</b><br>` + candidates.join(", ");
     wordsListDiv.classList.remove("hidden");
-};
+}
 
 // ------------------- ЗАГРУЗКА СЛОВАРЯ -------------------
 async function loadDictionary() {
