@@ -43,9 +43,12 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div class="container">
 <h2>🐂 Табун 🐂</h2>
 <div id="start">
-<div>
-<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()">
-<div id="lenEmojis" class="emoji-row"></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+<label style="font-weight:bold;">Длина слова:</label>
+<div style="display:flex;flex-direction:column;align-items:center;">
+<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()" style="width:80px;text-align:center;">
+<div id="lenEmojis" class="emoji-row" style="width:80px;"></div>
+</div>
 </div>
 <button onclick="start()">Старт</button>
 <div id="loadStatus" class="loading">📚 Загрузка словаря...</div>
@@ -84,7 +87,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 // ------------------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ -------------------
 const alphabet = "абвгдеёжзийклмнопрстуфхцчшщьыъэюя".split("");
 let dictionary = [];
-let dictionaryMaxLen = 20;
+let dictionaryMaxLen = 30;
 let length = 0;
 let attempts = [];            // { w, b, c }
 let usedHints = [];
@@ -450,7 +453,7 @@ function renderHistory() {
 }
 
 function updateLenEmojis() {
-    const maxLen = dictionaryMaxLen || 20;
+    const maxLen = dictionaryMaxLen || 30;
     const input = document.getElementById("len");
     const container = document.getElementById("lenEmojis");
     const val = parseInt(input.value) || 0;
