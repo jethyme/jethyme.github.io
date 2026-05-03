@@ -33,7 +33,7 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .emoji-row{display:flex;gap:2px;margin-top:4px;justify-content:center;flex-wrap:wrap;max-width:100%;}
 .emoji{cursor:pointer;opacity:0.5;transition:opacity 0.2s;font-size:18px;user-select:none;}
 .emoji.active{opacity:1;}
-.word-row{display:flex;gap:6px;align-items:center;}
+.word-row{display:flex;gap:6px;align-items:center;margin-top:0;}
 .word-row input{flex:1;}
 .word-row button{white-space:nowrap;}
 </style>
@@ -57,11 +57,11 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 
 <div class="row">
 <div style="flex:1">
-<input id="bulls" type="number" placeholder="🐂" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
+<input id="bulls" type="number" placeholder="🐂" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
 <div id="bullsEmojis" class="emoji-row"></div>
 </div>
 <div style="flex:1">
-<input id="cows" type="number" placeholder="🐄" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
+<input id="cows" type="number" placeholder="🐄" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
 <div id="cowsEmojis" class="emoji-row"></div>
 </div>
 </div>
@@ -593,7 +593,7 @@ async function loadDictionary() {
         const text = await response.text();
         dictionary = text.split("\n")
             .map(line => line.trim().toLowerCase())
-            .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3 && word.length <= 12);
+            .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3);
         loadStatusSpan.innerText = `✅ Загружено ${dictionary.length} слов`;
     } catch (err) {
         console.error(err);
