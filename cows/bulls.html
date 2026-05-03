@@ -43,9 +43,9 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div class="container">
 <h2>🐂 Табун 🐂</h2>
 <div id="start">
-<div style="display:flex;gap:6px;align-items:center;">
+<div>
 <input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()">
-<div id="lenEmojis" class="emoji-row" style="margin-top:0;"></div>
+<div id="lenEmojis" class="emoji-row"></div>
 </div>
 <button onclick="start()">Старт</button>
 <div id="loadStatus" class="loading">📚 Загрузка словаря...</div>
@@ -620,6 +620,7 @@ async function loadDictionary() {
             .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3);
         dictionaryMaxLen = dictionary.reduce((max, w) => Math.max(max, w.length), 3);
         loadStatusSpan.innerText = `✅ Загружено ${dictionary.length} слов`;
+        updateLenEmojis();
     } catch (err) {
         console.error(err);
         loadStatusSpan.innerText = "❌ Ошибка загрузки словаря. Подсказка будет недоступна.";
