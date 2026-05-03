@@ -116,7 +116,10 @@ input, select {
     <button onclick="showCustomInput()">✍ Ввести своё слово</button>
     <div class="input-group">
         <label>📊 Попытки:</label>
-        <input type="number" id="attemptInput" placeholder="∞ (неограниченно)" value="" step="1" min="1" style="width: 200px;">
+        <div style="display:flex;flex-direction:column;align-items:center;">
+            <input type="number" id="attemptInput" placeholder="∞ (неограниченно)" value="" step="1" min="1" style="width:250px;text-align:center;" oninput="updateAttemptEmojis()">
+            <div id="attemptEmojis" class="emoji-row" style="width:250px;"></div>
+        </div>
     </div>
     <div id="dictLoader" class="loading-indicator">📚 Загрузка словарей...</div>
 </div>
@@ -181,6 +184,30 @@ window.setLenEmoji = function(val) {
     document.getElementById("wordLengthInput").value = val || '';
     updateLenEmojis();
 };
+
+function updateAttemptEmojis() {
+    const input = document.getElementById("attemptInput");
+    const container = document.getElementById("attemptEmojis");
+    const val = parseInt(input.value) || 0;
+    const maxEmojis = 10; // show up to 10 emojis
+
+    let html = "";
+    if (val === 0) {
+        html = `<span class="emoji active" onclick="setAttemptEmoji(0)">♾️</span>`;
+    } else {
+        for (let i = 1; i <= maxEmojis; i++) {
+            const active = i <= val;
+            html += `<span class="emoji ${active ? 'active' : ''}" onclick="setAttemptEmoji(${i})">🐄</span>`;
+        }
+    }
+    container.innerHTML = html;
+}
+
+window.setAttemptEmoji = function(val) {
+    document.getElementById("attemptInput").value = val || '';
+    updateAttemptEmojis();
+};
+
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
@@ -323,6 +350,7 @@ async function loadDictionaries() {
         dictionariesLoaded = true;
         document.getElementById("dictLoader").innerHTML = "✅ Словари загружены";
         updateLenEmojis();
+        updateAttemptEmojis();
         setTimeout(() => {
             const loader = document.getElementById("dictLoader");
             if(loader) loader.style.opacity = "0.6";
