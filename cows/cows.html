@@ -101,6 +101,9 @@ input, select {
 .loading-indicator { font-size: 12px; color: #ccc; margin-top: 5px; }
 .input-group { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
 .input-group label { font-weight: bold; }
+.emoji-row{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;max-width:100%;margin-top:4px;}
+.emoji{cursor:pointer;opacity:0.5;transition:opacity 0.2s;font-size:18px;user-select:none;}
+.emoji.active{opacity:1;}
 </style>
 </head>
 <body>
@@ -121,7 +124,10 @@ input, select {
 <div id="randomOptions" class="hidden">
     <div class="input-group">
         <label>🔤 Длина слова:</label>
-        <input type="number" id="wordLengthInput" min="1" max="20" value="5" step="1" style="width: 80px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" id="wordLengthInput" min="1" max="20" value="5" step="1" style="width: 80px;" oninput="updateLenEmojis()">
+            <div id="lenEmojis" class="emoji-row" style="margin-top:0;"></div>
+        </div>
     </div>
     <button onclick="startRandomGame()">Начать игру</button>
     <div id="randomError" class="error hidden"></div>
@@ -154,7 +160,27 @@ input, select {
 
 <script>
 let dictionary = [];
+let dictionaryMaxLen = 20;
 let singularWords = [];
+
+function updateLenEmojis() {
+    const maxLen = dictionaryMaxLen || 20;
+    const input = document.getElementById("wordLengthInput");
+    const container = document.getElementById("lenEmojis");
+    const val = parseInt(input.value) || 0;
+
+    let html = "";
+    for (let i = 1; i <= maxLen; i++) {
+        const active = i <= val;
+        html += `<span class="emoji ${active ? 'active' : ''}" onclick="setLenEmoji(${i})">🐂</span>`;
+    }
+    container.innerHTML = html;
+}
+
+window.setLenEmoji = function(val) {
+    document.getElementById("wordLengthInput").value = val;
+    updateLenEmojis();
+};
 let secretWord = "";
 let wordLength = 0;
 let gameOver = false;
@@ -293,8 +319,10 @@ async function loadDictionaries() {
         dictionary = (await r1.text()).split("\n").map(w=>w.trim().toLowerCase()).filter(Boolean);
         const r2 = await fetch("singular.txt");
         singularWords = (await r2.text()).split("\n").map(w=>w.trim().toLowerCase()).filter(Boolean);
+        dictionaryMaxLen = dictionary.reduce((max, w) => Math.max(max, w.length), 3);
         dictionariesLoaded = true;
         document.getElementById("dictLoader").innerHTML = "✅ Словари загружены";
+        updateLenEmojis();
         setTimeout(() => {
             const loader = document.getElementById("dictLoader");
             if(loader) loader.style.opacity = "0.6";
