@@ -458,7 +458,7 @@ function updateLenEmojis() {
     const container = document.getElementById("lenEmojis");
     const val = parseInt(input.value) || 0;
 
-    let html = `<span class="emoji ${val === 0 ? 'active' : ''}" onclick="setLenEmoji(0)">❌</span>`;
+    let html = "";
     for (let i = 1; i <= maxLen; i++) {
         const active = i <= val;
         html += `<span class="emoji ${active ? 'active' : ''}" onclick="setLenEmoji(${i})">🐂</span>`;
