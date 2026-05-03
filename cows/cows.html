@@ -125,8 +125,8 @@ input, select {
     <div class="input-group" style="flex-direction:column;gap:6px;">
         <label style="font-weight:bold;">🔤 Длина слова:</label>
         <div style="display:flex;flex-direction:column;align-items:center;">
-            <input type="number" id="wordLengthInput" min="1" value="5" step="1" style="width:150px;text-align:center;" oninput="updateLenEmojis()">
-            <div id="lenEmojis" class="emoji-row" style="width:150px;"></div>
+            <input type="number" id="wordLengthInput" min="1" value="5" step="1" style="width:250px;text-align:center;" oninput="updateLenEmojis()">
+            <div id="lenEmojis" class="emoji-row" style="width:250px;"></div>
         </div>
     </div>
     <button onclick="startRandomGame()">Начать игру</button>
@@ -169,7 +169,7 @@ function updateLenEmojis() {
     const container = document.getElementById("lenEmojis");
     const val = parseInt(input.value) || 0;
 
-    let html = "";
+    let html = `<span class="emoji ${val === 0 ? 'active' : ''}" onclick="setLenEmoji(0)">❌</span>`;
     for (let i = 1; i <= maxLen; i++) {
         const active = i <= val;
         html += `<span class="emoji ${active ? 'active' : ''}" onclick="setLenEmoji(${i})">🐂</span>`;
@@ -178,7 +178,7 @@ function updateLenEmojis() {
 }
 
 window.setLenEmoji = function(val) {
-    document.getElementById("wordLengthInput").value = val;
+    document.getElementById("wordLengthInput").value = val || '';
     updateLenEmojis();
 };
 let secretWord = "";

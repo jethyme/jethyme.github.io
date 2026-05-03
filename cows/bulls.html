@@ -46,8 +46,8 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
 <label style="font-weight:bold;">Длина слова:</label>
 <div style="display:flex;flex-direction:column;align-items:center;">
-<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()" style="width:150px;text-align:center;">
-<div id="lenEmojis" class="emoji-row" style="width:150px;"></div>
+<input id="len" type="number" placeholder="Длина слова" oninput="updateLenEmojis()" style="width:250px;text-align:center;">
+<div id="lenEmojis" class="emoji-row" style="width:250px;"></div>
 </div>
 </div>
 <button onclick="start()">Старт</button>
@@ -65,11 +65,11 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div class="row">
 <div style="flex:1">
 <input id="bulls" type="number" placeholder="🐂" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
-<div id="bullsEmojis" class="emoji-row"></div>
+<div id="bullsEmojis" class="emoji-row" style="width:100%;"></div>
 </div>
 <div style="flex:1">
 <input id="cows" type="number" placeholder="🐄" style="width:100%;box-sizing:border-box;" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
-<div id="cowsEmojis" class="emoji-row"></div>
+<div id="cowsEmojis" class="emoji-row" style="width:100%;"></div>
 </div>
 </div>
 <button onclick="hint()">💡 Подсказка</button>
@@ -458,7 +458,7 @@ function updateLenEmojis() {
     const container = document.getElementById("lenEmojis");
     const val = parseInt(input.value) || 0;
 
-    let html = "";
+    let html = `<span class="emoji ${val === 0 ? 'active' : ''}" onclick="setLenEmoji(0)">❌</span>`;
     for (let i = 1; i <= maxLen; i++) {
         const active = i <= val;
         html += `<span class="emoji ${active ? 'active' : ''}" onclick="setLenEmoji(${i})">🐂</span>`;
@@ -467,7 +467,7 @@ function updateLenEmojis() {
 }
 
 window.setLenEmoji = function(val) {
-    document.getElementById("len").value = val;
+    document.getElementById("len").value = val || '';
     updateLenEmojis();
 };
 
@@ -479,7 +479,7 @@ function updateEmojis() {
         const val = parseInt(input.value) || 0;
         const emoji = type === "bulls" ? "🐂" : "🐄";
 
-        let html = "";
+        let html = `<span class="emoji ${val === 0 ? 'active' : ''}" onclick="setEmoji('${type}', 0)">❌</span>`;
         for (let i = 1; i <= maxLen; i++) {
             const active = i <= val;
             html += `<span class="emoji ${active ? 'active' : ''}" onclick="setEmoji('${type}', ${i})">${emoji}</span>`;
@@ -489,7 +489,7 @@ function updateEmojis() {
 }
 
 window.setEmoji = function(type, val) {
-    document.getElementById(type).value = val;
+    document.getElementById(type).value = val || '';
     updateEmojis();
 };
 
@@ -620,7 +620,7 @@ async function loadDictionary() {
         const text = await response.text();
         dictionary = text.split("\n")
             .map(line => line.trim().toLowerCase())
-            .filter(word => /^[а-яё]+$/.test(word) && word.length >= 3);
+            .filter(word => /^[а-яё]+$/.test(word) && word.length >= 1);
         dictionaryMaxLen = dictionary.reduce((max, w) => Math.max(max, w.length), 3);
         loadStatusSpan.innerText = `✅ Загружено ${dictionary.length} слов`;
         updateLenEmojis();
