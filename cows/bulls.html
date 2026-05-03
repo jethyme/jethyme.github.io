@@ -30,9 +30,12 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 .error{ color:#ff6b6b; font-size:14px; margin-top:5px; text-align:center; }
 .loading{ color:#aaa; font-size:14px; margin-top:5px;}
 @media(max-width:600px){ .row{flex-direction:column} button{width:100%} }
-.emoji-row{display:flex;gap:2px;margin-top:4px;justify-content:center;}
+.emoji-row{display:flex;gap:2px;margin-top:4px;justify-content:center;flex-wrap:wrap;max-width:100%;}
 .emoji{cursor:pointer;opacity:0.5;transition:opacity 0.2s;font-size:18px;user-select:none;}
 .emoji.active{opacity:1;}
+.word-row{display:flex;gap:6px;align-items:center;}
+.word-row input{flex:1;}
+.word-row button{white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -47,22 +50,21 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 <div id="game" class="hidden">
 <div id="solution" class="solution"></div>
 
-<div class="row">
+<div class="row word-row">
 <input id="word" placeholder="Слово для проверки" onkeydown="if(event.key==='Enter') add()">
+<button onclick="add()">➕ Добавить</button>
 </div>
 
 <div class="row">
-<div>
+<div style="flex:1">
 <input id="bulls" type="number" placeholder="🐂" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
 <div id="bullsEmojis" class="emoji-row"></div>
 </div>
-<div>
+<div style="flex:1">
 <input id="cows" type="number" placeholder="🐄" onkeydown="if(event.key==='Enter') add()" oninput="updateEmojis()">
 <div id="cowsEmojis" class="emoji-row"></div>
 </div>
 </div>
-
-<button onclick="add()">➕ Добавить</button>
 <button onclick="hint()">💡 Подсказка</button>
 <button onclick="toggleWords()">📋 Слова</button>
 <button onclick="restart()">🔄 Новая игра</button>
@@ -499,6 +501,10 @@ window.add = function() {
     }
     if (!/^[а-яё]+$/.test(w)) {
         showError("Используйте только русские буквы");
+        return;
+    }
+    if (b < 0 || c < 0) {
+        showError("Количество быков и коров не может быть отрицательным");
         return;
     }
     if (b + c > length) {
