@@ -55,9 +55,11 @@ input{ padding:10px; border-radius:10px; border:none; text-align:center;}
 
 <button onclick="add()">➕ Добавить</button>
 <button onclick="hint()">💡 Подсказка</button>
+<button onclick="toggleWords()">📋 Слова</button>
 <button onclick="restart()">🔄 Новая игра</button>
 
 <div id="error" class="error hidden"></div>
+<div id="wordsList" class="hidden" style="margin-top:10px; font-size:14px; max-height:200px; overflow-y:auto; background:#222; padding:10px; border-radius:10px; text-align:left;"></div>
 <div id="alphabet" class="alphabet"></div>
 <div id="history"></div>
 </div>
@@ -508,6 +510,31 @@ window.hint = function() {
 
 window.restart = function() {
     location.reload();
+};
+
+window.toggleWords = function() {
+    const wordsListDiv = document.getElementById("wordsList");
+    if (!wordsListDiv.classList.contains("hidden")) {
+        wordsListDiv.classList.add("hidden");
+        wordsListDiv.innerHTML = "";
+        return;
+    }
+
+    clearError();
+    if (!dictionary.length) {
+        showError("Словарь ещё не загружен");
+        return;
+    }
+
+    let candidates = dictionary.filter(word => wordMatches(word));
+
+    if (candidates.length === 0) {
+        showError("Нет подходящих слов в словаре");
+        return;
+    }
+
+    wordsListDiv.innerHTML = `<b>Подходящие слова (${candidates.length}):</b><br>` + candidates.join(", ");
+    wordsListDiv.classList.remove("hidden");
 };
 
 // ------------------- ЗАГРУЗКА СЛОВАРЯ -------------------
