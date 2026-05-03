@@ -137,7 +137,7 @@ input, select {
 </div>
 
 <div id="customWordDiv" class="hidden">
-    <input type="text" id="customWordInput" placeholder="Введите слово">
+    <input type="text" id="customWordInput" placeholder="Введите слово" style="width:250px;text-align:center;">
     <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
         <button onclick="startCustomGame()">▶ Начать игру</button>
         <button onclick="copyShareLink()" id="copyLinkBtn" style="background: #2c7a4d;">📋 Скопировать ссылку</button>
@@ -148,7 +148,7 @@ input, select {
 <p id="info"></p>
 
 <div id="gameArea" class="hidden">
-    <input type="text" id="guessInput" placeholder="Введите слово">
+    <input type="text" id="guessInput" placeholder="Введите слово" style="width:250px;text-align:center;">
     <div id="errorMessage" class="error hidden"></div>
     <br>
     <button onclick="checkGuess()" id="checkBtn">Проверить</button>
