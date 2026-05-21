@@ -642,7 +642,7 @@
             <button class="size-btn" onclick="changeSize(-1)">−</button>
             <span class="size-value" id="sizeDisplay">4</span>
             <span class="size-sep">×</span>
-            <span class="size-value">4</span>
+            <span class="size-value" id="sizeDisplay2">4</span>
             <button class="size-btn" onclick="changeSize(1)">+</button>
         </div>
         <div class="mode-control">
@@ -939,6 +939,7 @@
         function changeSize(delta) {
             size = Math.max(2, Math.min(8, size + delta));
             document.getElementById('sizeDisplay').textContent = size;
+            document.getElementById('sizeDisplay2').textContent = size;
             initGame();
         }
 
