@@ -19,11 +19,11 @@
             align-items: center;
             justify-content: center;
             background: #051024;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
+            padding: 16px;
         }
 
-        /* Ocean background */
         .ocean-bg {
             position: fixed;
             top: 0; left: 0;
@@ -36,7 +36,6 @@
                 linear-gradient(180deg, #051024 0%, #0a1a3a 40%, #0d2247 70%, #0a1a3a 100%);
         }
 
-        /* Light rays */
         .light-rays {
             position: fixed;
             top: -20%;
@@ -56,8 +55,7 @@
             background: linear-gradient(180deg,
                 rgba(100, 200, 255, 0.15) 0%,
                 rgba(100, 200, 255, 0.05) 50%,
-                transparent 100%
-            );
+                transparent 100%);
             transform-origin: top center;
             animation: raySway 8s ease-in-out infinite;
         }
@@ -74,7 +72,6 @@
             50% { transform: rotate(3deg); opacity: 1; }
         }
 
-        /* Bubbles */
         .bubbles {
             position: fixed;
             top: 0; left: 0;
@@ -125,10 +122,9 @@
             }
         }
 
-        /* Header */
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             position: relative;
             z-index: 1;
         }
@@ -152,18 +148,171 @@
 
         .subtitle {
             color: rgba(255, 255, 255, 0.5);
-            font-size: 1rem;
-            margin-top: 6px;
+            font-size: 0.9rem;
+            margin-top: 4px;
             font-weight: 300;
             letter-spacing: 4px;
             text-transform: uppercase;
         }
 
-        /* Stats */
+        .settings {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            z-index: 1;
+            position: relative;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 10px 18px;
+        }
+
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .size-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 4px;
+        }
+
+        .size-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid rgba(100, 216, 255, 0.25);
+            border-radius: 8px;
+            background: rgba(100, 216, 255, 0.08);
+            color: #64d8ff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .size-btn:hover {
+            background: rgba(100, 216, 255, 0.2);
+            border-color: rgba(100, 216, 255, 0.5);
+        }
+
+        .size-btn:active {
+            transform: scale(0.9);
+        }
+
+        .size-value {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .size-sep {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 1.1rem;
+            margin: 0 2px;
+        }
+
+        .mode-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mode-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-track {
+            width: 44px;
+            height: 24px;
+            background: rgba(100, 216, 255, 0.15);
+            border-radius: 12px;
+            position: relative;
+            transition: background 0.3s;
+            border: 1px solid rgba(100, 216, 255, 0.2);
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: #64d8ff;
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px rgba(100, 216, 255, 0.3);
+        }
+
+        .toggle-switch input:checked + .toggle-track {
+            background: rgba(251, 71, 71, 0.2);
+            border-color: rgba(251, 71, 71, 0.3);
+        }
+
+        .toggle-switch input:checked + .toggle-track::after {
+            transform: translateX(20px);
+            background: #fb4747;
+            box-shadow: 0 0 8px rgba(251, 71, 71, 0.4);
+        }
+
+        .toggle-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            transition: color 0.3s;
+            white-space: nowrap;
+        }
+
+        .toggle-text.active {
+            color: #64d8ff;
+        }
+
+        .toggle-switch input:checked ~ .toggle-text.hard {
+            color: #fb4747;
+        }
+
+        .toggle-switch input:checked ~ .toggle-text.easy {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .toggle-switch .toggle-text.hard {
+            order: 3;
+        }
+
         .stats {
             display: flex;
             gap: 30px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             z-index: 1;
             position: relative;
         }
@@ -187,20 +336,15 @@
             margin-top: 2px;
         }
 
-        /* Game grid */
         .grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: var(--gap, 10px);
             perspective: 1000px;
             z-index: 1;
             position: relative;
-            max-width: 480px;
             width: 100%;
-            padding: 0 16px;
         }
 
-        /* Card */
         .card {
             aspect-ratio: 1;
             cursor: pointer;
@@ -225,11 +369,21 @@
             border-color: rgba(100, 216, 255, 0.6);
         }
 
+        .card.flipping-back {
+            animation: flipBackShake 0.4s ease;
+        }
+
+        @keyframes flipBackShake {
+            0%, 100% { transform: rotateY(180deg); }
+            30% { transform: rotateY(180deg) scale(1.06); }
+            60% { transform: rotateY(180deg) scale(0.95); }
+        }
+
         .card-face {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            border-radius: 16px;
+            border-radius: 12px;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
             display: flex;
@@ -271,15 +425,15 @@
         .card-back-pattern {
             position: relative;
             z-index: 1;
-            width: 60%;
-            height: 60%;
-            border: 2px solid rgba(100, 216, 255, 0.15);
+            width: 55%;
+            height: 55%;
+            border: 2px solid rgba(100, 216, 255, 0.12);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
-            opacity: 0.4;
+            font-size: 1.5rem;
+            opacity: 0.35;
         }
 
         .card-front {
@@ -292,10 +446,9 @@
         }
 
         .card-front svg {
-            width: 75%;
-            height: 75%;
-            filter: drop-shadow(0 0 8px rgba(100, 216, 255, 0.2));
-            transition: transform 0.3s;
+            width: 70%;
+            height: 70%;
+            filter: drop-shadow(0 0 6px rgba(100, 216, 255, 0.15));
         }
 
         .card.flipped .card-front svg,
@@ -308,7 +461,6 @@
             50% { transform: translateY(-4px) rotate(2deg); }
         }
 
-        /* Card hover */
         .card:not(.flipped):not(.matched):hover {
             transform: scale(1.05);
         }
@@ -320,7 +472,28 @@
                 inset 0 0 30px rgba(0, 0, 0, 0.2);
         }
 
-        /* Victory overlay */
+        .logo-card {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            background: linear-gradient(145deg, rgba(251, 191, 36, 0.08), rgba(167, 139, 250, 0.08));
+            border: 2px solid rgba(251, 191, 36, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.4rem;
+            box-shadow:
+                0 0 20px rgba(251, 191, 36, 0.1),
+                inset 0 0 20px rgba(0, 0, 0, 0.2);
+            animation: logoPulse 3s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { border-color: rgba(251, 191, 36, 0.2); box-shadow: 0 0 20px rgba(251, 191, 36, 0.1); }
+            50% { border-color: rgba(251, 191, 36, 0.4); box-shadow: 0 0 30px rgba(251, 191, 36, 0.2); }
+        }
+
         .victory {
             position: fixed;
             top: 0; left: 0;
@@ -381,6 +554,7 @@
             color: rgba(255, 255, 255, 0.7);
             margin: 15px 0 25px;
             font-size: 1.1rem;
+            line-height: 1.6;
         }
 
         .btn-restart {
@@ -402,7 +576,6 @@
             box-shadow: 0 0 30px rgba(100, 216, 255, 0.4);
         }
 
-        /* Confetti bubbles for victory */
         .confetti-bubble {
             position: fixed;
             border-radius: 50%;
@@ -425,16 +598,22 @@
             }
         }
 
-        /* Responsive */
-        @media (max-width: 500px) {
-            .title { font-size: 1.8rem; }
-            .grid { gap: 8px; max-width: 340px; }
-            .stat-value { font-size: 1.4rem; }
-            .victory-title { font-size: 2rem; }
+        .reset-flash {
+            animation: resetFlash 0.6s ease;
         }
 
-        @media (max-width: 380px) {
-            .grid { max-width: 290px; gap: 6px; }
+        @keyframes resetFlash {
+            0% { transform: rotateY(180deg) scale(1); }
+            30% { transform: rotateY(180deg) scale(0.9); opacity: 0.5; }
+            100% { transform: rotateY(0) scale(1); opacity: 0; }
+        }
+
+        @media (max-width: 500px) {
+            .title { font-size: 1.6rem; }
+            .settings { padding: 8px 12px; gap: 12px; }
+            .stat-value { font-size: 1.4rem; }
+            .victory-title { font-size: 2rem; }
+            .logo-card { font-size: 1.8rem; }
         }
     </style>
 </head>
@@ -454,8 +633,28 @@
 
     <header class="header">
         <h1 class="title">🐡 Memory: Кузовки</h1>
-        <p class="subtitle">Найди всех рыбок</p>
+        <p class="subtitle" id="subtitle">Найди всех рыбок</p>
     </header>
+
+    <div class="settings">
+        <div class="size-control">
+            <span class="size-label">Размер</span>
+            <button class="size-btn" onclick="changeSize('cols', -1)">−</button>
+            <span class="size-value" id="colsDisplay">4</span>
+            <span class="size-sep">×</span>
+            <span class="size-value" id="rowsDisplay">4</span>
+            <button class="size-btn" onclick="changeSize('cols', 1)">+</button>
+        </div>
+        <div class="mode-control">
+            <span class="mode-label">Режим</span>
+            <label class="toggle-switch">
+                <span class="toggle-text easy active" id="easyLabel">Простой</span>
+                <input type="checkbox" id="modeToggle" onchange="toggleMode()">
+                <span class="toggle-track"></span>
+                <span class="toggle-text hard" id="hardLabel">Сложный</span>
+            </label>
+        </div>
+    </div>
 
     <div class="stats">
         <div class="stat">
@@ -463,7 +662,7 @@
             <div class="stat-label">Ходы</div>
         </div>
         <div class="stat">
-            <div class="stat-value" id="pairs">0/8</div>
+            <div class="stat-value" id="pairs">0</div>
             <div class="stat-label">Пары</div>
         </div>
     </div>
@@ -474,22 +673,21 @@
         <div class="victory-content">
             <span class="victory-fish">🐡</span>
             <h2 class="victory-title">Победа!</h2>
-            <p class="victory-stats" id="victoryStats">Все кузовки собраны за 0 ходов</p>
+            <p class="victory-stats" id="victoryStats"></p>
             <button class="btn-restart" onclick="restart()">Сыграть ещё</button>
         </div>
     </div>
 
     <script>
-        const FISH = [
-            { id: 0, name: 'yellow', body: '#fbbf24', spots: '#f59e0b', fin: '#fcd34d', eye: '#1e293b' },
-            { id: 1, name: 'blue', body: '#60a5fa', spots: '#3b82f6', fin: '#93c5fd', eye: '#1e293b' },
-            { id: 2, name: 'coral', body: '#fb7185', spots: '#f43f5e', fin: '#fda4af', eye: '#1e293b' },
-            { id: 3, name: 'green', body: '#34d399', spots: '#10b981', fin: '#6ee7b7', eye: '#1e293b' },
-            { id: 4, name: 'purple', body: '#a78bfa', spots: '#8b5cf6', fin: '#c4b5fd', eye: '#1e293b' },
-            { id: 5, name: 'cyan', body: '#22d3ee', spots: '#06b6d4', fin: '#67e8f9', eye: '#1e293b' },
-            { id: 6, name: 'orange', body: '#fb923c', spots: '#f97316', fin: '#fdba74', eye: '#1e293b' },
-            { id: 7, name: 'pink', body: '#f472b6', spots: '#ec4899', fin: '#f9a8d4', eye: '#1e293b' },
-        ];
+        // ===== FISH GENERATOR =====
+        function generateFish(index) {
+            const hue = (index * 137.508) % 360;
+            const body = `hsl(${hue}, 72%, 55%)`;
+            const spots = `hsl(${hue}, 60%, 38%)`;
+            const fin = `hsl(${hue}, 85%, 70%)`;
+            const accent = `hsl(${hue}, 65%, 30%)`;
+            return { id: index, body, spots, fin, eye: '#1e293b', accent };
+        }
 
         function fishSVG(f) {
             return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -522,13 +720,21 @@
             </svg>`;
         }
 
+        // ===== STATE =====
+        let rows = 4;
+        let cols = 4;
+        let hardMode = false;
         let cards = [];
         let flippedCards = [];
         let matchedPairs = 0;
+        let totalPairs = 0;
         let moves = 0;
-        let isChecking = false;
+        let hasLogo = false;
+        let logoIndex = -1;
         let lockBoard = false;
+        let fishList = [];
 
+        // ===== HELPERS =====
         function shuffle(a) {
             for (let i = a.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -537,47 +743,85 @@
             return a;
         }
 
+        function declOfNum(n, words) {
+            n = Math.abs(n) % 100;
+            if (n > 10 && n < 20) return words[2];
+            n = n % 10;
+            if (n === 1) return words[0];
+            if (n > 1 && n < 5) return words[1];
+            return words[2];
+        }
+
+        // ===== INIT =====
         function initGame() {
+            const total = rows * cols;
+            hasLogo = total % 2 === 1;
+            const fishCount = hasLogo ? (total - 1) / 2 : total / 2;
+            totalPairs = fishCount;
+            logoIndex = hasLogo ? Math.floor(rows / 2) * cols + Math.floor(cols / 2) : -1;
+
+            fishList = Array.from({ length: fishCount }, (_, i) => generateFish(i));
+
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
+            grid.style.setProperty('--cols', cols);
+            grid.style.setProperty('--gap', cols > 6 ? '6px' : cols > 4 ? '8px' : '10px');
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            const maxCardSize = cols > 6 ? 72 : cols > 4 ? 82 : 92;
+            grid.style.maxWidth = `min(96vw, ${cols * maxCardSize + (cols - 1) * (cols > 6 ? 6 : cols > 4 ? 8 : 10)}px)`;
+
             flippedCards = [];
             matchedPairs = 0;
             moves = 0;
-            isChecking = false;
             lockBoard = false;
 
             document.getElementById('moves').textContent = '0';
-            document.getElementById('pairs').textContent = '0/8';
+            document.getElementById('pairs').textContent = `0/${totalPairs}`;
             document.getElementById('victory').classList.remove('show');
 
+            document.getElementById('subtitle').textContent =
+                `${cols}×${rows} · ${totalPairs} ${declOfNum(totalPairs, ['пара', 'пары', 'пар'])}${hasLogo ? ' · с логотипом' : ''}${hardMode ? ' · сложный' : ''}`;
+
             const deck = [];
-            FISH.forEach((f, idx) => {
-                deck.push({ fishIdx: idx, pairId: idx * 2, flipped: false, matched: false });
-                deck.push({ fishIdx: idx, pairId: idx * 2 + 1, flipped: false, matched: false });
+            fishList.forEach((f, i) => {
+                deck.push({ fishIdx: i });
+                deck.push({ fishIdx: i });
             });
             shuffle(deck);
 
-            cards = deck.map((card, i) => {
-                const el = document.createElement('div');
-                el.className = 'card';
-                el.dataset.index = i;
+            cards = [];
+            let cardIdx = 0;
+            for (let i = 0; i < total; i++) {
+                if (i === logoIndex) {
+                    const logo = document.createElement('div');
+                    logo.className = 'logo-card';
+                    logo.textContent = '🐡';
+                    grid.appendChild(logo);
+                } else {
+                    const data = deck[cardIdx++];
+                    const el = document.createElement('div');
+                    el.className = 'card';
+                    el.dataset.index = i;
 
-                el.innerHTML = `
-                    <div class="card-face card-back">
-                        <div class="card-back-pattern">🐡</div>
-                    </div>
-                    <div class="card-face card-front">
-                        ${fishSVG(FISH[card.fishIdx])}
-                    </div>
-                `;
+                    el.innerHTML = `
+                        <div class="card-face card-back">
+                            <div class="card-back-pattern">🐡</div>
+                        </div>
+                        <div class="card-face card-front">
+                            ${fishSVG(fishList[data.fishIdx])}
+                        </div>
+                    `;
 
-                el.addEventListener('click', () => flipCard(i));
-                grid.appendChild(el);
+                    el.addEventListener('click', () => flipCard(i));
+                    grid.appendChild(el);
 
-                return { ...card, el };
-            });
+                    cards.push({ ...data, flipped: false, matched: false, el });
+                }
+            }
         }
 
+        // ===== GAME LOGIC =====
         function flipCard(index) {
             if (lockBoard) return;
             const card = cards[index];
@@ -596,7 +840,6 @@
         }
 
         function checkMatch() {
-            isChecking = true;
             const [i1, i2] = flippedCards;
             const c1 = cards[i1];
             const c2 = cards[i2];
@@ -608,11 +851,10 @@
                     c1.el.classList.add('matched');
                     c2.el.classList.add('matched');
                     matchedPairs++;
-                    document.getElementById('pairs').textContent = `${matchedPairs}/8`;
+                    document.getElementById('pairs').textContent = `${matchedPairs}/${totalPairs}`;
                     flippedCards = [];
-                    isChecking = false;
 
-                    if (matchedPairs === 8) {
+                    if (matchedPairs === totalPairs) {
                         setTimeout(victory, 600);
                     }
                 }, 400);
@@ -624,27 +866,55 @@
                     c1.el.classList.remove('flipped');
                     c2.el.classList.remove('flipped');
                     flippedCards = [];
-                    isChecking = false;
-                    lockBoard = false;
-                }, 900);
+
+                    if (hardMode) {
+                        resetAllMatched();
+                    } else {
+                        lockBoard = false;
+                    }
+                }, 800);
             }
         }
 
-        function victory() {
-            const v = document.getElementById('victory');
-            document.getElementById('victoryStats').textContent =
-                `Все кузовки собраны за ${moves} ${declOfNum(moves, ['ход', 'хода', 'ходов'])}!`;
-            v.classList.add('show');
-            spawnConfetti();
+        function resetAllMatched() {
+            let anyReset = false;
+            cards.forEach(c => {
+                if (c.matched) {
+                    c.matched = false;
+                    c.el.classList.remove('matched');
+                    c.el.classList.remove('flipped');
+                    c.flipped = false;
+                    c.el.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    anyReset = true;
+                }
+            });
+
+            if (anyReset) {
+                cards.forEach(c => {
+                    if (!c.matched && !c.flipped) {
+                        c.el.classList.add('reset-flash');
+                        setTimeout(() => c.el.classList.remove('reset-flash'), 600);
+                    }
+                });
+
+                matchedPairs = 0;
+                document.getElementById('pairs').textContent = `0/${totalPairs}`;
+            }
+
+            setTimeout(() => {
+                cards.forEach(c => { c.el.style.transition = ''; });
+                lockBoard = false;
+            }, 100);
         }
 
-        function declOfNum(n, words) {
-            n = Math.abs(n) % 100;
-            if (n > 10 && n < 20) return words[2];
-            n = n % 10;
-            if (n === 1) return words[0];
-            if (n > 1 && n < 5) return words[1];
-            return words[2];
+        // ===== VICTORY =====
+        function victory() {
+            const v = document.getElementById('victory');
+            const modeText = hardMode ? 'сложном' : 'простом';
+            document.getElementById('victoryStats').innerHTML =
+                `Все кузовки собраны!<br>${cols}×${rows} · ${totalPairs} пар · ${moves} ${declOfNum(moves, ['ход', 'хода', 'ходов'])}<br>Режим: ${modeText}`;
+            v.classList.add('show');
+            spawnConfetti();
         }
 
         function spawnConfetti() {
@@ -666,11 +936,30 @@
             }
         }
 
+        // ===== CONTROLS =====
+        function changeSize(dim, delta) {
+            if (dim === 'cols') {
+                cols = Math.max(2, Math.min(8, cols + delta));
+            } else {
+                rows = Math.max(2, Math.min(8, rows + delta));
+            }
+            document.getElementById('colsDisplay').textContent = cols;
+            document.getElementById('rowsDisplay').textContent = rows;
+            initGame();
+        }
+
+        function toggleMode() {
+            hardMode = document.getElementById('modeToggle').checked;
+            document.getElementById('easyLabel').classList.toggle('active', !hardMode);
+            document.getElementById('hardLabel').classList.toggle('active', hardMode);
+            initGame();
+        }
+
         function restart() {
             initGame();
         }
 
-        // Spawn bubbles
+        // ===== BUBBLES =====
         (function spawnBubbles() {
             const c = document.getElementById('bubbles');
             for (let i = 0; i < 25; i++) {
