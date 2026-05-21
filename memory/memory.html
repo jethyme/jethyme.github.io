@@ -639,11 +639,11 @@
     <div class="settings">
         <div class="size-control">
             <span class="size-label">Размер</span>
-            <button class="size-btn" onclick="changeSize('cols', -1)">−</button>
-            <span class="size-value" id="colsDisplay">4</span>
+            <button class="size-btn" onclick="changeSize(-1)">−</button>
+            <span class="size-value" id="sizeDisplay">4</span>
             <span class="size-sep">×</span>
-            <span class="size-value" id="rowsDisplay">4</span>
-            <button class="size-btn" onclick="changeSize('cols', 1)">+</button>
+            <span class="size-value">4</span>
+            <button class="size-btn" onclick="changeSize(1)">+</button>
         </div>
         <div class="mode-control">
             <span class="mode-label">Режим</span>
@@ -721,8 +721,7 @@
         }
 
         // ===== STATE =====
-        let rows = 4;
-        let cols = 4;
+        let size = 4;
         let hardMode = false;
         let cards = [];
         let flippedCards = [];
@@ -754,22 +753,22 @@
 
         // ===== INIT =====
         function initGame() {
-            const total = rows * cols;
+            const total = size * size;
             hasLogo = total % 2 === 1;
             const fishCount = hasLogo ? (total - 1) / 2 : total / 2;
             totalPairs = fishCount;
-            logoIndex = hasLogo ? Math.floor(rows / 2) * cols + Math.floor(cols / 2) : -1;
+            logoIndex = hasLogo ? Math.floor(size / 2) * size + Math.floor(size / 2) : -1;
 
             fishList = Array.from({ length: fishCount }, (_, i) => generateFish(i));
 
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            grid.style.setProperty('--cols', cols);
-            grid.style.setProperty('--gap', cols > 6 ? '6px' : cols > 4 ? '8px' : '10px');
-            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            grid.style.setProperty('--cols', size);
+            grid.style.setProperty('--gap', size > 6 ? '6px' : size > 4 ? '8px' : '10px');
+            grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
 
-            const maxCardSize = cols > 6 ? 72 : cols > 4 ? 82 : 92;
-            grid.style.maxWidth = `min(96vw, ${cols * maxCardSize + (cols - 1) * (cols > 6 ? 6 : cols > 4 ? 8 : 10)}px)`;
+            const maxCardSize = size > 6 ? 72 : size > 4 ? 82 : 92;
+            grid.style.maxWidth = `min(96vw, ${size * maxCardSize + (size - 1) * (size > 6 ? 6 : size > 4 ? 8 : 10)}px)`;
 
             flippedCards = [];
             matchedPairs = 0;
@@ -781,7 +780,7 @@
             document.getElementById('victory').classList.remove('show');
 
             document.getElementById('subtitle').textContent =
-                `${cols}×${rows} · ${totalPairs} ${declOfNum(totalPairs, ['пара', 'пары', 'пар'])}${hasLogo ? ' · с логотипом' : ''}${hardMode ? ' · сложный' : ''}`;
+                `${size}×${size} · ${totalPairs} ${declOfNum(totalPairs, ['пара', 'пары', 'пар'])}${hasLogo ? ' · с логотипом' : ''}${hardMode ? ' · сложный' : ''}`;
 
             const deck = [];
             fishList.forEach((f, i) => {
@@ -912,7 +911,7 @@
             const v = document.getElementById('victory');
             const modeText = hardMode ? 'сложном' : 'простом';
             document.getElementById('victoryStats').innerHTML =
-                `Все кузовки собраны!<br>${cols}×${rows} · ${totalPairs} пар · ${moves} ${declOfNum(moves, ['ход', 'хода', 'ходов'])}<br>Режим: ${modeText}`;
+                `Все кузовки собраны!<br>${size}×${size} · ${totalPairs} пар · ${moves} ${declOfNum(moves, ['ход', 'хода', 'ходов'])}<br>Режим: ${modeText}`;
             v.classList.add('show');
             spawnConfetti();
         }
@@ -937,14 +936,9 @@
         }
 
         // ===== CONTROLS =====
-        function changeSize(dim, delta) {
-            if (dim === 'cols') {
-                cols = Math.max(2, Math.min(8, cols + delta));
-            } else {
-                rows = Math.max(2, Math.min(8, rows + delta));
-            }
-            document.getElementById('colsDisplay').textContent = cols;
-            document.getElementById('rowsDisplay').textContent = rows;
+        function changeSize(delta) {
+            size = Math.max(2, Math.min(8, size + delta));
+            document.getElementById('sizeDisplay').textContent = size;
             initGame();
         }
 
