@@ -6,10 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    await checkAuth();
     loadFilters();
-    await loadAssignees();
     renderFilterDropdowns();
     await loadTasks();
-    await loadTaskHistory();
 });

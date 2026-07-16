@@ -218,6 +218,17 @@ button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
     border-color: var(--accent);
 }
 
+.readonly-banner {
+    background: var(--warning);
+    color: #000;
+    text-align: center;
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
 .task-list {
     background: var(--surface);
     border-radius: 12px;
@@ -345,8 +356,6 @@ button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 .subtask-item.level-3 { border-left: 4px solid var(--success); }
 .task-row.drag-over, .subtask-item.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
 .task-row.dragging, .subtask-item.dragging { opacity: 0.5; }
-.task-row, .subtask-item { cursor: grab; }
-.task-row:active, .subtask-item:active { cursor: grabbing; }
 .task-row.drop-target, .subtask-item.drop-target { 
     outline: 3px solid var(--success); 
     outline-offset: -2px;
@@ -395,14 +404,14 @@ button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
     border-radius: 10px;
     margin-bottom: 10px;
     overflow: hidden;
-    cursor: grab;
+    cursor: default;
     border: 1px solid var(--border);
     transition: transform 0.15s, box-shadow 0.15s;
 }
 .kanban-card.no-color {
     background: var(--surface-2);
 }
-.kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 .kanban-card.dragging { opacity: 0.5; }
 .kanban-card-header {
     padding: 10px 12px;
@@ -450,7 +459,7 @@ button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
     margin-bottom: 6px;
     border-radius: 6px;
     font-size: 0.85em;
-    cursor: grab;
+    cursor: default;
     border-left: 3px solid;
 }
 .kanban-child.no-color {
