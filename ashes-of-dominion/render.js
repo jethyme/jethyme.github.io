@@ -202,8 +202,8 @@ function renderTaskRow(task) {
         <div class="task-row" id="task-${task.id}" style="${rowStyle}">
             <div class="expand-btn" onclick="toggleTask(${task.id})" style="${hasSubtasksFlag ? '' : 'visibility:hidden'}">${hasSubtasksFlag ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
             <div class="task-title">${task.title}</div>
-            <div><span class="priority-badge priority-' + (task.priority || 'medium') + '">' + PRIORITY_LABELS[task.priority || 'medium'] + '</span></div>
-            <div><span class="status-badge status-' + (task.status || 'queue') + '">' + STATUS_LABELS[task.status || 'queue'] + '</span></div>
+            <div><span class="priority-badge priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority || 'medium']}</span></div>
+            <div><span class="status-badge status-${task.status || 'queue'}">${STATUS_LABELS[task.status || 'queue']}</span></div>
             <div>${renderAssigneeCell(assigneeIds, task.id, null, false)}</div>
             <div class="task-actions"></div>
         </div>
@@ -235,8 +235,8 @@ function renderSubtaskTree(subtasks, taskId, level, baseColor) {
             <div class="subtask-item ${levelClass}" style="${rowStyle}">
                 <div class="expand-btn" onclick="toggleSubtask(${sub.id})">${hasChildren ? (isExpanded ? '&#9660;' : '&#9654;') : ''}</div>
                 <div class="task-title"><div class="task-title-main">${sub.title}</div></div>
-                <div><span class="priority-badge priority-' + (sub.priority || 'medium') + '">' + PRIORITY_LABELS[sub.priority || 'medium'] + '</span></div>
-                <div><span class="status-badge status-' + (sub.status || 'queue') + '">' + STATUS_LABELS[sub.status || 'queue'] + '</span></div>
+                <div><span class="priority-badge priority-${sub.priority || 'medium'}">${PRIORITY_LABELS[sub.priority || 'medium']}</span></div>
+                <div><span class="status-badge status-${sub.status || 'queue'}">${STATUS_LABELS[sub.status || 'queue']}</span></div>
                 <div>${renderAssigneeCell(subAssignees, taskId, sub.id, false)}</div>
                 <div class="task-actions"></div>
             </div>
