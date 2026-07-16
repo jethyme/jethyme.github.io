@@ -19,4 +19,7 @@ if (!historyRes.ok) { console.error('History error:', historyRes.status, await h
 const taskHistory = await historyRes.json();
 
 const db = { assignees, tasks, taskHistory };
-console.log(JSON.stringify(db, null, 2));
+
+import { writeFileSync } from 'fs';
+writeFileSync('ashes-of-dominion/data.json', JSON.stringify(db, null, 2), 'utf-8');
+console.log('Written ' + (assignees.length + tasks.length + taskHistory.length) + ' records');
