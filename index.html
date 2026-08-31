@@ -244,6 +244,14 @@
             box-shadow: 0 20px 40px rgba(231, 76, 60, 0.4);
         }
 
+        .project-card.chronicon {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(108, 92, 231, 0.2));
+        }
+
+        .project-card.chronicon:hover {
+            box-shadow: 0 20px 40px rgba(155, 89, 182, 0.4);
+        }
+
         /* Бейдж */
         .badge {
             display: inline-block;
@@ -281,6 +289,11 @@
             color: #f1948a;
         }
 
+        .badge.gamedesign {
+            background: rgba(155, 89, 182, 0.3);
+            color: #d2b4de;
+        }
+
         /* Анимация появления */
         .project-card {
             opacity: 0;
@@ -292,6 +305,7 @@
         .project-card:nth-child(3) { animation-delay: 0.3s; }
         .project-card:nth-child(4) { animation-delay: 0.4s; }
         .project-card:nth-child(5) { animation-delay: 0.5s; }
+        .project-card:nth-child(6) { animation-delay: 0.6s; }
 
         @keyframes fadeInUp {
             from {
@@ -418,6 +432,16 @@
                 Умный решатель для «Быков и Коров». Пусть компьютер ломает голову за тебя!
             </p>
             <span class="badge solver">Решатель</span>
+        </a>
+
+        <!-- Chronicon -->
+        <a href="chronicon/index.html" class="project-card chronicon">
+            <span class="project-icon">🗺️</span>
+            <h2 class="project-name">Chronicon</h2>
+            <p class="project-desc">
+                Дизайн-документ дипломной CRPG. Мир, сюжет и механики в разработке.
+            </p>
+            <span class="badge gamedesign">Геймдизайн</span>
         </a>
 
     </main>
