@@ -31,6 +31,42 @@
 
         .back:hover { color: #fff; }
 
+        .notice {
+            margin-bottom: 36px;
+            padding: 18px 20px;
+            background: rgba(84,160,255,0.08);
+            border: 1px solid rgba(84,160,255,0.3);
+            border-radius: 12px;
+            color: #cfe4ff;
+            font-size: 0.95rem;
+        }
+
+        .notice a { color: #a29bfe; }
+
+        .notice .btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #54a0ff;
+            color: #051525;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .notice .btn:hover { background: #6fb1ff; }
+
+        .offline-tag {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            background: rgba(255,107,107,0.2);
+            color: #ff9b9b;
+            border: 1px solid rgba(255,107,107,0.4);
+        }
+
         h1 {
             font-size: 2.6rem;
             font-weight: 800;
@@ -62,13 +98,8 @@
             color: #d0d0e0;
         }
 
-        .toc ol {
-            padding-left: 20px;
-            color: #9a9ab0;
-        }
-
+        .toc ol { padding-left: 20px; color: #9a9ab0; }
         .toc li { margin: 6px 0; }
-
         .toc a { color: #a29bfe; text-decoration: none; }
         .toc a:hover { text-decoration: underline; }
 
@@ -86,23 +117,10 @@
             color: #cdc6ff;
         }
 
-        section h3 {
-            font-size: 1.05rem;
-            margin: 16px 0 8px;
-            color: #a29bfe;
-        }
-
-        section p, section li {
-            color: #c6c6d4;
-            margin-bottom: 10px;
-        }
-
+        section p, section li { color: #c6c6d4; margin-bottom: 10px; }
         ul { padding-left: 20px; }
 
-        .empty-note {
-            font-style: italic;
-            color: #7a7a90;
-        }
+        .empty-note { font-style: italic; color: #7a7a90; }
 
         .footer {
             text-align: center;
@@ -113,81 +131,77 @@
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <a class="back" href="../index.html">&larr; Назад к проектам</a>
-
-        <h1>Chronicon</h1>
-        <p class="tagline">Дизайн-документ дипломной компьютерной ролевой игры (CRPG)</p>
-
-        <nav class="toc">
-            <h2>Содержание</h2>
-            <ol>
-                <li><a href="#concept">Концепция</a></li>
-                <li><a href="#world">Мир и сеттинг</a></li>
-                <li><a href="#story">Сюжет</a></li>
-                <li><a href="#gameplay">Геймплей и механики</a></li>
-                <li><a href="#systems">Системы и характеристики</a></li>
-                <li><a href="#combat">Боевая система</a></li>
-                <li><a href="#progression">Прогрессия персонажа</a></li>
-                <li><a href="#ui">Интерфейс</a></li>
-                <li><a href="#tech">Техническая часть</a></li>
-                <li><a href="#scope">Объём и план разработки</a></li>
-            </ol>
-        </nav>
-
-        <section id="concept">
-            <h2>1. Концепция</h2>
-            <p class="empty-note">TODO: краткий питч — что за игра, для кого, чем уникальна.</p>
-        </section>
-
-        <section id="world">
-            <h2>2. Мир и сеттинг</h2>
-            <p class="empty-note">TODO: жанр мира, география, фракции, культура, правила мироздания.</p>
-        </section>
-
-        <section id="story">
-            <h2>3. Сюжет</h2>
-            <p class="empty-note">TODO: завязка, цели, ключевые персонажи, развязки, ветвления.</p>
-        </section>
-
-        <section id="gameplay">
-            <h2>4. Геймплей и механики</h2>
-            <p class="empty-note">TODO: цикл игры, исследование, диалоги, принятие решений, последствия.</p>
-        </section>
-
-        <section id="systems">
-            <h2>5. Системы и характеристики</h2>
-            <p class="empty-note">TODO: атрибуты, навыки, ресурсы, состояния, эффекты.</p>
-        </section>
-
-        <section id="combat">
-            <h2>6. Боевая система</h2>
-            <p class="empty-note">TODO: пошаговый бой, действия, AI, баланс.</p>
-        </section>
-
-        <section id="progression">
-            <h2>7. Прогрессия персонажа</h2>
-            <p class="empty-note">TODO: очки опыта, уровни, дерево умений, развитие.</p>
-        </section>
-
-        <section id="ui">
-            <h2>8. Интерфейс</h2>
-            <p class="empty-note">TODO: экраны, инвентарь, журнал, навигация, доступность.</p>
-        </section>
-
-        <section id="tech">
-            <h2>9. Техническая часть</h2>
-            <p class="empty-note">TODO: движок/стек, платформа, архитектура, арт, звук.</p>
-        </section>
-
-        <section id="scope">
-            <h2>10. Объём и план разработки</h2>
-            <p class="empty-note">TODO: список фич, этапы, сроки, тестирование, защита.</p>
-        </section>
-
-        <footer class="footer">
-            Chronicon — черновик дизайн-документа
-        </footer>
+    <div class="wrap" id="root">
+        <p style="color:#9a9ab0; text-align:center; padding:40px;">Проверка подключения…</p>
     </div>
+
+    <script>
+        // Живая версия диздока живёт на локальном сервере.
+        const LIVE = 'http://85.142.166.29:3184/';
+
+        const FALLBACK = {
+            title: 'Chronicon',
+            tagline: 'Дизайн-документ дипломной компьютерной ролевой игры (CRPG) — офлайн-копия',
+            sections: [
+                { id: 'concept', title: 'Концепция', body: 'TODO: краткий питч — что за игра, для кого, чем уникальна.' },
+                { id: 'world', title: 'Мир и сеттинг', body: 'TODO: жанр мира, география, фракции, культура, правила мироздания.' },
+                { id: 'story', title: 'Сюжет', body: 'TODO: завязка, цели, ключевые персонажи, развязки, ветвления.' },
+                { id: 'gameplay', title: 'Геймплей и механики', body: 'TODO: цикл игры, исследование, диалоги, принятие решений, последствия.' },
+                { id: 'systems', title: 'Системы и характеристики', body: 'TODO: атрибуты, навыки, ресурсы, состояния, эффекты.' },
+                { id: 'combat', title: 'Боевая система', body: 'TODO: пошаговый бой, действия, AI, баланс.' },
+                { id: 'progression', title: 'Прогрессия персонажа', body: 'TODO: очки опыта, уровни, дерево умений, развитие.' },
+                { id: 'ui', title: 'Интерфейс', body: 'TODO: экраны, инвентарь, журнал, навигация, доступность.' },
+                { id: 'tech', title: 'Техническая часть', body: 'TODO: движок/стек, платформа, архитектура, арт, звук.' },
+                { id: 'scope', title: 'Объём и план разработки', body: 'TODO: список фич, этапы, сроки, тестирование, защита.' }
+            ]
+        };
+
+        const ESC = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+        function render(data, offline) {
+            const toc = data.sections.map(s =>
+                `<li><a href="#${s.id}">${ESC(s.title)}</a></li>`).join('');
+            const secs = data.sections.map(s =>
+                `<section id="${s.id}"><h2>${ESC(s.title)}</h2>` +
+                s.body.split('\n').filter(l => l.trim()).map(l => `<p>${ESC(l)}</p>`).join('') +
+                `</section>`).join('');
+
+            const notice = offline
+                ? `<div class="notice">
+                     Локальный сервер недоступен — показана офлайн-копия.<span class="offline-tag">офлайн</span>
+                     <br><a class="btn" href="${LIVE}">Перейти к живой версии</a>
+                   </div>`
+                : '';
+
+            document.getElementById('root').innerHTML =
+                `<a class="back" href="../index.html">&larr; Назад к проектам</a>` +
+                notice +
+                `<h1>${ESC(data.title)}</h1>
+                 <p class="tagline">${ESC(data.tagline || '')}</p>
+                 <nav class="toc"><h2>Содержание</h2><ol>${toc}</ol></nav>
+                 ${secs}
+                 <footer class="footer">Chronicon — черновик дизайн-документа</footer>`;
+        }
+
+        function ping() {
+            return new Promise((resolve) => {
+                const ctrl = new AbortController();
+                const t = setTimeout(() => ctrl.abort(), 2500);
+                fetch(LIVE, { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
+                    .then(() => { clearTimeout(t); resolve(true); })
+                    .catch(() => { clearTimeout(t); resolve(false); });
+            });
+        }
+
+        (async () => {
+            const up = await ping();
+            if (up) {
+                // Сервер жив — уводим на живой инстанс.
+                window.location.replace(LIVE);
+            } else {
+                render(FALLBACK, true);
+            }
+        })();
+    </script>
 </body>
 </html>
