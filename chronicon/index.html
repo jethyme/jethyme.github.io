@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chronicon — Дизайн-документ</title>
+    <title>Chronicon — временно недоступно</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -11,160 +11,51 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #0d0d12;
             color: #e8e8ef;
-            line-height: 1.6;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        .wrap {
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 40px 24px 80px;
+        .box {
+            text-align: center;
+            max-width: 480px;
         }
 
-        .back {
-            display: inline-block;
-            margin-bottom: 30px;
-            color: #9a9ab0;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .back:hover { color: #fff; }
-
-        h1 {
-            font-size: 2.6rem;
+        .title {
+            font-size: 2rem;
             font-weight: 800;
             letter-spacing: 1px;
-            margin-bottom: 8px;
+            margin-bottom: 14px;
             background: linear-gradient(135deg, #ff9ff3, #54a0ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        .tagline {
+        .msg {
             color: #9a9ab0;
-            font-size: 1rem;
-            margin-bottom: 36px;
-        }
-
-        .toc {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 40px;
-        }
-
-        .toc h2 {
             font-size: 1.1rem;
-            margin-bottom: 12px;
-            color: #d0d0e0;
+            line-height: 1.6;
         }
 
-        .toc ol {
-            padding-left: 20px;
-            color: #9a9ab0;
-        }
-
-        .toc li { margin: 6px 0; }
-
-        .toc a { color: #a29bfe; text-decoration: none; }
-        .toc a:hover { text-decoration: underline; }
-
-        section {
-            margin-bottom: 48px;
-            padding: 24px;
-            background: rgba(255,255,255,0.03);
-            border-left: 3px solid #6c5ce7;
-            border-radius: 8px;
-        }
-
-        section h2 {
-            font-size: 1.5rem;
-            margin-bottom: 14px;
-            color: #cdc6ff;
-        }
-
-        section h3 {
-            font-size: 1.05rem;
-            margin: 16px 0 8px;
+        .back {
+            display: inline-block;
+            margin-top: 28px;
             color: #a29bfe;
+            text-decoration: none;
+            font-size: 0.95rem;
         }
 
-        section p, section li {
-            color: #c6c6d4;
-            margin-bottom: 10px;
-        }
-
-        ul { padding-left: 20px; }
-
-        .empty-note {
-            font-style: italic;
-            color: #7a7a90;
-        }
-
-        .footer {
-            text-align: center;
-            color: #5a5a70;
-            font-size: 0.85rem;
-            margin-top: 40px;
-        }
-
-        .error {
-            color: #f1948a;
-            text-align: center;
-            padding: 40px 20px;
-        }
+        .back:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="wrap" id="root">
-        <p class="error">Загрузка…</p>
+    <div class="box">
+        <div class="title">Chronicon</div>
+        <div class="msg">Временно недоступно.<br>В разработке.</div>
+        <a class="back" href="../index.html">&larr; Назад к проектам</a>
     </div>
-
-    <script>
-        const ESC = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-        function renderNodes(txt) {
-            return txt.split('\n').map(line => {
-                const t = line.trim();
-                if (!t) return '<br>';
-                return '<p>' + ESC(t) + '</p>';
-            }).join('');
-        }
-
-        function render(data) {
-            const toc = data.sections.map(s =>
-                `<li><a href="#${s.id}">${s.num}. ${ESC(s.title)}</a></li>`
-            ).join('');
-
-            const secs = data.sections.map(s =>
-                `<section id="${s.id}">
-                    <h2>${s.num}. ${ESC(s.title)}</h2>
-                    ${renderNodes(s.body)}
-                </section>`
-            ).join('');
-
-            const empty = (typeof data.sections === 'undefined' || !data.sections || !data.sections.length);
-
-            document.getElementById('root').innerHTML =
-                `<a class="back" href="../index.html">&larr; Назад к проектам</a>
-                 <h1>${ESC(data.title || 'Chronicon')}</h1>
-                 <p class="tagline">${ESC(data.tagline || '')}</p>
-                 ${empty ? '' :
-                    `<nav class="toc"><h2>Содержание</h2><ol>${toc}</ol></nav>`}
-                 ${empty ? '<p class="error">data.json пуст</p>' : secs}
-                 <footer class="footer">Chronicon — черновик дизайн-документа</footer>`;
-        }
-
-        fetch('data.json')
-            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-            .then(render)
-            .catch(err => {
-                document.getElementById('root').innerHTML =
-                    '<p class="error">Ошибка загрузки данных: ' + ESC(err.message) + '</p>';
-            });
-    </script>
 </body>
 </html>
