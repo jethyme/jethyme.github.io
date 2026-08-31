@@ -31,42 +31,6 @@
 
         .back:hover { color: #fff; }
 
-        .notice {
-            margin-bottom: 36px;
-            padding: 18px 20px;
-            background: rgba(84,160,255,0.08);
-            border: 1px solid rgba(84,160,255,0.3);
-            border-radius: 12px;
-            color: #cfe4ff;
-            font-size: 0.95rem;
-        }
-
-        .notice a { color: #a29bfe; }
-
-        .notice .btn {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #54a0ff;
-            color: #051525;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .notice .btn:hover { background: #6fb1ff; }
-
-        .offline-tag {
-            display: inline-block;
-            margin-left: 8px;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            background: rgba(255,107,107,0.2);
-            color: #ff9b9b;
-            border: 1px solid rgba(255,107,107,0.4);
-        }
-
         h1 {
             font-size: 2.6rem;
             font-weight: 800;
@@ -98,8 +62,13 @@
             color: #d0d0e0;
         }
 
-        .toc ol { padding-left: 20px; color: #9a9ab0; }
+        .toc ol {
+            padding-left: 20px;
+            color: #9a9ab0;
+        }
+
         .toc li { margin: 6px 0; }
+
         .toc a { color: #a29bfe; text-decoration: none; }
         .toc a:hover { text-decoration: underline; }
 
@@ -117,10 +86,23 @@
             color: #cdc6ff;
         }
 
-        section p, section li { color: #c6c6d4; margin-bottom: 10px; }
+        section h3 {
+            font-size: 1.05rem;
+            margin: 16px 0 8px;
+            color: #a29bfe;
+        }
+
+        section p, section li {
+            color: #c6c6d4;
+            margin-bottom: 10px;
+        }
+
         ul { padding-left: 20px; }
 
-        .empty-note { font-style: italic; color: #7a7a90; }
+        .empty-note {
+            font-style: italic;
+            color: #7a7a90;
+        }
 
         .footer {
             text-align: center;
@@ -128,80 +110,61 @@
             font-size: 0.85rem;
             margin-top: 40px;
         }
+
+        .error {
+            color: #f1948a;
+            text-align: center;
+            padding: 40px 20px;
+        }
     </style>
 </head>
 <body>
     <div class="wrap" id="root">
-        <p style="color:#9a9ab0; text-align:center; padding:40px;">Проверка подключения…</p>
+        <p class="error">Загрузка…</p>
     </div>
 
     <script>
-        // Живая версия диздока живёт на локальном сервере.
-        const LIVE = 'http://85.142.166.29:3184/';
+        const ESC = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-        const FALLBACK = {
-            title: 'Chronicon',
-            tagline: 'Дизайн-документ дипломной компьютерной ролевой игры (CRPG) — офлайн-копия',
-            sections: [
-                { id: 'concept', title: 'Концепция', body: 'TODO: краткий питч — что за игра, для кого, чем уникальна.' },
-                { id: 'world', title: 'Мир и сеттинг', body: 'TODO: жанр мира, география, фракции, культура, правила мироздания.' },
-                { id: 'story', title: 'Сюжет', body: 'TODO: завязка, цели, ключевые персонажи, развязки, ветвления.' },
-                { id: 'gameplay', title: 'Геймплей и механики', body: 'TODO: цикл игры, исследование, диалоги, принятие решений, последствия.' },
-                { id: 'systems', title: 'Системы и характеристики', body: 'TODO: атрибуты, навыки, ресурсы, состояния, эффекты.' },
-                { id: 'combat', title: 'Боевая система', body: 'TODO: пошаговый бой, действия, AI, баланс.' },
-                { id: 'progression', title: 'Прогрессия персонажа', body: 'TODO: очки опыта, уровни, дерево умений, развитие.' },
-                { id: 'ui', title: 'Интерфейс', body: 'TODO: экраны, инвентарь, журнал, навигация, доступность.' },
-                { id: 'tech', title: 'Техническая часть', body: 'TODO: движок/стек, платформа, архитектура, арт, звук.' },
-                { id: 'scope', title: 'Объём и план разработки', body: 'TODO: список фич, этапы, сроки, тестирование, защита.' }
-            ]
-        };
+        function renderNodes(txt) {
+            return txt.split('\n').map(line => {
+                const t = line.trim();
+                if (!t) return '<br>';
+                return '<p>' + ESC(t) + '</p>';
+            }).join('');
+        }
 
-        const ESC = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-        function render(data, offline) {
+        function render(data) {
             const toc = data.sections.map(s =>
-                `<li><a href="#${s.id}">${ESC(s.title)}</a></li>`).join('');
-            const secs = data.sections.map(s =>
-                `<section id="${s.id}"><h2>${ESC(s.title)}</h2>` +
-                s.body.split('\n').filter(l => l.trim()).map(l => `<p>${ESC(l)}</p>`).join('') +
-                `</section>`).join('');
+                `<li><a href="#${s.id}">${s.num}. ${ESC(s.title)}</a></li>`
+            ).join('');
 
-            const notice = offline
-                ? `<div class="notice">
-                     Локальный сервер недоступен — показана офлайн-копия.<span class="offline-tag">офлайн</span>
-                     <br><a class="btn" href="${LIVE}">Перейти к живой версии</a>
-                   </div>`
-                : '';
+            const secs = data.sections.map(s =>
+                `<section id="${s.id}">
+                    <h2>${s.num}. ${ESC(s.title)}</h2>
+                    ${renderNodes(s.body)}
+                </section>`
+            ).join('');
+
+            const empty = (typeof data.sections === 'undefined' || !data.sections || !data.sections.length);
 
             document.getElementById('root').innerHTML =
-                `<a class="back" href="../index.html">&larr; Назад к проектам</a>` +
-                notice +
-                `<h1>${ESC(data.title)}</h1>
+                `<a class="back" href="../index.html">&larr; Назад к проектам</a>
+                 <h1>${ESC(data.title || 'Chronicon')}</h1>
                  <p class="tagline">${ESC(data.tagline || '')}</p>
-                 <nav class="toc"><h2>Содержание</h2><ol>${toc}</ol></nav>
-                 ${secs}
+                 ${empty ? '' :
+                    `<nav class="toc"><h2>Содержание</h2><ol>${toc}</ol></nav>`}
+                 ${empty ? '<p class="error">data.json пуст</p>' : secs}
                  <footer class="footer">Chronicon — черновик дизайн-документа</footer>`;
         }
 
-        function ping() {
-            return new Promise((resolve) => {
-                const ctrl = new AbortController();
-                const t = setTimeout(() => ctrl.abort(), 2500);
-                fetch(LIVE, { mode: 'no-cors', cache: 'no-store', signal: ctrl.signal })
-                    .then(() => { clearTimeout(t); resolve(true); })
-                    .catch(() => { clearTimeout(t); resolve(false); });
+        fetch('data.json')
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(render)
+            .catch(err => {
+                document.getElementById('root').innerHTML =
+                    '<p class="error">Ошибка загрузки данных: ' + ESC(err.message) + '</p>';
             });
-        }
-
-        (async () => {
-            const up = await ping();
-            if (up) {
-                // Сервер жив — уводим на живой инстанс.
-                window.location.replace(LIVE);
-            } else {
-                render(FALLBACK, true);
-            }
-        })();
     </script>
 </body>
 </html>
