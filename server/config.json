@@ -1,0 +1,23 @@
+{
+  "port": 3123,
+  "host": "127.0.0.1",
+  "adminKey": "admin",
+  "twitch": {
+    "channel": "",
+    "nickname": "",
+    "oauthToken": "",
+    "authMode": "subscribers",
+    "allowList": [],
+    "ignoreBots": true,
+    "rateLimit": {
+      "maxPerUser": 3,
+      "windowMs": 15000
+    }
+  },
+  "game": {
+    "defaultLength": 5,
+    "maxLength": 20,
+    "dictionaryFile": "cows/words.txt",
+    "singularFile": "cows/singular.txt"
+  }
+}

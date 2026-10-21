@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordle — Слова</title>
+
+<style>
+:root {
+    --cell-size: 54px;
+    --bg-empty: #3a3a3c;
+    --bg-absent: #3a3a3c;
+    --bg-present: #b59f3b;
+    --bg-correct: #538d4e;
+    --border: #565758;
+    --key-bg: #818384;
+    --key-bg-used: #4a4a4c;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+    color: #fff;
+    margin: 0;
+    padding: 18px 10px 40px;
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+h1 { text-align: center; font-size: 26px; margin: 4px 0 18px; letter-spacing: 1px; }
+.start-panel, .panel {
+    background: #2f2f4f;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    margin-bottom: 16px;
+}
+label { font-weight: 600; }
+button {
+    padding: 11px 16px;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #5865f2;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.15s;
+}
+button:hover { filter: brightness(1.1); }
+button:disabled { background: #5b5b6b; cursor: not-allowed; filter: none; }
+input[type="text"], input[type="number"] {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    text-align: center;
+    background: #3c3c5f;
+    color: #fff;
+}
+input:focus { outline: 2px solid #5865f2; }
+.row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.hidden { display: none !important; }
+.error { color: #ff6b6b; text-align: center; font-size: 14px; min-height: 18px; }
+.status { text-align: center; font-size: 15px; margin-bottom: 10px; color: #d6d6e6; }
+.status b { color: #fff; }
+
+/* Доска */
+.board-wrap { display: flex; gap: 20px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+.board {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    min-width: 120px;
+}
+.word-row { display: flex; gap: 6px; }
+.tile {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    text-transform: lowercase;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.tile.filled { border-color: var(--border); }
+.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
+.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
+.tile.absent  { background: var(--bg-absent);  border-color: var(--bg-absent); }
+.tile.pop { animation: pop 0.25s; }
+@keyframes pop {
+    0% { transform: scale(0.85); }
+    60% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+.tile.shake { animation: shake 0.35s; }
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+/* Клавиатура */
+.keyboard { display: flex; flex-direction: column; gap: 6px; margin-top: 22px; }
+.kb-row { display: flex; gap: 5px; justify-content: center; }
+.key {
+    min-width: 34px;
+    height: 46px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 5px;
+    background: var(--key-bg);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.key.wide { min-width: 62px; font-size: 12px; }
+.key.correct { background: var(--bg-correct); }
+.key.present { background: var(--bg-present); }
+.key.absent { background: var(--key-bg-used); }
+
+/* Панели лучших и последних попыток */
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.panel h3 { margin: 0 0 10px; font-size: 16px; color: #f9e79f; }
+.mini-list { display: flex; flex-direction: column; gap: 8px; }
+.mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #26264a;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 14px;
+}
+.mini .mini-word { font-weight: 700; letter-spacing: 1px; }
+.mini .mini-score { color: #cfcfe6; font-size: 13px; white-space: nowrap; }
+.mini .mini-marks { display: flex; gap: 3px; }
+.mini .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.dot.correct { background: var(--bg-correct); }
+.dot.present { background: var(--bg-present); }
+.dot.absent { background: var(--bg-absent); }
+.mini .rank { color: #8f8fa8; width: 16px; }
+.empty-note { color: #8f8fa8; font-size: 13px; }
+.win-message { text-align: center; font-size: 20px; font-weight: 700; margin: 12px 0; }
+.win-message.ok { color: #6ab04c; }
+.win-message.fail { color: #ff6b6b; }
+.toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: #4caf50; color: #fff; padding: 9px 16px; border-radius: 20px;
+    font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100;
+}
+.loading { text-align: center; font-size: 13px; color: #bcbcd0; }
+.emoji-row { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.emoji { cursor: pointer; opacity: 0.45; transition: opacity 0.2s; font-size: 18px; user-select: none; }
+.emoji.active { opacity: 1; }
+@media (max-width: 700px) {
+    :root { --cell-size: 40px; }
+    .panels { grid-template-columns: 1fr; }
+    .key { min-width: 26px; height: 42px; font-size: 13px; padding: 0 5px; }
+    .key.wide { min-width: 46px; }
+    .tile { font-size: 20px; }
+    button { width: 100%; }
+    .row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>🟩 Wordle 🟨</h1>
+
+    <!-- Начало -->
+    <div id="startPanel" class="start-panel">
+        <div class="row">
+            <label>Длина слова:</label>
+            <input type="number" id="lengthInput" min="1" max="30" value="5" style="width:90px">
+            <div id="lengthEmojis" class="emoji-row" style="width:100%;max-width:420px"></div>
+        </div>
+        <div class="row">
+            <label>Своё слово (необязательно):</label>
+            <input type="text" id="customWord" placeholder="например: слово" style="width:200px">
+        </div>
+        <div class="row">
+            <button onclick="startGame()">▶ Начать игру</button>
+            <span class="loading" id="dictStatus">📚 Загрузка словарей…</span>
+        </div>
+        <div class="error" id="startError"></div>
+        <p style="text-align:center;font-size:13px;color:#a9a9c2;margin:6px 0 0">
+            Попытки не ограничены. Угадывать можно сколько угодно раз.
+        </p>
+    </div>
+
+    <!-- Игра -->
+    <div id="gamePanel" class="hidden">
+        <div class="status" id="status"></div>
+        <div class="board-wrap">
+            <div class="board" id="board"></div>
+            <div class="keyboard" id="keyboard"></div>
+        </div>
+        <div class="win-message" id="winMessage"></div>
+        <div class="row">
+            <button onclick="copyResult()">📋 Скопировать результат</button>
+            <button onclick="showAnswer()">👀 Показать ответ</button>
+            <button onclick="restart()">🔄 Новая игра</button>
+        </div>
+
+        <div class="panels" style="margin-top:16px">
+            <div class="panel" style="margin:0">
+                <h3>🏆 Лучшие попытки</h3>
+                <div class="mini-list" id="bestList"></div>
+            </div>
+            <div class="panel" style="margin:0">
+                <h3>🕒 Последние попытки</h3>
+                <div class="mini-list" id="lastList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="wordle-core.js"></script>
+<script>
+const Core = window.WordleCore;
+
+const KEYBOARD_ROWS = [
+    ['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'],
+    ['ф','ы','в','а','п','р','л','д','ж','э'],
+    ['ё','я','ч','с','м','и','т','ь','б','ю']
+];
+
+let dictionary = new Set();
+let singularDictionary = new Set();
+let dictionaryMaxLen = 20;
+let dictionariesLoaded = false;
+
+let secretWord = '';
+let wordLength = 5;
+let currentGuess = '';
+let gameOver = false;
+let guesses = [];
+let keyStates = {};
+
+/* ---------- Словари ---------- */
+async function loadDictionaries() {
+    try {
+        const a = await fetch('../cows/words.txt');
+    const b = await fetch('../cows/singular.txt');
+        const w = (await a.text()).split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+        const s = (await b.text()).split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
+        dictionary = new Set(w);
+        singularDictionary = new Set(s);
+        dictionaryMaxLen = w.reduce((m, x) => Math.max(m, x.length), 3);
+        dictionariesLoaded = true;
+        document.getElementById('dictStatus').textContent =
+            `✅ Словари загружены (${w.length + s.length})`;
+        renderLengthEmojis();
+    } catch (e) {
+        document.getElementById('dictStatus').textContent = '❌ Ошибка загрузки словарей';
+    }
+}
+
+function inDictionary(word) {
+    return dictionary.has(word) || singularDictionary.has(word);
+}
+
+/* ---------- Длина слова ---------- */
+function renderLengthEmojis() {
+    const val = parseInt(document.getElementById('lengthInput').value, 10) || 0;
+    const max = Math.max(5, Math.min(dictionaryMaxLen, 20));
+    let html = '';
+    for (let i = 1; i <= max; i++) {
+        html += `<span class="emoji ${i <= val ? 'active' : ''}" onclick="setLength(${i})">🟩</span>`;
+    }
+    document.getElementById('lengthEmojis').innerHTML = html;
+}
+function setLength(n) {
+    document.getElementById('lengthInput').value = n;
+    renderLengthEmojis();
+}
+
+/* ---------- Старт ---------- */
+function startGame() {
+    const startError = document.getElementById('startError');
+    if (!dictionariesLoaded) {
+        startError.textContent = 'Словари ещё загружаются, подождите секунду';
+        return;
+    }
+    const custom = document.getElementById('customWord').value.trim().toLowerCase();
+    if (custom) {
+        if (!inDictionary(custom)) {
+            startError.textContent = 'Такого слова нет в словаре';
+            return;
+        }
+        secretWord = custom;
+        wordLength = custom.length;
+    } else {
+        const len = parseInt(document.getElementById('lengthInput').value, 10) || 5;
+        const pool = [];
+        for (const w of dictionary) if (w.length === len) pool.push(w);
+        if (!pool.length) {
+            startError.textContent = `Нет слов длины ${len} в словаре`;
+            return;
+        }
+        secretWord = pool[Math.floor(Math.random() * pool.length)];
+        wordLength = len;
+    }
+    startError.textContent = '';
+    guesses = [];
+    currentGuess = '';
+    gameOver = false;
+    keyStates = {};
+    document.getElementById('startPanel').classList.add('hidden');
+    document.getElementById('gamePanel').classList.remove('hidden');
+    document.getElementById('winMessage').textContent = '';
+    document.getElementById('winMessage').className = 'win-message';
+    renderBoard();
+    renderKeyboard();
+    renderPanels();
+    updateStatus();
+}
+
+function restart() {
+    document.getElementById('gamePanel').classList.add('hidden');
+    document.getElementById('startPanel').classList.remove('hidden');
+    document.getElementById('customWord').value = '';
+    document.getElementById('startError').textContent = '';
+}
+
+/* ---------- Доска ---------- */
+function renderBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+
+    guesses.forEach(g => {
+        const row = document.createElement('div');
+        row.className = 'word-row';
+        g.marks.forEach(mark => {
+            const tile = document.createElement('div');
+            tile.className = 'tile ' + mark;
+            tile.textContent = mark.text;
+            row.appendChild(tile);
+        });
+        board.appendChild(row);
+    });
+
+    if (!gameOver) {
+        const row = document.createElement('div');
+        row.className = 'word-row';
+        for (let i = 0; i < wordLength; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.textContent = currentGuess[i] || '';
+            row.appendChild(tile);
+        }
+        board.appendChild(row);
+    }
+}
+
+function renderKeyboard() {
+    const kb = document.getElementById('keyboard');
+    kb.innerHTML = '';
+    KEYBOARD_ROWS.forEach(row => {
+        const kbRow = document.createElement('div');
+        kbRow.className = 'kb-row';
+        row.forEach(ch => {
+            const key = document.createElement('button');
+            key.className = 'key' + (keyStates[ch] ? ' ' + keyStates[ch] : '');
+            key.textContent = ch;
+            key.onclick = () => typeChar(ch);
+            kbRow.appendChild(key);
+        });
+        kb.appendChild(kbRow);
+    });
+
+    const bottom = document.createElement('div');
+    bottom.className = 'kb-row';
+    const back = document.createElement('button');
+    back.className = 'key wide';
+    back.textContent = '⌫';
+    back.onclick = backspace;
+    const enter = document.createElement('button');
+    enter.className = 'key wide';
+    enter.textContent = '↵';
+    enter.onclick = submitGuess;
+    bottom.appendChild(back);
+    bottom.appendChild(enter);
+    kb.appendChild(bottom);
+}
+
+/* ---------- Ввод ---------- */
+function typeChar(ch) {
+    if (gameOver || currentGuess.length >= wordLength) return;
+    currentGuess += ch;
+    renderBoard();
+}
+
+function backspace() {
+    if (gameOver) return;
+    currentGuess = currentGuess.slice(0, -1);
+    renderBoard();
+}
+
+function submitGuess() {
+    if (gameOver) return;
+    if (currentGuess.length < wordLength) {
+        showShake();
+        return;
+    }
+    const guess = currentGuess;
+    if (!inDictionary(guess)) {
+        showShake();
+        setStatus('Такого слова нет в словаре', true);
+        return;
+    }
+
+    const marks = Core.scoreGuess(guess, secretWord);
+    const { bulls, cows } = Core.countBullsCows(guess, secretWord);
+    const entry = { word: guess, bulls, cows, marks: marks.map((m, i) => ({ text: guess[i], mark: m })) };
+    guesses.push(entry);
+
+    marks.forEach((mark, i) => {
+        const ch = guess[i];
+        const rank = { absent: 1, present: 2, correct: 3 };
+        if (!keyStates[ch] || rank[mark] > rank[keyStates[ch]]) keyStates[ch] = mark;
+    });
+
+    currentGuess = '';
+    renderBoard();
+    renderKeyboard();
+    renderPanels();
+    updateStatus();
+
+    if (bulls === wordLength) {
+        gameOver = true;
+        const msg = document.getElementById('winMessage');
+        msg.textContent = `🎉 Слово угадано: ${secretWord} (попыток: ${guesses.length})`;
+        msg.className = 'win-message ok';
+        renderBoard();
+    }
+}
+
+function showShake() {
+    const tiles = document.querySelectorAll('#board .word-row:last-child .tile');
+    tiles.forEach(t => {
+        t.classList.remove('shake');
+        void t.offsetWidth;
+        t.classList.add('shake');
+    });
+}
+
+function setStatus(text, isError) {
+    const el = document.getElementById('status');
+    el.innerHTML = isError ? `<span style="color:#ff6b6b">${text}</span>` : text;
+}
+
+function updateStatus() {
+    setStatus(
+        `Длина слова: <b>${wordLength}</b> · Попыток сделано: <b>${guesses.length}</b> · <b>без ограничения</b>`
+    );
+}
+
+/* ---------- Панели ---------- */
+function miniItem(g, rank) {
+    const div = document.createElement('div');
+    div.className = 'mini';
+    const marks = document.createElement('span');
+    marks.className = 'mini-marks';
+    g.marks.forEach(m => {
+        const dot = document.createElement('span');
+        dot.className = 'dot ' + m.mark;
+        marks.appendChild(dot);
+    });
+    const word = document.createElement('span');
+    word.className = 'mini-word';
+    word.textContent = g.word;
+    const score = document.createElement('span');
+    score.className = 'mini-score';
+    score.textContent = `🐂${g.bulls} 🐄${g.cows}`;
+    div.appendChild(marks);
+    div.appendChild(word);
+    div.appendChild(score);
+    if (rank != null) {
+        const r = document.createElement('span');
+        r.className = 'rank';
+        r.textContent = '#' + rank;
+        div.insertBefore(r, div.firstChild);
+    }
+    return div;
+}
+
+function renderPanels() {
+    const best = document.getElementById('bestList');
+    const last = document.getElementById('lastList');
+    best.innerHTML = '';
+    last.innerHTML = '';
+    if (!guesses.length) {
+        best.innerHTML = '<div class="empty-note">Пока нет попыток</div>';
+        last.innerHTML = '<div class="empty-note">Пока нет попыток</div>';
+        return;
+    }
+    Core.rankBest(guesses, 5).forEach((g, i) => best.appendChild(miniItem(g, i + 1)));
+    Core.lastGuesses(guesses, 8).forEach(g => last.appendChild(miniItem(g)));
+}
+
+/* ---------- Прочее ---------- */
+function showAnswer() {
+    const msg = document.getElementById('winMessage');
+    msg.textContent = `Ответ: ${secretWord}`;
+    msg.className = 'win-message fail';
+}
+
+function copyResult() {
+    if (!guesses.length) {
+        toast('Сначала сделайте хотя бы одну попытку', true);
+        return;
+    }
+    const text = guesses.map(g => Core.shareRow(g.marks.map(m => m.mark))).join('\n');
+    const payload = `Wordle ${wordLength} букв — ${guesses.length} попыток\n${text}`;
+    navigator.clipboard.writeText(payload)
+        .then(() => toast('Результат скопирован'))
+        .catch(() => {
+            prompt('Скопируйте результат:', payload);
+        });
+}
+
+function toast(msg, isError) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = isError ? '#d32f2f' : '#4caf50';
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+/* ---------- Клавиатура ---------- */
+document.addEventListener('keydown', e => {
+    if (document.getElementById('gamePanel').classList.contains('hidden')) return;
+    if (e.key === 'Enter') { submitGuess(); return; }
+    if (e.key === 'Backspace') { backspace(); return; }
+    if (/^[а-яёa-z]$/i.test(e.key)) {
+        typeChar(e.key.toLowerCase());
+        e.preventDefault();
+    }
+});
+
+document.getElementById('lengthInput').addEventListener('input', renderLengthEmojis);
+loadDictionaries();
+</script>
+</body>
+</html>
