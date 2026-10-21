@@ -21,13 +21,13 @@ body {
     margin: 0;
     padding: 14px 12px 36px;
 }
-.wrap { max-width: 1120px; margin: 0 auto; }
-h1 { font-size: 22px; margin: 2px 0 10px; text-align: center; }
+.wrap { max-width: 760px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 2px 0 12px; text-align: center; }
 h1 small { font-size: 13px; color: #9a9ab0; font-weight: 400; }
 
 .conn {
-    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
-    align-items: center; font-size: 13px; margin-bottom: 14px;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    align-items: center; font-size: 13px; margin-bottom: 12px;
 }
 .badge {
     padding: 5px 11px; border-radius: 14px; background: #26263a;
@@ -43,9 +43,10 @@ h1 small { font-size: 13px; color: #9a9ab0; font-weight: 400; }
     margin-bottom: 14px;
     box-shadow: 0 10px 26px rgba(0,0,0,0.3);
 }
-.panel h3 { margin: 0 0 10px; font-size: 15px; color: #f9e79f; }
+.panel h3 { margin: 0 0 12px; font-size: 16px; color: #f9e79f; }
+.panel h3 .count { color: #8f8fa8; font-weight: 400; font-size: 13px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
-.row label { font-size: 13px; color: #b9b9cf; min-width: 90px; }
+.row label { font-size: 13px; color: #b9b9cf; min-width: 100px; }
 input, select {
     padding: 8px 10px; border-radius: 8px; border: none; background: #33334f;
     color: #fff; font-size: 14px;
@@ -57,62 +58,84 @@ button {
 }
 button:hover { filter: brightness(1.12); }
 button.ghost { background: #3a3a56; }
+button.active { background: #2f9e44; }
 button.danger { background: #b3403f; }
 .hidden { display: none !important; }
 .note { font-size: 12px; color: #8f8fa8; margin: 4px 0 0; }
 .error { color: #ff8080; font-size: 13px; min-height: 18px; }
 .ok-msg { color: #7fd18a; font-size: 13px; }
 
+.toolbar { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+.toolbar button { font-size: 13px; }
+
 .status-line {
     text-align: center; font-size: 15px; margin-bottom: 12px; color: #d8d8e8;
 }
 .status-line b { color: #fff; }
-.layout { display: flex; gap: 18px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
 
-.board { display: flex; flex-direction: column; gap: 6px; }
-.word-row { display: flex; gap: 6px; align-items: center; }
+/* Попытка: буквы, сразу за ними результат */
+.attempt {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px; border-radius: 10px; background: #2b2b47;
+    margin-bottom: 8px;
+}
+.attempt .letters { display: flex; gap: 5px; }
 .tile {
     width: var(--cell-size); height: var(--cell-size);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 700; text-transform: lowercase;
-    border: 2px solid var(--border); border-radius: 4px; background: transparent;
+    font-size: 24px; font-weight: 700; text-transform: lowercase;
+    border: 2px solid var(--border); border-radius: 5px; background: transparent;
 }
-.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
-.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
-.tile.absent { background: var(--bg-absent); border-color: var(--bg-absent); }
-.tile.new { animation: pop 0.3s; }
-@keyframes pop { 0% { transform: scale(0.8); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
-.author {
-    margin-left: 10px; font-size: 12px; color: #a5a5c0; max-width: 130px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.author .sub { color: #7a7a95; font-size: 11px; }
+.tile.small { width: 28px; height: 28px; font-size: 14px; border-width: 1px; }
 
-.side { display: flex; flex-direction: column; gap: 14px; width: 340px; }
-.mini-list { display: flex; flex-direction: column; gap: 7px; }
-.mini {
-    display: flex; align-items: center; gap: 8px;
-    background: #2b2b47; border-radius: 8px; padding: 6px 8px; font-size: 14px;
+/* Цветные квадраты — сразу за буквами */
+.squares { display: flex; gap: 5px; }
+.sq {
+    width: var(--cell-size); height: var(--cell-size);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; text-transform: lowercase;
 }
-.mini .rank { color: #8f8fa8; width: 18px; font-size: 12px; }
-.mini .mini-word { font-weight: 700; letter-spacing: 1px; }
-.mini .mini-score { color: #cfcfe6; font-size: 12px; white-space: nowrap; }
-.mini .mini-author { color: #8f8fa8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
-.mini .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
-.dot.correct { background: var(--bg-correct); }
-.dot.present { background: var(--bg-present); }
-.dot.absent { background: var(--bg-absent); }
-.empty-note { color: #8f8fa8; font-size: 13px; }
-.win { text-align: center; font-size: 19px; font-weight: 700; margin: 10px 0; }
+.sq.correct { background: var(--bg-correct); }
+.sq.present { background: var(--bg-present); }
+.sq.absent { background: var(--bg-absent); }
+.sq.small { width: 18px; height: 18px; font-size: 10px; border-radius: 3px; }
+
+/* Быки и коровы */
+.cows {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 22px; font-weight: 700; white-space: nowrap;
+}
+.cows .none { font-size: 16px; color: #8f8fa8; font-weight: 400; }
+.attempt .author {
+    margin-left: auto; font-size: 12px; color: #a5a5c0; text-align: right;
+    max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rank {
+    display: inline-block; width: 22px; color: #8f8fa8; font-size: 13px;
+    text-align: center; flex: 0 0 auto;
+}
+.attempt-list { display: flex; flex-direction: column; }
+.empty-note { color: #8f8fa8; font-size: 13px; padding: 6px 2px; }
+.win { text-align: center; font-size: 19px; font-weight: 700; margin: 12px 0; }
 .win.ok { color: #6ab04c; }
 .win.fail { color: #ff8080; }
 .game-select { display: flex; gap: 8px; justify-content: center; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.mini-list { display: flex; flex-direction: column; gap: 6px; }
+.mini {
+    display: flex; align-items: center; gap: 8px;
+    background: #2b2b47; border-radius: 8px; padding: 5px 8px; font-size: 13px;
+}
+.mini .mini-word { font-weight: 700; letter-spacing: 1px; }
+.mini .mini-score { color: #cfcfe6; font-size: 12px; white-space: nowrap; margin-left: auto; }
 @media (max-width: 760px) {
     :root { --cell-size: 34px; }
-    .side { width: 100%; }
-    .tile { font-size: 17px; }
+    .tile { font-size: 18px; }
+    .sq { font-size: 16px; }
+    .cows { font-size: 17px; gap: 6px; }
     .row label { min-width: 100%; }
+    .attempt { gap: 8px; padding: 6px; }
+    .toolbar button { flex: 1 1 140px; }
 }
 </style>
 </head>
@@ -174,6 +197,11 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
                 <button class="ghost" onclick="sendManualGuess()">Отправить</button>
                 <button class="ghost" onclick="stopGame()">Остановить игру</button>
             </div>
+
+            <div class="row">
+                <label>Счётчики</label>
+                <span class="badge" id="statsBadge">—</span>
+            </div>
         </details>
     </div>
 
@@ -182,27 +210,28 @@ details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
         <span class="badge" id="badgeGame">Игра не выбрана</span>
     </div>
 
-    <div class="status-line" id="statusLine">Создайте игру или дождитесь активной игры</div>
-
-    <div class="layout">
-        <div class="board" id="board"></div>
-        <div class="side">
-            <div class="panel">
-                <h3>🏆 Лучшие попытки</h3>
-                <div class="mini-list" id="bestList"></div>
-            </div>
-            <div class="panel">
-                <h3>🕒 Последние попытки</h3>
-                <div class="mini-list" id="lastList"></div>
-            </div>
-            <div class="panel">
-                <h3>📊 Счётчики</h3>
-                <div class="mini-list" id="statsList"></div>
-            </div>
-        </div>
+    <div class="toolbar">
+        <button id="modeBtn" onclick="toggleMode()">Режим: 🐂🐄 быки-коровы</button>
     </div>
 
+    <div class="status-line" id="statusLine">Создайте игру или дождитесь активной игры</div>
+
     <div class="win" id="winMessage"></div>
+
+    <div class="panel">
+        <h3>🏆 Лучшие попытки <span class="count" id="bestCount"></span></h3>
+        <div class="attempt-list" id="bestList"></div>
+    </div>
+
+    <div class="panel">
+        <h3>🕒 Последние попытки <span class="count" id="lastCount"></span></h3>
+        <div class="attempt-list" id="lastList"></div>
+    </div>
+
+    <details class="panel">
+        <summary>📜 Вся история попыток <span class="count" id="allCount"></span></summary>
+        <div class="attempt-list" id="allList"></div>
+    </details>
 </div>
 
 <script>
@@ -214,6 +243,9 @@ let games = [];
 let currentGame = null;
 let adminKey = localStorage.getItem('wordle_admin_key') || '';
 if (adminKey) document.getElementById('adminKey').value = adminKey;
+
+/* 'cows' — быки и коровы, 'squares' — цветные квадраты */
+let displayMode = localStorage.getItem('wordle_display_mode') || 'cows';
 
 /* ---------- API ---------- */
 async function api(path, options) {
@@ -235,6 +267,21 @@ function saveKey() {
     adminKey = document.getElementById('adminKey').value.trim();
     localStorage.setItem('wordle_admin_key', adminKey);
     document.getElementById('keyState').textContent = adminKey ? 'сохранён' : '';
+}
+
+function toggleMode() {
+    displayMode = displayMode === 'cows' ? 'squares' : 'cows';
+    localStorage.setItem('wordle_display_mode', displayMode);
+    updateModeButton();
+    renderGame();
+}
+
+function updateModeButton() {
+    const btn = document.getElementById('modeBtn');
+    btn.textContent = displayMode === 'cows'
+        ? 'Режим: 🐂🐄 быки-коровы'
+        : 'Режим: 🟩🟨 квадраты';
+    btn.classList.toggle('active', displayMode === 'squares');
 }
 
 /* ---------- Приём событий ---------- */
@@ -303,9 +350,8 @@ function renderGameList() {
     select.innerHTML = '';
     games.forEach(g => {
         const opt = document.createElement('option');
-        const label = `#${g.channel || '—'} · ${g.length} букв · ${g.status} · попыток: ${g.attempts}`;
         opt.value = g.id;
-        opt.textContent = label;
+        opt.textContent = `#${g.channel || '—'} · ${g.length} букв · ${g.status} · попыток: ${g.attempts}`;
         select.appendChild(opt);
     });
     const active = games.find(g => g.status === 'active');
@@ -329,15 +375,97 @@ function selectGame(id) {
     loadGame(id);
 }
 
+/* Попытка: буквы, сразу за ними результат */
+function buildAttempt(guess, opts) {
+    const options = opts || {};
+    const row = document.createElement('div');
+    row.className = 'attempt';
+
+    if (options.rank != null) {
+        const rank = document.createElement('span');
+        rank.className = 'rank';
+        rank.textContent = '#' + options.rank;
+        row.appendChild(rank);
+    }
+
+    const letters = document.createElement('div');
+    letters.className = 'letters';
+    const tileClass = options.small ? 'tile small' : 'tile';
+    for (let i = 0; i < guess.word.length; i++) {
+        const tile = document.createElement('div');
+        tile.className = tileClass;
+        tile.textContent = guess.word[i];
+        letters.appendChild(tile);
+    }
+    row.appendChild(letters);
+
+    if (displayMode === 'squares') {
+        const squares = document.createElement('div');
+        squares.className = 'squares';
+        (guess.marks || []).forEach(mark => {
+            const sq = document.createElement('div');
+            sq.className = 'sq' + (options.small ? ' small' : '') + ' ' + mark;
+            squares.appendChild(sq);
+        });
+        row.appendChild(squares);
+    } else {
+        const cows = document.createElement('div');
+        cows.className = 'cows';
+        if (!guess.bulls && !guess.cows) {
+            const none = document.createElement('span');
+            none.className = 'none';
+            none.textContent = '❌';
+            cows.appendChild(none);
+        } else {
+            if (guess.bulls) {
+                const b = document.createElement('span');
+                b.textContent = '🐂'.repeat(guess.bulls);
+                cows.appendChild(b);
+            }
+            if (guess.cows) {
+                const c = document.createElement('span');
+                c.textContent = '🐄'.repeat(guess.cows);
+                cows.appendChild(c);
+            }
+        }
+        row.appendChild(cows);
+    }
+
+    if (options.author) {
+        const author = document.createElement('div');
+        author.className = 'author';
+        author.textContent = options.author;
+        row.appendChild(author);
+    }
+
+    return row;
+}
+
+function renderList(container, items, opts) {
+    container.innerHTML = '';
+    if (!items || !items.length) {
+        const note = document.createElement('div');
+        note.className = 'empty-note';
+        note.textContent = 'Пока нет попыток';
+        container.appendChild(note);
+        return;
+    }
+    items.forEach((g, i) => {
+        container.appendChild(buildAttempt(g, Object.assign(
+            { rank: opts.withRank ? i + 1 : null }, opts)));
+    });
+}
+
 function renderGame() {
-    const board = document.getElementById('board');
-    board.innerHTML = '';
     const statusLine = document.getElementById('statusLine');
     const win = document.getElementById('winMessage');
 
     if (!currentGame) {
         statusLine.textContent = 'Создайте игру или дождитесь активной игры';
         win.textContent = '';
+        renderList(document.getElementById('bestList'), [], {});
+        renderList(document.getElementById('lastList'), [], {});
+        renderList(document.getElementById('allList'), [], { small: true });
         return;
     }
 
@@ -349,22 +477,6 @@ function renderGame() {
         `Длина: <b>${g.length}</b> · Попыток: <b>${g.attempts}</b> · ` +
         `Лимит: <b>${g.maxAttempts > 0 ? g.maxAttempts : 'без ограничения'}</b> · ` +
         `Статус: <b>${g.status}</b>`;
-
-    g.guesses.forEach(guess => {
-        const row = document.createElement('div');
-        row.className = 'word-row';
-        guess.marks.forEach((mark, i) => {
-            const tile = document.createElement('div');
-            tile.className = 'tile ' + mark;
-            tile.textContent = guess.word[i];
-            row.appendChild(tile);
-        });
-        const author = document.createElement('div');
-        author.className = 'author';
-        author.innerHTML = `${escapeHtml(guess.author)}<br><span class="sub">${formatTime(guess.at)}</span>`;
-        row.appendChild(author);
-        board.appendChild(row);
-    });
 
     if (g.status === 'solved') {
         win.textContent = `🎉 Слово: ${g.word}` + (g.winner ? ` — угадал ${g.winner}` : '');
@@ -379,77 +491,24 @@ function renderGame() {
         win.textContent = '';
     }
 
-    renderMini(g.best, 'bestList', true);
-    renderMini(g.last, 'lastList', false);
+    document.getElementById('bestCount').textContent = g.best ? `(${g.best.length})` : '';
+    document.getElementById('lastCount').textContent = g.last ? `(${g.last.length})` : '';
+    document.getElementById('allCount').textContent = g.guesses ? `(${g.guesses.length})` : '';
+
+    renderList(document.getElementById('bestList'), g.best || [], { withRank: true });
+    renderList(document.getElementById('lastList'), g.last || [], { withRank: false });
+    renderList(document.getElementById('allList'), (g.guesses || []).slice().reverse(), { small: true });
+
     renderStats(g.stats);
 }
 
-function renderMini(list, containerId, withRank) {
-    const box = document.getElementById(containerId);
-    box.innerHTML = '';
-    if (!list || !list.length) {
-        box.innerHTML = '<div class="empty-note">Пока нет попыток</div>';
-        return;
-    }
-    list.forEach((g, i) => {
-        const div = document.createElement('div');
-        div.className = 'mini';
-        if (withRank) {
-            const rank = document.createElement('span');
-            rank.className = 'rank';
-            rank.textContent = '#' + (i + 1);
-            div.appendChild(rank);
-        }
-        const word = document.createElement('span');
-        word.className = 'mini-word';
-        word.textContent = g.word;
-        const score = document.createElement('span');
-        score.className = 'mini-score';
-        score.textContent = `🐂${g.bulls} 🐄${g.cows}`;
-        const author = document.createElement('span');
-        author.className = 'mini-author';
-        author.textContent = g.author || '';
-        div.appendChild(word);
-        div.appendChild(score);
-        div.appendChild(author);
-        box.appendChild(div);
-    });
-}
-
 function renderStats(stats) {
-    const box = document.getElementById('statsList');
-    box.innerHTML = '';
-    if (!stats) return;
-    const rows = [
-        ['Попыток принято', stats.rejected !== undefined ? '' : ''],
-        ['Не авторизован', stats.unauthorized],
-        ['Лимит частоты', stats.rateLimited],
-        ['Неверная длина', stats.wrongLength],
-        ['Нет в словаре', stats.unknownWord],
-        ['Несколько слов', stats.tooManyWords],
-        ['Не слово', stats.notAWord]
-    ];
-    rows.forEach(([label, value]) => {
-        if (value === '' || value === undefined) return;
-        const div = document.createElement('div');
-        div.className = 'mini';
-        div.innerHTML = `<span class="mini-word" style="font-weight:400">${label}</span>
-            <span class="mini-score" style="margin-left:auto">${value}</span>`;
-        box.appendChild(div);
-    });
-}
-
-function formatTime(iso) {
-    try {
-        const d = new Date(iso);
-        return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch (e) { return ''; }
-}
-
-function escapeHtml(text) {
-    return String(text == null ? '' : text).replace(/[&<>"']/g, ch => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[ch]));
+    const badge = document.getElementById('statsBadge');
+    if (!stats) { badge.textContent = '—'; return; }
+    badge.textContent =
+        `отклонено: ${stats.rejected || 0} · без доступа: ${stats.unauthorized || 0} · ` +
+        `лимит: ${stats.rateLimited || 0} · неверная длина: ${stats.wrongLength || 0} · ` +
+        `нет в словаре: ${stats.unknownWord || 0}`;
 }
 
 /* ---------- Действия админа ---------- */
@@ -527,6 +586,7 @@ async function stopGame() {
 /* ---------- Старт ---------- */
 let config = {};
 (async function init() {
+    updateModeButton();
     try {
         config = await api('/api/config');
         document.getElementById('channelInput').value = config.channel || '';

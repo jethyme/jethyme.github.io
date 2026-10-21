@@ -8,6 +8,7 @@
 <style>
 :root {
     --cell-size: 54px;
+    --cell-panel: 46px;
     --bg-empty: #3a3a3c;
     --bg-absent: #3a3a3c;
     --bg-present: #b59f3b;
@@ -24,19 +25,19 @@ body {
     margin: 0;
     padding: 18px 10px 40px;
 }
-.wrap { max-width: 980px; margin: 0 auto; }
-h1 { text-align: center; font-size: 26px; margin: 4px 0 18px; letter-spacing: 1px; }
+.wrap { max-width: 720px; margin: 0 auto; }
+h1 { text-align: center; font-size: 26px; margin: 4px 0 14px; letter-spacing: 1px; }
 .start-panel, .panel {
     background: #2f2f4f;
     border-radius: 18px;
-    padding: 20px;
+    padding: 18px;
     box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 label { font-weight: 600; }
 button {
-    padding: 11px 16px;
-    font-size: 15px;
+    padding: 10px 15px;
+    font-size: 14px;
     border: none;
     border-radius: 10px;
     background: #5865f2;
@@ -44,8 +45,9 @@ button {
     cursor: pointer;
     transition: 0.15s;
 }
-button:hover { filter: brightness(1.1); }
+button:hover { filter: brightness(1.12); }
 button:disabled { background: #5b5b6b; cursor: not-allowed; filter: none; }
+button.ghost { background: #45456b; }
 input[type="text"], input[type="number"] {
     padding: 10px 12px;
     border-radius: 10px;
@@ -56,47 +58,43 @@ input[type="text"], input[type="number"] {
     color: #fff;
 }
 input:focus { outline: 2px solid #5865f2; }
-.row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+.row label { font-weight: bold; }
 .hidden { display: none !important; }
 .error { color: #ff6b6b; text-align: center; font-size: 14px; min-height: 18px; }
 .status { text-align: center; font-size: 15px; margin-bottom: 10px; color: #d6d6e6; }
 .status b { color: #fff; }
 
-/* Доска */
-.board-wrap { display: flex; gap: 20px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
-.board {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    min-width: 120px;
+/* Панель управления */
+.toolbar {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 12px;
 }
-.word-row { display: flex; gap: 6px; }
+.toolbar button { font-size: 13px; padding: 9px 14px; }
+.toolbar button.active { background: #2f9e44; }
+
+/* Попытка: буквы, а сразу за ними результат */
+.attempt {
+    display: flex; align-items: center; gap: 12px;
+    padding: 7px 8px; border-radius: 10px; background: #26264a;
+    margin-bottom: 8px;
+}
+.current-guess {
+    display: flex; gap: 5px; justify-content: center; margin-bottom: 10px;
+    min-height: var(--cell-panel);
+}
+.current-guess .tile { border-style: dashed; }
+.attempt.current { background: #33335a; border: 1px dashed #56568a; }
+.attempt .letters { display: flex; gap: 5px; }
 .tile {
-    width: var(--cell-size);
-    height: var(--cell-size);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    font-weight: 700;
-    text-transform: lowercase;
-    border: 2px solid var(--border);
-    border-radius: 4px;
-    background: transparent;
-    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    width: var(--cell-panel);
+    height: var(--cell-panel);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700; text-transform: lowercase;
+    border: 2px solid var(--border); border-radius: 5px; background: transparent;
 }
-.tile.filled { border-color: var(--border); }
-.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
-.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
-.tile.absent  { background: var(--bg-absent);  border-color: var(--bg-absent); }
-.tile.pop { animation: pop 0.25s; }
-@keyframes pop {
-    0% { transform: scale(0.85); }
-    60% { transform: scale(1.08); }
-    100% { transform: scale(1); }
-}
-.tile.shake { animation: shake 0.35s; }
+.tile.small { width: 30px; height: 30px; font-size: 15px; border-width: 1px; }
+.tile.shake, input.shake { animation: shake 0.35s; }
 @keyframes shake {
     0%,100% { transform: translateX(0); }
     20% { transform: translateX(-6px); }
@@ -105,20 +103,39 @@ input:focus { outline: 2px solid #5865f2; }
     80% { transform: translateX(4px); }
 }
 
+/* Цветные квадраты — сразу за буквами */
+.squares { display: flex; gap: 5px; }
+.sq {
+    width: var(--cell-panel);
+    height: var(--cell-panel);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; text-transform: lowercase;
+}
+.sq.correct { background: var(--bg-correct); }
+.sq.present { background: var(--bg-present); }
+.sq.absent { background: var(--bg-absent); }
+.sq.small { width: 20px; height: 20px; font-size: 11px; border-radius: 3px; }
+
+/* Быки и коровы */
+.cows {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 22px; font-weight: 700; white-space: nowrap;
+}
+.cows .none { font-size: 16px; color: #8f8fa8; font-weight: 400; }
+.attempt .author {
+    margin-left: auto; font-size: 12px; color: #a5a5c0;
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* Клавиатура */
-.keyboard { display: flex; flex-direction: column; gap: 6px; margin-top: 22px; }
+.keyboard { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
 .kb-row { display: flex; gap: 5px; justify-content: center; }
 .key {
-    min-width: 34px;
-    height: 46px;
-    padding: 0 8px;
-    border: none;
-    border-radius: 5px;
-    background: var(--key-bg);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    text-transform: uppercase;
+    min-width: 34px; height: 46px; padding: 0 8px;
+    border: none; border-radius: 5px;
+    background: var(--key-bg); color: #fff;
+    font-size: 15px; font-weight: 700; text-transform: uppercase;
 }
 .key.wide { min-width: 62px; font-size: 12px; }
 .key.correct { background: var(--bg-correct); }
@@ -126,27 +143,14 @@ input:focus { outline: 2px solid #5865f2; }
 .key.absent { background: var(--key-bg-used); }
 
 /* Панели лучших и последних попыток */
-.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.panel h3 { margin: 0 0 10px; font-size: 16px; color: #f9e79f; }
-.mini-list { display: flex; flex-direction: column; gap: 8px; }
-.mini {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #26264a;
-    border-radius: 8px;
-    padding: 6px 8px;
-    font-size: 14px;
+.panel h3 { margin: 0 0 12px; font-size: 16px; color: #f9e79f; }
+.panel h3 .count { color: #8f8fa8; font-weight: 400; font-size: 13px; }
+.attempt-list { display: flex; flex-direction: column; }
+.rank {
+    display: inline-block; width: 22px; color: #8f8fa8; font-size: 13px;
+    text-align: center; flex: 0 0 auto;
 }
-.mini .mini-word { font-weight: 700; letter-spacing: 1px; }
-.mini .mini-score { color: #cfcfe6; font-size: 13px; white-space: nowrap; }
-.mini .mini-marks { display: flex; gap: 3px; }
-.mini .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.dot.correct { background: var(--bg-correct); }
-.dot.present { background: var(--bg-present); }
-.dot.absent { background: var(--bg-absent); }
-.mini .rank { color: #8f8fa8; width: 16px; }
-.empty-note { color: #8f8fa8; font-size: 13px; }
+.empty-note { color: #8f8fa8; font-size: 13px; padding: 6px 2px; }
 .win-message { text-align: center; font-size: 20px; font-weight: 700; margin: 12px 0; }
 .win-message.ok { color: #6ab04c; }
 .win-message.fail { color: #ff6b6b; }
@@ -159,14 +163,17 @@ input:focus { outline: 2px solid #5865f2; }
 .emoji-row { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
 .emoji { cursor: pointer; opacity: 0.45; transition: opacity 0.2s; font-size: 18px; user-select: none; }
 .emoji.active { opacity: 1; }
+details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
+.history-list { margin-top: 10px; }
 @media (max-width: 700px) {
-    :root { --cell-size: 40px; }
-    .panels { grid-template-columns: 1fr; }
+    :root { --cell-size: 40px; --cell-panel: 34px; }
+    .tile { font-size: 18px; }
+    .sq { font-size: 16px; }
+    .cows { font-size: 17px; gap: 6px; }
     .key { min-width: 26px; height: 42px; font-size: 13px; padding: 0 5px; }
     .key.wide { min-width: 46px; }
-    .tile { font-size: 20px; }
-    button { width: 100%; }
-    .row { flex-direction: column; }
+    .toolbar button { flex: 1 1 140px; }
+    .attempt { gap: 8px; padding: 6px; }
 }
 </style>
 </head>
@@ -197,27 +204,45 @@ input:focus { outline: 2px solid #5865f2; }
 
     <!-- Игра -->
     <div id="gamePanel" class="hidden">
-        <div class="status" id="status"></div>
-        <div class="board-wrap">
-            <div class="board" id="board"></div>
-            <div class="keyboard" id="keyboard"></div>
-        </div>
-        <div class="win-message" id="winMessage"></div>
-        <div class="row">
-            <button onclick="copyResult()">📋 Скопировать результат</button>
-            <button onclick="showAnswer()">👀 Показать ответ</button>
-            <button onclick="restart()">🔄 Новая игра</button>
+        <div class="toolbar">
+            <button id="modeBtn" onclick="toggleMode()">Режим: 🐂🐄 быки-коровы</button>
+            <button id="kbBtn" onclick="toggleKeyboard()">⌨️ Показать клавиатуру</button>
         </div>
 
-        <div class="panels" style="margin-top:16px">
-            <div class="panel" style="margin:0">
-                <h3>🏆 Лучшие попытки</h3>
-                <div class="mini-list" id="bestList"></div>
-            </div>
-            <div class="panel" style="margin:0">
-                <h3>🕒 Последние попытки</h3>
-                <div class="mini-list" id="lastList"></div>
-            </div>
+        <div class="status" id="status"></div>
+
+        <div class="current-guess" id="currentGuess"></div>
+
+        <div class="row">
+            <input type="text" id="guessInput" placeholder="Введите слово" maxlength="30"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" style="width:230px">
+            <button onclick="submitGuess()">↵ Ответить</button>
+        </div>
+        <div class="error" id="guessError"></div>
+
+        <div class="keyboard hidden" id="keyboard"></div>
+
+        <div class="win-message" id="winMessage"></div>
+
+        <div class="panel">
+            <h3>🏆 Лучшие попытки</h3>
+            <div class="attempt-list" id="bestList"></div>
+        </div>
+
+        <div class="panel">
+            <h3>🕒 Последние попытки</h3>
+            <div class="attempt-list" id="lastList"></div>
+        </div>
+
+        <details class="panel">
+            <summary>📜 Вся история попыток</summary>
+            <div class="attempt-list history-list" id="allList"></div>
+        </details>
+
+        <div class="row">
+            <button class="ghost" onclick="copyResult()">📋 Скопировать результат</button>
+            <button class="ghost" onclick="showAnswer()">👀 Показать ответ</button>
+            <button class="ghost" onclick="restart()">🔄 Новая игра</button>
         </div>
     </div>
 </div>
@@ -241,16 +266,18 @@ let dictionariesLoaded = false;
 
 let secretWord = '';
 let wordLength = 5;
-let currentGuess = '';
 let gameOver = false;
 let guesses = [];
 let keyStates = {};
 
+/* 'cows' — быки и коровы, 'squares' — цветные квадраты */
+let displayMode = localStorage.getItem('wordle_display_mode') || 'cows';
+let keyboardVisible = false;
+
 /* ---------- Словари ---------- */
 async function loadDictionaries() {
     try {
-        const a = await fetch('../cows/words.txt');
-    const b = await fetch('../cows/singular.txt');
+        const [a, b] = await Promise.all([fetch('../cows/words.txt'), fetch('../cows/singular.txt')]);
         const w = (await a.text()).split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
         const s = (await b.text()).split('\n').map(x => x.trim().toLowerCase()).filter(Boolean);
         dictionary = new Set(w);
@@ -284,6 +311,32 @@ function setLength(n) {
     renderLengthEmojis();
 }
 
+/* ---------- Переключатели отображения ---------- */
+function toggleMode() {
+    displayMode = displayMode === 'cows' ? 'squares' : 'cows';
+    localStorage.setItem('wordle_display_mode', displayMode);
+    renderAll();
+}
+
+function toggleKeyboard() {
+    keyboardVisible = !keyboardVisible;
+    renderAll();
+}
+
+function updateModeButtons() {
+    const modeBtn = document.getElementById('modeBtn');
+    modeBtn.textContent = displayMode === 'cows'
+        ? 'Режим: 🐂🐄 быки-коровы'
+        : 'Режим: 🟩🟨 квадраты';
+    modeBtn.classList.toggle('active', displayMode === 'squares');
+
+    const kbBtn = document.getElementById('kbBtn');
+    kbBtn.textContent = keyboardVisible ? '⌨️ Скрыть клавиатуру' : '⌨️ Показать клавиатуру';
+    kbBtn.classList.toggle('active', keyboardVisible);
+
+    document.getElementById('keyboard').classList.toggle('hidden', !keyboardVisible);
+}
+
 /* ---------- Старт ---------- */
 function startGame() {
     const startError = document.getElementById('startError');
@@ -312,17 +365,16 @@ function startGame() {
     }
     startError.textContent = '';
     guesses = [];
-    currentGuess = '';
     gameOver = false;
     keyStates = {};
     document.getElementById('startPanel').classList.add('hidden');
     document.getElementById('gamePanel').classList.remove('hidden');
     document.getElementById('winMessage').textContent = '';
     document.getElementById('winMessage').className = 'win-message';
-    renderBoard();
-    renderKeyboard();
-    renderPanels();
-    updateStatus();
+    document.getElementById('guessInput').maxLength = wordLength;
+    document.getElementById('guessInput').value = '';
+    renderAll();
+    document.getElementById('guessInput').focus();
 }
 
 function restart() {
@@ -332,36 +384,111 @@ function restart() {
     document.getElementById('startError').textContent = '';
 }
 
-/* ---------- Доска ---------- */
-function renderBoard() {
-    const board = document.getElementById('board');
-    board.innerHTML = '';
+/* ---------- Отрисовка одной попытки ---------- */
+function buildAttempt(guess, opts) {
+    const options = opts || {};
+    const row = document.createElement('div');
+    row.className = 'attempt' + (options.current ? ' current' : '');
 
-    guesses.forEach(g => {
-        const row = document.createElement('div');
-        row.className = 'word-row';
-        g.marks.forEach(mark => {
-            const tile = document.createElement('div');
-            tile.className = 'tile ' + mark;
-            tile.textContent = mark.text;
-            row.appendChild(tile);
+    const letters = document.createElement('div');
+    letters.className = 'letters';
+    const tileSize = options.small ? 'tile small' : 'tile';
+    const marks = guess.marks || [];
+    for (let i = 0; i < guess.word.length; i++) {
+        const tile = document.createElement('div');
+        tile.className = tileSize;
+        tile.textContent = guess.word[i];
+        letters.appendChild(tile);
+    }
+    row.appendChild(letters);
+
+    /* Результат — сразу за буквами */
+    if (displayMode === 'squares') {
+        const squares = document.createElement('div');
+        squares.className = 'squares';
+        marks.forEach(mark => {
+            const sq = document.createElement('div');
+            const markValue = typeof mark === 'string' ? mark : mark.mark;
+            sq.className = 'sq' + (options.small ? ' small' : '') + ' ' + markValue;
+            squares.appendChild(sq);
         });
-        board.appendChild(row);
-    });
-
-    if (!gameOver) {
-        const row = document.createElement('div');
-        row.className = 'word-row';
-        for (let i = 0; i < wordLength; i++) {
-            const tile = document.createElement('div');
-            tile.className = 'tile';
-            tile.textContent = currentGuess[i] || '';
-            row.appendChild(tile);
+        row.appendChild(squares);
+    } else {
+        const cows = document.createElement('div');
+        cows.className = 'cows';
+        if (!guess.bulls && !guess.cows) {
+            const none = document.createElement('span');
+            none.className = 'none';
+            none.textContent = '❌';
+            cows.appendChild(none);
+        } else {
+            if (guess.bulls) {
+                const b = document.createElement('span');
+                b.textContent = '🐂'.repeat(guess.bulls);
+                cows.appendChild(b);
+            }
+            if (guess.cows) {
+                const c = document.createElement('span');
+                c.textContent = '🐄'.repeat(guess.cows);
+                cows.appendChild(c);
+            }
         }
-        board.appendChild(row);
+        row.appendChild(cows);
+    }
+
+    if (options.rank != null) {
+        const rank = document.createElement('span');
+        rank.className = 'rank';
+        rank.textContent = '#' + options.rank;
+        row.insertBefore(rank, row.firstChild);
+    }
+
+    if (options.author) {
+        const author = document.createElement('div');
+        author.className = 'author';
+        author.textContent = options.author;
+        row.appendChild(author);
+    }
+
+    return row;
+}
+
+/* ---------- Панели ---------- */
+function renderCurrentGuess() {
+    const box = document.getElementById('currentGuess');
+    box.innerHTML = '';
+    if (gameOver) return;
+    for (let i = 0; i < wordLength; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = guessInput().value[i] || '';
+        box.appendChild(tile);
     }
 }
 
+function renderList(container, items, opts) {
+    container.innerHTML = '';
+    if (!items.length) {
+        const note = document.createElement('div');
+        note.className = 'empty-note';
+        note.textContent = 'Пока нет попыток';
+        container.appendChild(note);
+        return;
+    }
+    items.forEach((g, i) => {
+        container.appendChild(buildAttempt(g, Object.assign({ rank: opts.withRank ? i + 1 : null }, opts)));
+    });
+}
+
+function renderPanels() {
+    const best = Core.rankBest(guesses, 5);
+    const last = Core.lastGuesses(guesses, 10);
+    renderList(document.getElementById('bestList'), best, { withRank: true });
+    renderList(document.getElementById('lastList'), last, { withRank: false });
+    renderList(document.getElementById('allList'), guesses.slice().reverse(), { withRank: false, small: true });
+}
+
+/* ---------- Клавиатура ---------- */
 function renderKeyboard() {
     const kb = document.getElementById('keyboard');
     kb.innerHTML = '';
@@ -394,34 +521,60 @@ function renderKeyboard() {
 }
 
 /* ---------- Ввод ---------- */
+function guessInput() {
+    return document.getElementById('guessInput');
+}
+
 function typeChar(ch) {
-    if (gameOver || currentGuess.length >= wordLength) return;
-    currentGuess += ch;
-    renderBoard();
+    if (gameOver) return;
+    const input = guessInput();
+    if (input.value.length >= wordLength) return;
+    input.value += ch;
+    renderCurrentGuess();
+    renderPanels();
 }
 
 function backspace() {
     if (gameOver) return;
-    currentGuess = currentGuess.slice(0, -1);
-    renderBoard();
+    const input = guessInput();
+    input.value = input.value.slice(0, -1);
+    renderCurrentGuess();
+    renderPanels();
+}
+
+function showGuessError(msg) {
+    const err = document.getElementById('guessError');
+    err.textContent = msg || '';
+    const input = guessInput();
+    input.classList.remove('shake');
+    if (msg) {
+        void input.offsetWidth;
+        input.classList.add('shake');
+    }
 }
 
 function submitGuess() {
     if (gameOver) return;
-    if (currentGuess.length < wordLength) {
-        showShake();
-        return;
+    const input = guessInput();
+    const guess = input.value.trim().toLowerCase();
+
+    if (!guess) return showGuessError('Введите слово');
+    if (guess.length !== wordLength) {
+        return showGuessError(`Неверная длина. Нужно ${wordLength} букв.`);
     }
-    const guess = currentGuess;
     if (!inDictionary(guess)) {
-        showShake();
-        setStatus('Такого слова нет в словаре', true);
-        return;
+        return showGuessError('Такого слова нет в словаре');
     }
+    showGuessError('');
 
     const marks = Core.scoreGuess(guess, secretWord);
     const { bulls, cows } = Core.countBullsCows(guess, secretWord);
-    const entry = { word: guess, bulls, cows, marks: marks.map((m, i) => ({ text: guess[i], mark: m })) };
+    const entry = {
+        word: guess,
+        bulls: bulls,
+        cows: cows,
+        marks: marks.map((m, i) => ({ text: guess[i], mark: m }))
+    };
     guesses.push(entry);
 
     marks.forEach((mark, i) => {
@@ -430,82 +583,30 @@ function submitGuess() {
         if (!keyStates[ch] || rank[mark] > rank[keyStates[ch]]) keyStates[ch] = mark;
     });
 
-    currentGuess = '';
-    renderBoard();
-    renderKeyboard();
-    renderPanels();
-    updateStatus();
+    input.value = '';
+    renderAll();
 
     if (bulls === wordLength) {
         gameOver = true;
         const msg = document.getElementById('winMessage');
         msg.textContent = `🎉 Слово угадано: ${secretWord} (попыток: ${guesses.length})`;
         msg.className = 'win-message ok';
-        renderBoard();
+        input.disabled = true;
     }
-}
-
-function showShake() {
-    const tiles = document.querySelectorAll('#board .word-row:last-child .tile');
-    tiles.forEach(t => {
-        t.classList.remove('shake');
-        void t.offsetWidth;
-        t.classList.add('shake');
-    });
-}
-
-function setStatus(text, isError) {
-    const el = document.getElementById('status');
-    el.innerHTML = isError ? `<span style="color:#ff6b6b">${text}</span>` : text;
 }
 
 function updateStatus() {
-    setStatus(
-        `Длина слова: <b>${wordLength}</b> · Попыток сделано: <b>${guesses.length}</b> · <b>без ограничения</b>`
-    );
+    const el = document.getElementById('status');
+    el.innerHTML =
+        `Длина слова: <b>${wordLength}</b> · Попыток сделано: <b>${guesses.length}</b> · <b>без ограничения</b>`;
 }
 
-/* ---------- Панели ---------- */
-function miniItem(g, rank) {
-    const div = document.createElement('div');
-    div.className = 'mini';
-    const marks = document.createElement('span');
-    marks.className = 'mini-marks';
-    g.marks.forEach(m => {
-        const dot = document.createElement('span');
-        dot.className = 'dot ' + m.mark;
-        marks.appendChild(dot);
-    });
-    const word = document.createElement('span');
-    word.className = 'mini-word';
-    word.textContent = g.word;
-    const score = document.createElement('span');
-    score.className = 'mini-score';
-    score.textContent = `🐂${g.bulls} 🐄${g.cows}`;
-    div.appendChild(marks);
-    div.appendChild(word);
-    div.appendChild(score);
-    if (rank != null) {
-        const r = document.createElement('span');
-        r.className = 'rank';
-        r.textContent = '#' + rank;
-        div.insertBefore(r, div.firstChild);
-    }
-    return div;
-}
-
-function renderPanels() {
-    const best = document.getElementById('bestList');
-    const last = document.getElementById('lastList');
-    best.innerHTML = '';
-    last.innerHTML = '';
-    if (!guesses.length) {
-        best.innerHTML = '<div class="empty-note">Пока нет попыток</div>';
-        last.innerHTML = '<div class="empty-note">Пока нет попыток</div>';
-        return;
-    }
-    Core.rankBest(guesses, 5).forEach((g, i) => best.appendChild(miniItem(g, i + 1)));
-    Core.lastGuesses(guesses, 8).forEach(g => last.appendChild(miniItem(g)));
+function renderAll() {
+    updateModeButtons();
+    renderKeyboard();
+    renderCurrentGuess();
+    renderPanels();
+    updateStatus();
 }
 
 /* ---------- Прочее ---------- */
@@ -524,9 +625,7 @@ function copyResult() {
     const payload = `Wordle ${wordLength} букв — ${guesses.length} попыток\n${text}`;
     navigator.clipboard.writeText(payload)
         .then(() => toast('Результат скопирован'))
-        .catch(() => {
-            prompt('Скопируйте результат:', payload);
-        });
+        .catch(() => prompt('Скопируйте результат:', payload));
 }
 
 function toast(msg, isError) {
@@ -538,18 +637,36 @@ function toast(msg, isError) {
     el._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
 }
 
-/* ---------- Клавиатура ---------- */
+/* ---------- Клавиатура (аппаратная) ---------- */
 document.addEventListener('keydown', e => {
     if (document.getElementById('gamePanel').classList.contains('hidden')) return;
+    const inInput = e.target === guessInput();
     if (e.key === 'Enter') { submitGuess(); return; }
-    if (e.key === 'Backspace') { backspace(); return; }
+    if (e.key === 'Backspace') {
+        if (inInput) return; // поле само удалит символ
+        backspace();
+        return;
+    }
     if (/^[а-яёa-z]$/i.test(e.key)) {
+        if (inInput) return; // поле само введёт символ
         typeChar(e.key.toLowerCase());
         e.preventDefault();
     }
 });
 
+guessInput().addEventListener('input', e => {
+    const cleaned = e.target.value.toLowerCase().replace(/[^а-яёa-z]/g, '').slice(0, wordLength);
+    if (cleaned !== e.target.value) e.target.value = cleaned;
+    showGuessError('');
+    renderCurrentGuess();
+    renderPanels();
+});
+guessInput().addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitGuess(); }
+});
+
 document.getElementById('lengthInput').addEventListener('input', renderLengthEmojis);
+updateModeButtons();
 loadDictionaries();
 </script>
 </body>
