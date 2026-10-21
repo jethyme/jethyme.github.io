@@ -6,7 +6,9 @@
     "channel": "",
     "nickname": "",
     "oauthToken": "",
-    "authMode": "subscribers",
+    "clientId": "",
+    "redirectUri": "http://localhost:3123/wordle/wordle.html",
+    "authMode": "approved",
     "allowList": [],
     "ignoreBots": true,
     "rateLimit": {

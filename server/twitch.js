@@ -11,7 +11,7 @@ const EventEmitter = require('events');
 const IRC_HOST = 'irc.chat.twitch.tv';
 const IRC_PORT = 6697;
 
-const AUTH_MODES = ['subscribers', 'whitelist', 'all'];
+const AUTH_MODES = ['subscribers', 'whitelist', 'approved', 'all'];
 
 /* Разбор IRC-тегов вида @key=value;key2=value2 */
 function parseTags(raw) {
@@ -37,11 +37,13 @@ function badgeNames(badges) {
 /* Проверка доступа участника чата.
  * authMode: 'subscribers' — подписчики, модераторы, VIP и владелец канала;
  *            'whitelist'  — только пользователи из allowList;
+ *            'approved'   — только те, кому админ выдал право (users.json);
  *            'all'        — все подряд (для отладки). */
 function checkAccess(user, tags, options) {
     const opts = options || {};
     const mode = AUTH_MODES.includes(opts.authMode) ? opts.authMode : 'subscribers';
     const allowList = (opts.allowList || []).map(u => String(u).toLowerCase());
+    const approved = (opts.approvedLogins || []).map(u => String(u).toLowerCase());
     const channel = String(opts.channel || '').toLowerCase();
     const name = String(user || '').toLowerCase();
 
@@ -54,6 +56,7 @@ function checkAccess(user, tags, options) {
 
     if (allowList.includes(name)) return true;
     if (mode === 'all') return true;
+    if (mode === 'approved') return approved.includes(name) || isBroadcaster;
     if (mode === 'whitelist') return isBroadcaster;
     return isSubscriber || isModerator || isVip || isBroadcaster;
 }
@@ -66,6 +69,7 @@ class TwitchClient extends EventEmitter {
         this.token = String(options.token || '').replace(/^oauth:/i, '');
         this.authMode = AUTH_MODES.includes(options.authMode) ? options.authMode : 'subscribers';
         this.allowList = (options.allowList || []).map(u => String(u).toLowerCase());
+        this.approvedLogins = (options.approvedLogins || []).map(u => String(u).toLowerCase());
         this.ignoreBots = options.ignoreBots !== false;
 
         this.socket = null;
@@ -82,6 +86,7 @@ class TwitchClient extends EventEmitter {
         return checkAccess(user, tags, {
             authMode: this.authMode,
             allowList: this.allowList,
+            approvedLogins: this.approvedLogins,
             channel: this.channel
         });
     }
@@ -263,6 +268,7 @@ class TwitchHub extends EventEmitter {
             existing.token === String(options.token || '').replace(/^oauth:/i, '')) {
             existing.authMode = options.authMode || existing.authMode;
             existing.allowList = options.allowList || existing.allowList;
+            existing.approvedLogins = options.approvedLogins || existing.approvedLogins;
             return existing;
         }
         if (existing) {

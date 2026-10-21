@@ -16,11 +16,12 @@ const crypto = require('crypto');
 
 const { Store } = require('./store');
 const { TwitchHub, checkAccess, AUTH_MODES } = require('./twitch');
+const { UserStore, publicUser } = require('./users');
+const TwitchAuth = require('./twitch-auth');
 const Game = require('./game');
 const Core = require('../wordle/wordle-core.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const LOCAL_SETTINGS = path.join(DATA_DIR, 'settings.local.json');
 
@@ -72,6 +73,7 @@ function saveLocalSettings(patch) {
 
 const config = loadConfig();
 const store = new Store(path.join(DATA_DIR, 'games.json'));
+const users = new UserStore(path.join(DATA_DIR, 'users.json'));
 const hub = new TwitchHub();
 
 /* ---------------- Словарь ---------------- */
@@ -166,6 +168,7 @@ function handleChatMessage(message) {
     const allowed = checkAccess(message.user, message.tags, {
         authMode: game.authMode || config.twitch.authMode,
         allowList: config.twitch.allowList,
+        approvedLogins: users.approvedLogins(),
         channel: message.channel
     });
     if (!allowed) {
@@ -226,6 +229,7 @@ function connectChannel(channel, overrides) {
         console.warn('[twitch] Не задан nickname (логин Twitch) — подключение пропущено');
         return null;
     }
+    opts.approvedLogins = users.approvedLogins();
     return hub.ensure(opts.channel, opts);
 }
 
@@ -246,17 +250,15 @@ const MIME = {
 
 const STATIC_ROOTS = [
     { prefix: '/cows/', dir: path.join(ROOT, 'cows') },
-    { prefix: '/wordle/', dir: path.join(ROOT, 'wordle') },
-    { prefix: '/public/', dir: PUBLIC_DIR }
+    { prefix: '/wordle/', dir: path.join(ROOT, 'wordle') }
 ];
 
 function serveStatic(req, res, pathname) {
     let target = null;
 
-    if (pathname === '/' || pathname === '/index.html') {
-        target = path.join(PUBLIC_DIR, 'index.html');
-    } else if (pathname === '/board.html') {
-        target = path.join(PUBLIC_DIR, 'board.html');
+    if (pathname === '/' || pathname === '/index.html' || pathname === '/board.html') {
+        /* Вся игра живёт на одной странице */
+        target = path.join(ROOT, 'wordle', 'wordle.html');
     } else {
         for (const root of STATIC_ROOTS) {
             if (!pathname.startsWith(root.prefix)) continue;
@@ -327,6 +329,14 @@ function isAdmin(req, query) {
     return crypto.timingSafeEqual(a, b);
 }
 
+function sessionToken(req, query) {
+    return req.headers['x-session-token'] || (query && query.session) || '';
+}
+
+function sessionUser(req, query) {
+    return users.userBySession(sessionToken(req, query));
+}
+
 function twitchStatusList() {
     const list = [];
     hub.clients.forEach(client => list.push(client.status()));
@@ -370,8 +380,116 @@ async function handleApi(req, res, parsed) {
             maxLength: config.game.maxLength,
             requireDictionary: config.game.requireDictionary !== false,
             rateLimit: config.twitch.rateLimit,
-            hasToken: !!config.twitch.oauthToken
+            hasToken: !!config.twitch.oauthToken,
+            hasClientId: !!config.twitch.clientId,
+            redirectUri: config.twitch.redirectUri || '',
+            users: { total: users.list().length, approved: users.approvedLogins().length }
         });
+        return;
+    }
+
+    /* --- Вход через Twitch --- */
+    if (pathname === '/api/auth/twitch' && method === 'GET') {
+        const clientId = config.twitch.clientId || '';
+        sendJson(res, 200, {
+            enabled: !!clientId,
+            clientId: clientId,
+            redirectUri: config.twitch.redirectUri || '',
+            scopes: TwitchAuth.DEFAULT_SCOPES
+        });
+        return;
+    }
+
+    if (pathname === '/api/auth/twitch/login' && method === 'POST') {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch (e) {
+            sendJson(res, 400, { error: e.message });
+            return;
+        }
+        try {
+            const profile = await TwitchAuth.validateToken(body.accessToken);
+            if (!profile.id) throw new Error('Twitch не вернул пользователя');
+
+            const clientId = config.twitch.clientId || '';
+            if (clientId && profile.clientId && profile.clientId !== clientId) {
+                throw new Error('Токен выдан другому приложению');
+            }
+
+            const displayName = await TwitchAuth.fetchDisplayName(
+                profile.id, body.accessToken, clientId || profile.clientId);
+
+            const user = users.upsert({
+                id: profile.id,
+                login: profile.login,
+                displayName: displayName || profile.login,
+                source: 'twitch'
+            });
+            const token = users.createSession(user.id);
+            sendJson(res, 200, { user: publicUser(user), token: token });
+        } catch (e) {
+            console.error('[auth] Ошибка входа через Twitch:', e.message);
+            sendJson(res, 401, { error: e.message || 'Не удалось войти' });
+        }
+        return;
+    }
+
+    if (pathname === '/api/auth/me' && method === 'GET') {
+        const user = sessionUser(req, query);
+        if (!user) {
+            sendJson(res, 401, { error: 'Нет сессии' });
+            return;
+        }
+        sendJson(res, 200, { user: publicUser(user) });
+        return;
+    }
+
+    if (pathname === '/api/auth/logout' && method === 'POST') {
+        users.destroySession(sessionToken(req, query));
+        sendJson(res, 200, { ok: true });
+        return;
+    }
+
+    /* --- Пользователи (админ) --- */
+    if (pathname === '/api/admin/users' && method === 'GET') {
+        if (!isAdmin(req, query)) {
+            sendJson(res, 403, { error: 'Нужен админ-ключ' });
+            return;
+        }
+        sendJson(res, 200, { users: users.list().map(publicUser) });
+        return;
+    }
+
+    if (pathname === '/api/admin/users/approve' && method === 'POST') {
+        if (!isAdmin(req, query)) {
+            sendJson(res, 403, { error: 'Нужен админ-ключ' });
+            return;
+        }
+        let body;
+        try {
+            body = await readBody(req);
+        } catch (e) {
+            sendJson(res, 400, { error: e.message });
+            return;
+        }
+        const approved = body.approved !== false;
+        let user = null;
+        if (body.id) {
+            user = users.setApproved(body.id, approved);
+        } else if (body.login) {
+            if (approved) {
+                user = users.approveLogin(body.login, body.displayName);
+            } else {
+                const found = users.byLogin(body.login);
+                user = found ? users.setApproved(found.id, false) : null;
+            }
+        }
+        if (!user) {
+            sendJson(res, 404, { error: 'Пользователь не найден' });
+            return;
+        }
+        sendJson(res, 200, { user: publicUser(user) });
         return;
     }
 
@@ -442,8 +560,14 @@ async function handleApi(req, res, parsed) {
         }
 
         if (action === '/guess' && method === 'POST') {
-            if (!isAdmin(req, query)) {
-                sendJson(res, 403, { error: 'Нужен админ-ключ' });
+            const admin = isAdmin(req, query);
+            const player = admin ? null : sessionUser(req, query);
+            if (!admin && !player) {
+                sendJson(res, 403, { error: 'Нужен вход через Twitch' });
+                return;
+            }
+            if (player && !player.approved) {
+                sendJson(res, 403, { error: 'Доступ ещё не выдан: дождитесь одобрения админом' });
                 return;
             }
             let body;
@@ -463,7 +587,10 @@ async function handleApi(req, res, parsed) {
                 sendJson(res, 400, { error: 'Игра уже окончена' });
                 return;
             }
-            applyChatGuess(game, check.word, body.author || 'ручной ввод');
+            const author = admin
+                ? (body.author || 'ручной ввод')
+                : (player.displayName || player.login);
+            applyChatGuess(game, check.word, author);
             sendJson(res, 200, { game: Game.publicState(game, { reveal: true }) });
             return;
         }
@@ -517,7 +644,9 @@ async function handleApi(req, res, parsed) {
                 nickname: body.nickname || config.twitch.nickname,
                 oauthToken: body.oauthToken || config.twitch.oauthToken,
                 authMode: AUTH_MODES.includes(body.authMode) ? body.authMode : config.twitch.authMode,
-                allowList: Array.isArray(body.allowList) ? body.allowList : config.twitch.allowList
+                allowList: Array.isArray(body.allowList) ? body.allowList : config.twitch.allowList,
+                clientId: body.clientId || config.twitch.clientId || '',
+                redirectUri: body.redirectUri || config.twitch.redirectUri || ''
             }
         };
         saveLocalSettings(patch);
@@ -543,6 +672,16 @@ async function handleApi(req, res, parsed) {
 const server = http.createServer(async (req, res) => {
     const parsed = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsed.pathname;
+
+    /* Разрешаем обращаться к API со страницы, открытой где угодно */
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key, X-Session-Token');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
     try {
         if (pathname.startsWith('/api/')) {
@@ -585,9 +724,10 @@ const server = http.createServer(async (req, res) => {
 server.listen(config.port, config.host, () => {
     console.log('');
     console.log('  🟩 Wordle-сервер запущен');
-    console.log(`     Доска:      http://localhost:${config.port}/board.html`);
-    console.log(`     Игра:       http://localhost:${config.port}/cows/wordle.html`);
-    console.log(`     Админ-ключ: ${config.adminKey}`);
+    console.log(`     Игра и доска: http://localhost:${config.port}/`);
+    console.log(`     Вход Twitch:  ${config.twitch.clientId ? 'настроен' : 'НЕ НАСТРОЕН (нужен clientId)'}`);
+    console.log(`     Админ-ключ:   ${config.adminKey}`);
+    console.log(`     Пользователей: ${users.list().length} (одобрено: ${users.approvedLogins().length})`);
     console.log('');
     if (config.twitch.channel && config.twitch.oauthToken && config.twitch.nickname) {
         connectChannel(config.twitch.channel, {});
