@@ -9,6 +9,7 @@
 :root {
     --cell-size: 54px;
     --cell-panel: 46px;
+    --cell: var(--cell-panel);
     --bg-empty: #3a3a3c;
     --bg-absent: #3a3a3c;
     --bg-present: #b59f3b;
@@ -48,7 +49,7 @@ button {
 button:hover { filter: brightness(1.12); }
 button:disabled { background: #5b5b6b; cursor: not-allowed; filter: none; }
 button.ghost { background: #45456b; }
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], select {
     padding: 10px 12px;
     border-radius: 10px;
     border: none;
@@ -57,13 +58,20 @@ input[type="text"], input[type="number"] {
     background: #3c3c5f;
     color: #fff;
 }
-input:focus { outline: 2px solid #5865f2; }
+input:focus, select:focus { outline: 2px solid #5865f2; }
 .row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 8px 0; }
 .row label { font-weight: bold; }
 .hidden { display: none !important; }
 .error { color: #ff6b6b; text-align: center; font-size: 14px; min-height: 18px; }
 .status { text-align: center; font-size: 15px; margin-bottom: 10px; color: #d6d6e6; }
 .status b { color: #fff; }
+.badge {
+    padding: 5px 11px; border-radius: 14px; background: #3a3a5f;
+    border: 1px solid #4a4a70; color: #cfcfdf; font-size: 13px;
+}
+.badge.ok { background: #1f4d2b; border-color: #2f7a42; color: #9be3ad; }
+.badge.bad { background: #4d1f1f; border-color: #7a2f2f; color: #f0a3a3; }
+.badge.warn { background: #4d3f1f; border-color: #7a6a2f; color: #f0d48a; }
 
 /* Панель управления */
 .toolbar {
@@ -73,7 +81,7 @@ input:focus { outline: 2px solid #5865f2; }
 .toolbar button { font-size: 13px; padding: 9px 14px; }
 .toolbar button.active { background: #2f9e44; }
 
-/* Попытка: буквы, а сразу за ними результат */
+/* Попытка: буквы и (в режиме квадратов) цветная плитка */
 .attempt {
     display: flex; align-items: center; gap: 12px;
     padding: 7px 8px; border-radius: 10px; background: #26264a;
@@ -85,14 +93,21 @@ input:focus { outline: 2px solid #5865f2; }
 }
 .current-guess .tile { border-style: dashed; }
 .attempt.current { background: #33335a; border: 1px dashed #56568a; }
+.cells { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
 .tile {
-    width: var(--cell-panel);
-    height: var(--cell-panel);
+    width: var(--cell);
+    height: var(--cell);
     display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 700; text-transform: lowercase;
+    font-size: calc(var(--cell) * 0.52);
+    font-weight: 700; text-transform: lowercase;
     border: 2px solid var(--border); border-radius: 5px; background: transparent;
+    flex: 0 0 auto;
 }
-.tile.small { width: 30px; height: 30px; font-size: 15px; border-width: 1px; }
+.tile.small { font-size: calc(var(--cell) * 0.5); border-width: 1px; }
+/* Режим «цветные квадраты»: сама плитка с буквой становится цветной */
+.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
+.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
+.tile.absent { background: var(--bg-absent); border-color: var(--bg-absent); }
 .tile.shake, input.shake { animation: shake 0.35s; }
 @keyframes shake {
     0%,100% { transform: translateX(0); }
@@ -102,21 +117,17 @@ input:focus { outline: 2px solid #5865f2; }
     80% { transform: translateX(4px); }
 }
 
-/* Режим «цветные квадраты»: сама плитка с буквой становится цветной */
-.cells { display: flex; gap: 5px; align-items: center; }
-.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
-.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
-.tile.absent { background: var(--bg-absent); border-color: var(--bg-absent); }
-
 /* Быки и коровы */
 .cows {
     display: flex; align-items: center; gap: 10px;
     font-size: 22px; font-weight: 700; white-space: nowrap;
+    flex: 0 0 auto;
 }
 .cows .none { font-size: 16px; color: #8f8fa8; font-weight: 400; }
 .attempt .author {
     margin-left: auto; font-size: 12px; color: #a5a5c0;
     max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 0 1 auto; min-width: 0;
 }
 
 /* Клавиатура */
@@ -135,16 +146,16 @@ input:focus { outline: 2px solid #5865f2; }
 
 /* Панели лучших и последних попыток */
 .panel h3 { margin: 0 0 12px; font-size: 16px; color: #f9e79f; }
-.panel h3 .count { color: #8f8fa8; font-weight: 400; font-size: 13px; }
+.panel h3 .count, .block h4 .count { color: #8f8fa8; font-weight: 400; font-size: 13px; }
 .attempt-list { display: flex; flex-direction: column; }
 .rank {
     display: inline-block; width: 22px; color: #8f8fa8; font-size: 13px;
     text-align: center; flex: 0 0 auto;
 }
 .empty-note { color: #8f8fa8; font-size: 13px; padding: 6px 2px; }
-.win-message { text-align: center; font-size: 20px; font-weight: 700; margin: 12px 0; }
-.win-message.ok { color: #6ab04c; }
-.win-message.fail { color: #ff6b6b; }
+.win-message, .win { text-align: center; font-size: 20px; font-weight: 700; margin: 12px 0; }
+.win-message.ok, .win.ok { color: #6ab04c; }
+.win-message.fail, .win.fail { color: #ff6b6b; }
 .toast {
     position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
     background: #4caf50; color: #fff; padding: 9px 16px; border-radius: 20px;
@@ -156,9 +167,35 @@ input:focus { outline: 2px solid #5865f2; }
 .emoji.active { opacity: 1; }
 details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
 .history-list { margin-top: 10px; }
+
+/* Блоки внутри Twitch-панели */
+.block {
+    background: #26264a;
+    border-radius: 12px;
+    padding: 14px;
+    margin: 12px 0;
+}
+.block h4 { margin: 0 0 10px; font-size: 15px; color: #f9e79f; }
+.block .row { justify-content: flex-start; }
+.block .note { font-size: 12px; color: #8f8fa8; margin: 4px 0 0; }
+.block .error { text-align: left; }
+.block input[type="text"], .block input[type="number"], .block select { font-size: 14px; padding: 8px 10px; }
+
+/* Таблица пользователей */
+.users-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.users-table th, .users-table td {
+    text-align: left; padding: 6px 8px; border-bottom: 1px solid #34344f; vertical-align: middle;
+}
+.users-table th { color: #9a9ab0; font-weight: 600; }
+.users-table button { padding: 4px 10px; font-size: 12px; }
+.user-yes { color: #7fd18a; font-weight: 700; }
+.user-no { color: #f0c674; font-weight: 700; }
+.admin-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
+.admin-grid label { font-size: 13px; color: #b9b9cf; }
+
 @media (max-width: 700px) {
     :root { --cell-size: 40px; --cell-panel: 34px; }
-    .tile { font-size: 18px; }
+    .tile { font-size: calc(var(--cell) * 0.52); }
     .cows { font-size: 17px; gap: 6px; }
     .key { min-width: 26px; height: 42px; font-size: 13px; padding: 0 5px; }
     .key.wide { min-width: 46px; }
@@ -171,7 +208,12 @@ details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
 <div class="wrap">
     <h1>🟩 Wordle 🟨</h1>
 
-    <!-- Начало -->
+    <div class="toolbar">
+        <button id="modeBtn" onclick="toggleMode()">Режим: 🐂🐄 быки-коровы</button>
+        <button id="kbBtn" onclick="toggleKeyboard()">⌨️ Показать клавиатуру</button>
+    </div>
+
+    <!-- Начало локальной игры -->
     <div id="startPanel" class="start-panel">
         <div class="row">
             <label>Длина слова:</label>
@@ -192,13 +234,8 @@ details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
         </p>
     </div>
 
-    <!-- Игра -->
+    <!-- Локальная игра -->
     <div id="gamePanel" class="hidden">
-        <div class="toolbar">
-            <button id="modeBtn" onclick="toggleMode()">Режим: 🐂🐄 быки-коровы</button>
-            <button id="kbBtn" onclick="toggleKeyboard()">⌨️ Показать клавиатуру</button>
-        </div>
-
         <div class="status" id="status"></div>
 
         <div class="current-guess" id="currentGuess"></div>
@@ -235,6 +272,118 @@ details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
             <button class="ghost" onclick="restart()">🔄 Новая игра</button>
         </div>
     </div>
+
+    <!-- Twitch: общая игра, вход, админка -->
+    <details class="panel" id="twitchDetails" open>
+        <summary>📡 Twitch — общая игра</summary>
+
+        <div class="block">
+            <div class="row">
+                <button onclick="twitchLogin()">🔑 Войти через Twitch</button>
+                <span class="badge" id="twitchUserBadge">не авторизован</span>
+                <button class="ghost hidden" id="logoutBtn" onclick="twitchLogout()">Выйти</button>
+                <span class="badge" id="twitchSseBadge">сервер: —</span>
+            </div>
+            <div class="row">
+                <label style="font-size:13px">Адрес сервера</label>
+                <input type="text" id="serverUrlInput" style="width:230px;text-align:left">
+                <button class="ghost" onclick="saveServerUrl()">Сохранить</button>
+            </div>
+            <div class="error" id="twitchError"></div>
+            <div class="status" id="twitchStatus"></div>
+            <div class="row">
+                <input type="text" id="twitchGuessInput" placeholder="Ваша попытка" maxlength="30"
+                       autocomplete="off" autocapitalize="off" spellcheck="false" style="width:210px;text-align:center">
+                <button onclick="twitchGuess()">↵ Ответить</button>
+            </div>
+            <div class="win" id="twitchWin"></div>
+        </div>
+
+        <div class="block">
+            <h4>🏆 Лучшие попытки <span class="count" id="twBestCount"></span></h4>
+            <div class="attempt-list" id="twBestList"></div>
+        </div>
+
+        <div class="block">
+            <h4>🕒 Последние попытки <span class="count" id="twLastCount"></span></h4>
+            <div class="attempt-list" id="twLastList"></div>
+        </div>
+
+        <details class="block">
+            <summary>📜 Вся история попыток <span class="count" id="twAllCount"></span></summary>
+            <div class="attempt-list" id="twAllList"></div>
+        </details>
+
+        <details class="block" id="adminDetails">
+            <summary>⚙️ Админ-панель</summary>
+
+            <div class="admin-grid">
+                <label>Админ-ключ</label>
+                <input type="text" id="adminKeyInput" placeholder="из server/config.json" style="text-align:left">
+
+                <label>Канал Twitch</label>
+                <input type="text" id="channelInput" placeholder="ник_канала" style="text-align:left">
+
+                <label>Ваш ник</label>
+                <input type="text" id="nickInput" placeholder="ник для IRC" style="text-align:left">
+
+                <label>OAuth-токен</label>
+                <input type="text" id="tokenInput" placeholder="oauth:xxxx" style="text-align:left">
+
+                <label>Client ID</label>
+                <input type="text" id="clientIdInput" placeholder="id приложения Twitch" style="text-align:left">
+
+                <label>Redirect URI</label>
+                <input type="text" id="redirectUriInput" placeholder="http://localhost:3123/wordle/wordle.html" style="text-align:left">
+            </div>
+            <div class="row" style="margin-top:10px">
+                <label>Доступ</label>
+                <select id="authSelect">
+                    <option value="approved">только одобренные</option>
+                    <option value="subscribers">подписчики</option>
+                    <option value="whitelist">белый список</option>
+                    <option value="all">все</option>
+                </select>
+                <button onclick="connectTwitch()">🔗 Подключить Twitch</button>
+                <span class="badge" id="keyState"></span>
+            </div>
+            <p class="note">
+                Client ID и Redirect URI — из приложения на dev.twitch.tv/console/apps.
+                Redirect URI должен совпадать с адресом этой страницы.
+            </p>
+
+            <hr style="border:none;border-top:1px solid #3a3a60;margin:12px 0">
+
+            <div class="row">
+                <label>Новая игра</label>
+                <select id="lengthSelect"></select>
+                <input type="text" id="wordInput" placeholder="своё слово (пусто = случайное)" style="width:200px;text-align:left">
+                <button onclick="createGame()">▶ Создать</button>
+            </div>
+            <div class="row">
+                <label>Ручная попытка</label>
+                <input type="text" id="manualGuess" placeholder="слово" style="width:140px;text-align:left">
+                <input type="text" id="manualAuthor" placeholder="автор" style="width:130px;text-align:left">
+                <button class="ghost" onclick="sendManualGuess()">Отправить</button>
+                <button class="ghost" onclick="stopGame()">Остановить игру</button>
+            </div>
+            <div class="row">
+                <label>Счётчики</label>
+                <span class="badge" id="statsBadge">—</span>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #3a3a60;margin:12px 0">
+
+            <h4>👥 Пользователи Twitch <span class="count" id="usersCount"></span></h4>
+            <div class="row">
+                <label>Одобрить ник</label>
+                <input type="text" id="approveLoginInput" placeholder="ник из чата" style="width:150px;text-align:left">
+                <button class="ghost" onclick="approveLogin()">✅ Дать право</button>
+                <button class="ghost" onclick="loadUsers()">🔄 Обновить список</button>
+            </div>
+            <div id="usersBox"></div>
+        </details>
+    </details>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -248,6 +397,10 @@ const KEYBOARD_ROWS = [
     ['ф','ы','в','а','п','р','л','д','ж','э'],
     ['ё','я','ч','с','м','и','т','ь','б','ю']
 ];
+
+const CELL_MAX = 46;
+const CELL_MIN = 16;
+const CELL_GAP = 5;
 
 let dictionary = new Set();
 let singularDictionary = new Set();
@@ -263,6 +416,41 @@ let keyStates = {};
 /* 'cows' — быки и коровы, 'squares' — цветные квадраты */
 let displayMode = localStorage.getItem('wordle_display_mode') || 'cows';
 let keyboardVisible = false;
+
+/* ---------- Twitch ---------- */
+let serverUrl = localStorage.getItem('wordle_server_url') || defaultServerUrl();
+let sessionToken = localStorage.getItem('wordle_session') || '';
+let currentUser = null;
+let currentGame = null;
+let games = [];
+let adminKey = localStorage.getItem('wordle_admin_key') || '';
+
+function defaultServerUrl() {
+    if (location.port === '3123' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        return '';
+    }
+    return 'http://localhost:3123';
+}
+
+function apiUrl(path) {
+    return serverUrl.replace(/\/+$/, '') + path;
+}
+
+async function api(path, options) {
+    const opts = Object.assign({ headers: {} }, options || {});
+    opts.headers = Object.assign({}, opts.headers);
+    if (sessionToken) opts.headers['X-Session-Token'] = sessionToken;
+    if (adminKey) opts.headers['X-Admin-Key'] = adminKey;
+    if (opts.body && typeof opts.body !== 'string') {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(apiUrl(path), opts);
+    let data = {};
+    try { data = await res.json(); } catch (e) { data = {}; }
+    if (!res.ok) throw new Error(data.error || ('Ошибка ' + res.status));
+    return data;
+}
 
 /* ---------- Словари ---------- */
 async function loadDictionaries() {
@@ -306,6 +494,7 @@ function toggleMode() {
     displayMode = displayMode === 'cows' ? 'squares' : 'cows';
     localStorage.setItem('wordle_display_mode', displayMode);
     renderAll();
+    renderTwitchGame();
 }
 
 function toggleKeyboard() {
@@ -327,7 +516,7 @@ function updateModeButtons() {
     document.getElementById('keyboard').classList.toggle('hidden', !keyboardVisible);
 }
 
-/* ---------- Старт ---------- */
+/* ---------- Старт локальной игры ---------- */
 function startGame() {
     const startError = document.getElementById('startError');
     if (!dictionariesLoaded) {
@@ -403,23 +592,9 @@ function buildAttempt(guess, opts) {
     if (displayMode !== 'squares') {
         const cows = document.createElement('div');
         cows.className = 'cows';
-        if (!guess.bulls && !guess.cows) {
-            const none = document.createElement('span');
-            none.className = 'none';
-            none.textContent = '❌';
-            cows.appendChild(none);
-        } else {
-            if (guess.bulls) {
-                const b = document.createElement('span');
-                b.textContent = '🐂'.repeat(guess.bulls);
-                cows.appendChild(b);
-            }
-            if (guess.cows) {
-                const c = document.createElement('span');
-                c.textContent = '🐄'.repeat(guess.cows);
-                cows.appendChild(c);
-            }
-        }
+        cows.dataset.bulls = guess.bulls || 0;
+        cows.dataset.cows = guess.cows || 0;
+        renderCows(cows, false);
         row.appendChild(cows);
     }
 
@@ -440,6 +615,68 @@ function buildAttempt(guess, opts) {
     return row;
 }
 
+function renderCows(cows, compact) {
+    const bulls = Number(cows.dataset.bulls || 0);
+    const count = Number(cows.dataset.cows || 0);
+    cows.innerHTML = '';
+    if (!bulls && !count) {
+        const none = document.createElement('span');
+        none.className = 'none';
+        none.textContent = '❌';
+        cows.appendChild(none);
+        return;
+    }
+    if (bulls) cows.appendChild(cowSpan(bulls, '🐂', compact));
+    if (count) cows.appendChild(cowSpan(count, '🐄', compact));
+}
+
+/* Много смайликов не влезает — пишем количество и один смайлик: 3🐂 */
+function cowSpan(n, emoji, compact) {
+    const span = document.createElement('span');
+    span.textContent = compact ? n + emoji : emoji.repeat(n);
+    return span;
+}
+
+/* Ширина блока «быки и коровы»: если смайликов много, он станет компактным */
+function cowsWidth(guess) {
+    const n = (guess.bulls || 0) + (guess.cows || 0);
+    if (!n) return 26;                    /* ❌ */
+    if (n <= 2) return n * 24 + 6;        /* смайлики целиком */
+    return 74;                            /* компактный вид «N🐂 N🐄» */
+}
+
+/* Подбор размера плиток: отгадки всегда влезают в отведённое место */
+function fitCells(container, items, opts) {
+    const options = opts || {};
+    let maxLen = 0;
+    let maxCows = 0;
+    (items || []).forEach(g => {
+        maxLen = Math.max(maxLen, (g.word || '').length);
+        maxCows = Math.max(maxCows, cowsWidth(g));
+    });
+    if (!maxLen) {
+        container.style.removeProperty('--cell');
+        return;
+    }
+    /* Место под номер (#1), отступы строки, отступы и блок «быки и коровы» */
+    const reserve = (options.reserve || 0) + 16 + 26 + maxCows;
+    const avail = (container.clientWidth || 600) - reserve;
+    let size = Math.floor((avail - CELL_GAP * (maxLen - 1)) / maxLen);
+    size = Math.max(CELL_MIN, Math.min(CELL_MAX, size));
+    container.style.setProperty('--cell', size + 'px');
+}
+
+/* Если смайлики не влезают — заменяем их на «3🐂» */
+function compactOverflowingCows(container) {
+    container.querySelectorAll('.attempt').forEach(row => {
+        const cows = row.querySelector('.cows');
+        if (!cows || cows.dataset.compact === '1') return;
+        if (row.scrollWidth <= row.clientWidth + 1) return;
+        cows.dataset.compact = '1';
+        renderCows(cows, true);
+    });
+}
+
 /* ---------- Панели ---------- */
 function renderCurrentGuess() {
     const box = document.getElementById('currentGuess');
@@ -451,28 +688,34 @@ function renderCurrentGuess() {
         tile.textContent = guessInput().value[i] || '';
         box.appendChild(tile);
     }
+    fitCells(box, [{ word: 'x'.repeat(wordLength) }], { reserve: 0 });
 }
 
 function renderList(container, items, opts) {
+    const options = opts || {};
     container.innerHTML = '';
     if (!items.length) {
         const note = document.createElement('div');
         note.className = 'empty-note';
         note.textContent = 'Пока нет попыток';
         container.appendChild(note);
+        container.style.removeProperty('--cell');
         return;
     }
     items.forEach((g, i) => {
-        container.appendChild(buildAttempt(g, Object.assign({ rank: opts.withRank ? i + 1 : null }, opts)));
+        container.appendChild(buildAttempt(g, Object.assign(
+            { rank: options.withRank ? i + 1 : null }, options)));
     });
+    fitCells(container, items, { reserve: options.reserve || 0 });
+    compactOverflowingCows(container);
 }
 
 function renderPanels() {
     const best = Core.rankBest(guesses, 5);
     const last = Core.lastGuesses(guesses, 10);
-    renderList(document.getElementById('bestList'), best, { withRank: true });
-    renderList(document.getElementById('lastList'), last, { withRank: false });
-    renderList(document.getElementById('allList'), guesses.slice().reverse(), { withRank: false, small: true });
+    renderList(document.getElementById('bestList'), best, { withRank: true, reserve: 22 });
+    renderList(document.getElementById('lastList'), last, { withRank: false, reserve: 0 });
+    renderList(document.getElementById('allList'), guesses.slice().reverse(), { withRank: false, small: true, reserve: 0 });
 }
 
 /* ---------- Клавиатура ---------- */
@@ -624,6 +867,417 @@ function toast(msg, isError) {
     el._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
 }
 
+/* =========================================================
+   Twitch: вход, общая игра, админ-панель
+   ========================================================= */
+
+function twitchError(msg) {
+    document.getElementById('twitchError').textContent = msg || '';
+}
+
+function renderTwitchUser() {
+    const badge = document.getElementById('twitchUserBadge');
+    const logout = document.getElementById('logoutBtn');
+    if (!currentUser) {
+        badge.textContent = 'не авторизован';
+        badge.className = 'badge';
+        logout.classList.add('hidden');
+        return;
+    }
+    badge.textContent = currentUser.displayName + (currentUser.approved ? ' — доступ есть' : ' — ждёт одобрения');
+    badge.className = currentUser.approved ? 'badge ok' : 'badge warn';
+    logout.classList.remove('hidden');
+}
+
+async function twitchLogin() {
+    twitchError('');
+    try {
+        const cfg = await api('/api/auth/twitch');
+        if (!cfg.enabled) {
+            twitchError('Вход через Twitch не настроен: админ должен указать Client ID в админ-панели');
+            return;
+        }
+        const state = Math.random().toString(36).slice(2);
+        sessionStorage.setItem('twitch_oauth_state', state);
+        const params = new URLSearchParams({
+            client_id: cfg.clientId,
+            redirect_uri: cfg.redirectUri,
+            response_type: 'token',
+            scope: 'openid user:read:email',
+            state: state
+        });
+        location.href = 'https://id.twitch.tv/oauth2/authorize?' + params.toString();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function handleTwitchCallback() {
+    const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const token = params.get('access_token');
+    if (!token) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+        const data = await api('/api/auth/twitch/login', {
+            method: 'POST',
+            body: { accessToken: token }
+        });
+        sessionToken = data.token;
+        localStorage.setItem('wordle_session', sessionToken);
+        currentUser = data.user;
+        renderTwitchUser();
+        toast('Вход выполнен: ' + currentUser.displayName);
+        if (!currentUser.approved) {
+            twitchError('Вы вошли, но доступ ещё не выдан. Админ должен одобрить вас в панели сервера.');
+        }
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function twitchLogout() {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+    sessionToken = '';
+    currentUser = null;
+    localStorage.removeItem('wordle_session');
+    renderTwitchUser();
+}
+
+function saveServerUrl() {
+    serverUrl = document.getElementById('serverUrlInput').value.trim().replace(/\/+$/, '');
+    localStorage.setItem('wordle_server_url', serverUrl);
+    connectEvents();
+    initTwitch();
+    toast('Адрес сервера сохранён');
+}
+
+/* ---------- Общая игра (живая доска) ---------- */
+function connectEvents() {
+    if (typeof EventSource === 'undefined') return;
+    if (window._twitchSource) {
+        window._twitchSource.close();
+        window._twitchSource = null;
+    }
+    const badge = document.getElementById('twitchSseBadge');
+    let source;
+    try {
+        source = new EventSource(apiUrl('/api/events'));
+    } catch (e) {
+        badge.textContent = 'сервер: недоступен';
+        badge.className = 'badge bad';
+        return;
+    }
+    window._twitchSource = source;
+
+    source.addEventListener('open', () => {
+        badge.textContent = 'сервер: ✔';
+        badge.className = 'badge ok';
+    });
+    source.addEventListener('error', () => {
+        badge.textContent = 'сервер: переподключение…';
+        badge.className = 'badge bad';
+    });
+    source.addEventListener('hello', e => {
+        games = (JSON.parse(e.data).games || []);
+        renderGameList();
+    });
+    source.addEventListener('games', e => {
+        games = JSON.parse(e.data) || [];
+        renderGameList();
+    });
+    source.addEventListener('game', e => {
+        const game = JSON.parse(e.data);
+        const idx = games.findIndex(g => g.id === game.id);
+        const summary = {
+            id: game.id, channel: game.channel, length: game.length, status: game.status,
+            attempts: game.attempts, maxAttempts: game.maxAttempts, authMode: game.authMode,
+            createdAt: game.createdAt, winner: game.winner
+        };
+        if (idx === -1) games.unshift(summary); else games[idx] = summary;
+        renderGameList();
+        if (!currentGame || currentGame.id === game.id) {
+            currentGame = game;
+            renderTwitchGame();
+        }
+    });
+}
+
+function renderGameList() {
+    const active = games.find(g => g.status === 'active');
+    const wanted = currentGame || active || games[0];
+    if (!wanted) return;
+    if (!currentGame || currentGame.id !== wanted.id) {
+        loadGame(wanted.id);
+    }
+}
+
+async function loadGame(id) {
+    try {
+        const data = await api('/api/games/' + id);
+        currentGame = data.game;
+        renderTwitchGame();
+    } catch (e) { /* игра могла быть удалена */ }
+}
+
+function renderTwitchGame() {
+    const status = document.getElementById('twitchStatus');
+    const win = document.getElementById('twitchWin');
+
+    if (!currentGame) {
+        status.textContent = 'Активной игры пока нет — создайте её в админ-панели';
+        win.textContent = '';
+        renderList(document.getElementById('twBestList'), [], {});
+        renderList(document.getElementById('twLastList'), [], {});
+        renderList(document.getElementById('twAllList'), [], { small: true });
+        return;
+    }
+
+    const g = currentGame;
+    status.innerHTML =
+        `Канал: <b>#${g.channel || '—'}</b> · Длина: <b>${g.length}</b> · ` +
+        `Попыток: <b>${g.attempts}</b> · Статус: <b>${g.status}</b>`;
+
+    if (g.status === 'solved') {
+        win.textContent = `🎉 Слово: ${g.word}` + (g.winner ? ` — угадал ${g.winner}` : '');
+        win.className = 'win ok';
+    } else if (g.status === 'failed') {
+        win.textContent = `❌ Попытки кончились. Слово: ${g.word}`;
+        win.className = 'win fail';
+    } else if (g.status === 'stopped') {
+        win.textContent = `⏹ Игра остановлена. Слово: ${g.word}`;
+        win.className = 'win';
+    } else {
+        win.textContent = '';
+    }
+
+    document.getElementById('twBestCount').textContent = g.best ? `(${g.best.length})` : '';
+    document.getElementById('twLastCount').textContent = g.last ? `(${g.last.length})` : '';
+    document.getElementById('twAllCount').textContent = g.guesses ? `(${g.guesses.length})` : '';
+
+    renderList(document.getElementById('twBestList'), g.best || [], { withRank: true, reserve: 112 });
+    renderList(document.getElementById('twLastList'), g.last || [], { withRank: false, reserve: 90 });
+    renderList(document.getElementById('twAllList'), (g.guesses || []).slice().reverse(), { small: true, reserve: 90 });
+}
+
+async function twitchGuess() {
+    const input = document.getElementById('twitchGuessInput');
+    const text = input.value.trim();
+    twitchError('');
+    if (!currentGame) return twitchError('Нет активной игры');
+    if (!currentUser) return twitchError('Сначала войдите через Twitch');
+    if (!currentUser.approved) return twitchError('Доступ ещё не выдан: дождитесь одобрения админом');
+    if (!text) return twitchError('Введите слово');
+    try {
+        const data = await api('/api/games/' + currentGame.id + '/guess', {
+            method: 'POST',
+            body: { text: text }
+        });
+        currentGame = data.game;
+        input.value = '';
+        renderTwitchGame();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+/* ---------- Админ-панель ---------- */
+function saveKey() {
+    adminKey = document.getElementById('adminKeyInput').value.trim();
+    localStorage.setItem('wordle_admin_key', adminKey);
+    document.getElementById('keyState').textContent = adminKey ? 'ключ сохранён' : '';
+    loadUsers();
+}
+
+async function connectTwitch() {
+    twitchError('');
+    try {
+        await api('/api/twitch/connect', {
+            method: 'POST',
+            body: {
+                channel: document.getElementById('channelInput').value.trim(),
+                nickname: document.getElementById('nickInput').value.trim(),
+                oauthToken: document.getElementById('tokenInput').value.trim(),
+                clientId: document.getElementById('clientIdInput').value.trim(),
+                redirectUri: document.getElementById('redirectUriInput').value.trim(),
+                authMode: document.getElementById('authSelect').value
+            }
+        });
+        toast('Twitch подключён');
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function createGame() {
+    twitchError('');
+    try {
+        const body = {
+            channel: document.getElementById('channelInput').value.trim(),
+            length: Number(document.getElementById('lengthSelect').value),
+            word: document.getElementById('wordInput').value.trim(),
+            authMode: document.getElementById('authSelect').value
+        };
+        const data = await api('/api/games', { method: 'POST', body: body });
+        currentGame = data.game;
+        renderTwitchGame();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function sendManualGuess() {
+    twitchError('');
+    if (!currentGame) return twitchError('Игра не выбрана');
+    try {
+        const data = await api('/api/games/' + currentGame.id + '/guess', {
+            method: 'POST',
+            body: {
+                text: document.getElementById('manualGuess').value.trim(),
+                author: document.getElementById('manualAuthor').value.trim() || 'ручной ввод'
+            }
+        });
+        currentGame = data.game;
+        document.getElementById('manualGuess').value = '';
+        renderTwitchGame();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function stopGame() {
+    twitchError('');
+    if (!currentGame) return twitchError('Игра не выбрана');
+    try {
+        const data = await api('/api/games/' + currentGame.id + '/stop', { method: 'POST' });
+        currentGame = data.game;
+        renderTwitchGame();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+/* ---------- Список пользователей и одобрение ---------- */
+function renderUsers(list) {
+    const box = document.getElementById('usersBox');
+    box.innerHTML = '';
+    document.getElementById('usersCount').textContent = `(${list.length})`;
+    if (!list.length) {
+        const note = document.createElement('div');
+        note.className = 'empty-note';
+        note.textContent = 'Пока никто не входил через Twitch';
+        box.appendChild(note);
+        return;
+    }
+    const table = document.createElement('table');
+    table.className = 'users-table';
+    table.innerHTML = '<tr><th>Ник</th><th>Имя</th><th>Право</th><th>Последний вход</th><th></th></tr>';
+    list.forEach(u => {
+        const tr = document.createElement('tr');
+        const when = u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleString('ru-RU') : '—';
+        tr.innerHTML =
+            `<td>${escapeHtml(u.login || u.id)}</td>` +
+            `<td>${escapeHtml(u.displayName || '')}</td>` +
+            `<td class="${u.approved ? 'user-yes' : 'user-no'}">${u.approved ? 'есть' : 'нет'}</td>` +
+            `<td>${escapeHtml(when)}</td>`;
+        const td = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = u.approved ? 'ghost' : '';
+        btn.textContent = u.approved ? 'Забрать' : 'Дать право';
+        btn.onclick = () => setApproved(u.id, !u.approved);
+        td.appendChild(btn);
+        tr.appendChild(td);
+        table.appendChild(tr);
+    });
+    box.appendChild(table);
+}
+
+function escapeHtml(text) {
+    return String(text == null ? '' : text).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+async function loadUsers() {
+    if (!adminKey) return;
+    try {
+        const data = await api('/api/admin/users');
+        renderUsers(data.users || []);
+    } catch (e) {
+        document.getElementById('usersBox').innerHTML =
+            `<div class="error">${escapeHtml(e.message)}</div>`;
+    }
+}
+
+async function setApproved(id, approved) {
+    try {
+        await api('/api/admin/users/approve', { method: 'POST', body: { id: id, approved: approved } });
+        await loadUsers();
+        await refreshMe();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function approveLogin() {
+    const login = document.getElementById('approveLoginInput').value.trim();
+    if (!login) return;
+    try {
+        await api('/api/admin/users/approve', { method: 'POST', body: { login: login, approved: true } });
+        document.getElementById('approveLoginInput').value = '';
+        await loadUsers();
+    } catch (e) {
+        twitchError(e.message);
+    }
+}
+
+async function refreshMe() {
+    if (!sessionToken) { currentUser = null; renderTwitchUser(); return; }
+    try {
+        const data = await api('/api/auth/me');
+        currentUser = data.user;
+    } catch (e) {
+        currentUser = null;
+        sessionToken = '';
+        localStorage.removeItem('wordle_session');
+    }
+    renderTwitchUser();
+}
+
+/* ---------- Инициализация Twitch-части ---------- */
+async function initTwitch() {
+    document.getElementById('serverUrlInput').value = serverUrl;
+    document.getElementById('adminKeyInput').value = adminKey;
+    document.getElementById('keyState').textContent = adminKey ? 'ключ сохранён' : '';
+
+    await refreshMe();
+
+    try {
+        const cfg = await api('/api/config');
+        document.getElementById('channelInput').value = cfg.channel || '';
+        document.getElementById('nickInput').value = cfg.nickname || '';
+        document.getElementById('redirectUriInput').value = cfg.redirectUri || location.href.split('#')[0];
+        document.getElementById('authSelect').value = cfg.authMode || 'approved';
+        const select = document.getElementById('lengthSelect');
+        select.innerHTML = '';
+        for (let i = 3; i <= (cfg.maxLength || 12); i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i + ' букв';
+            if (i === (cfg.defaultLength || 5)) opt.selected = true;
+            select.appendChild(opt);
+        }
+    } catch (e) {
+        document.getElementById('twitchSseBadge').textContent = 'сервер: недоступен';
+        document.getElementById('twitchSseBadge').className = 'badge bad';
+        return;
+    }
+
+    connectEvents();
+    if (adminKey) loadUsers();
+}
+
 /* ---------- Клавиатура (аппаратная) ---------- */
 document.addEventListener('keydown', e => {
     if (document.getElementById('gamePanel').classList.contains('hidden')) return;
@@ -653,8 +1307,15 @@ guessInput().addEventListener('keydown', e => {
 });
 
 document.getElementById('lengthInput').addEventListener('input', renderLengthEmojis);
+document.getElementById('twitchDetails').addEventListener('toggle', renderTwitchGame);
+window.addEventListener('resize', () => {
+    renderPanels();
+    renderTwitchGame();
+});
 updateModeButtons();
 loadDictionaries();
+initTwitch();
+handleTwitchCallback();
 </script>
 </body>
 </html>
