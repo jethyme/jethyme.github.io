@@ -102,20 +102,11 @@ input:focus { outline: 2px solid #5865f2; }
     80% { transform: translateX(4px); }
 }
 
-/* Буква и её квадрат — одной парой, пары идут подряд */
-.cells { display: flex; gap: 10px; align-items: center; }
-.pair { display: flex; gap: 3px; align-items: center; }
-.sq {
-    width: var(--cell-panel);
-    height: var(--cell-panel);
-    border-radius: 5px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700; text-transform: lowercase;
-}
-.sq.correct { background: var(--bg-correct); }
-.sq.present { background: var(--bg-present); }
-.sq.absent { background: var(--bg-absent); }
-.sq.small { width: 20px; height: 20px; font-size: 11px; border-radius: 3px; }
+/* Режим «цветные квадраты»: сама плитка с буквой становится цветной */
+.cells { display: flex; gap: 5px; align-items: center; }
+.tile.correct { background: var(--bg-correct); border-color: var(--bg-correct); }
+.tile.present { background: var(--bg-present); border-color: var(--bg-present); }
+.tile.absent { background: var(--bg-absent); border-color: var(--bg-absent); }
 
 /* Быки и коровы */
 .cows {
@@ -168,7 +159,6 @@ details summary { cursor: pointer; font-size: 14px; color: #cfcfdf; }
 @media (max-width: 700px) {
     :root { --cell-size: 40px; --cell-panel: 34px; }
     .tile { font-size: 18px; }
-    .sq { font-size: 16px; }
     .cows { font-size: 17px; gap: 6px; }
     .key { min-width: 26px; height: 42px; font-size: 13px; padding: 0 5px; }
     .key.wide { min-width: 46px; }
@@ -395,23 +385,17 @@ function buildAttempt(guess, opts) {
     const tileSize = options.small ? 'tile small' : 'tile';
     const marks = guess.marks || [];
     for (let i = 0; i < guess.word.length; i++) {
-        const pair = document.createElement('div');
-        pair.className = 'pair';
-
         const tile = document.createElement('div');
         tile.className = tileSize;
         tile.textContent = guess.word[i];
-        pair.appendChild(tile);
 
-        /* Квадрат — прямо за своей буквой */
+        /* В режиме квадратов сама плитка с буквой становится цветной */
         if (displayMode === 'squares') {
             const mark = marks[i];
-            const sq = document.createElement('div');
             const markValue = typeof mark === 'string' ? mark : (mark && mark.mark);
-            sq.className = 'sq' + (options.small ? ' small' : '') + ' ' + markValue;
-            pair.appendChild(sq);
+            if (markValue) tile.className += ' ' + markValue;
         }
-        cells.appendChild(pair);
+        cells.appendChild(tile);
     }
     row.appendChild(cells);
 
