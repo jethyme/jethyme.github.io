@@ -79,7 +79,9 @@ button.danger { background: #b3403f; }
     padding: 8px; border-radius: 10px; background: #2b2b47;
     margin-bottom: 8px;
 }
-.attempt .letters { display: flex; gap: 5px; }
+/* Буква и её квадрат — одной парой, пары идут подряд */
+.cells { display: flex; gap: 10px; align-items: center; }
+.pair { display: flex; gap: 3px; align-items: center; }
 .tile {
     width: var(--cell-size); height: var(--cell-size);
     display: flex; align-items: center; justify-content: center;
@@ -88,8 +90,7 @@ button.danger { background: #b3403f; }
 }
 .tile.small { width: 28px; height: 28px; font-size: 14px; border-width: 1px; }
 
-/* Цветные квадраты — сразу за буквами */
-.squares { display: flex; gap: 5px; }
+/* Цветные квадраты — сразу за своей буквой */
 .sq {
     width: var(--cell-size); height: var(--cell-size);
     border-radius: 5px; display: flex; align-items: center; justify-content: center;
@@ -388,27 +389,32 @@ function buildAttempt(guess, opts) {
         row.appendChild(rank);
     }
 
-    const letters = document.createElement('div');
-    letters.className = 'letters';
+    const cells = document.createElement('div');
+    cells.className = 'cells';
     const tileClass = options.small ? 'tile small' : 'tile';
+    const marks = guess.marks || [];
     for (let i = 0; i < guess.word.length; i++) {
+        const pair = document.createElement('div');
+        pair.className = 'pair';
+
         const tile = document.createElement('div');
         tile.className = tileClass;
         tile.textContent = guess.word[i];
-        letters.appendChild(tile);
-    }
-    row.appendChild(letters);
+        pair.appendChild(tile);
 
-    if (displayMode === 'squares') {
-        const squares = document.createElement('div');
-        squares.className = 'squares';
-        (guess.marks || []).forEach(mark => {
+        /* Квадрат — прямо за своей буквой */
+        if (displayMode === 'squares') {
+            const mark = marks[i];
             const sq = document.createElement('div');
             sq.className = 'sq' + (options.small ? ' small' : '') + ' ' + mark;
-            squares.appendChild(sq);
-        });
-        row.appendChild(squares);
-    } else {
+            pair.appendChild(sq);
+        }
+        cells.appendChild(pair);
+    }
+    row.appendChild(cells);
+
+    /* Быки и коровы — общий итог попытки */
+    if (displayMode !== 'squares') {
         const cows = document.createElement('div');
         cows.className = 'cows';
         if (!guess.bulls && !guess.cows) {
